@@ -113,7 +113,7 @@ export const CartDrawer = () => {
         </div>
 
         {/* Body */}
-        <div className="sheet-body" style={{ padding: '16px' }}>
+        <div className="sheet-body" style={{ padding: '16px', overflowX: 'hidden', width: '100%', boxSizing: 'border-box' }}>
           {cart.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 20px' }}>
               <div style={{ fontSize: '42px', marginBottom: '12px', opacity: 0.35 }}>
@@ -205,7 +205,7 @@ export const CartDrawer = () => {
               )}
 
               {/* Items List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px', width: '100%' }}>
                 {cart.map((item) => {
                   const price = item.product.discountPrice ?? item.product.price;
                   return (
@@ -220,9 +220,12 @@ export const CartDrawer = () => {
                         border: '1px solid #E5E7EB',
                         borderRadius: '10px',
                         gap: '10px',
+                        minWidth: 0,
+                        width: '100%',
+                        boxSizing: 'border-box',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
                         <div style={{ position: 'relative', width: '44px', height: '44px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, backgroundColor: '#F9FAFB' }}>
                           <Image
                             src={item.product.imageUrl}
@@ -232,8 +235,8 @@ export const CartDrawer = () => {
                             style={{ objectFit: 'cover' }}
                           />
                         </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '13px', color: '#1F2937', lineHeight: 1.3 }}>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: '13px', color: '#1F2937', lineHeight: 1.3, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                             {item.product.name}
                           </div>
                           <div style={{ fontSize: '13px', fontWeight: 800, color: '#5D3EBC', marginTop: '2px' }}>
@@ -242,7 +245,7 @@ export const CartDrawer = () => {
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#F3F0FE', borderRadius: '6px', padding: '2px' }}>
                           <button
                             type="button"
@@ -284,6 +287,8 @@ export const CartDrawer = () => {
                     borderRadius: '12px',
                     padding: '12px',
                     marginBottom: '16px',
+                    width: '100%',
+                    boxSizing: 'border-box',
                   }}
                 >
                   <div
@@ -303,8 +308,10 @@ export const CartDrawer = () => {
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                       gap: '8px',
+                      width: '100%',
+                      boxSizing: 'border-box',
                     }}
                   >
                     {quickUpsells.map((prod) => (
@@ -319,6 +326,8 @@ export const CartDrawer = () => {
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           gap: '6px',
+                          minWidth: 0,
+                          boxSizing: 'border-box',
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
@@ -341,7 +350,7 @@ export const CartDrawer = () => {
                               style={{ objectFit: 'cover' }}
                             />
                           </div>
-                          <div style={{ minWidth: 0 }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
                             <div
                               style={{
                                 fontSize: '11px',
@@ -451,10 +460,10 @@ export const CartDrawer = () => {
                       Değiştir
                     </button>
                   </div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#1F2937' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#1F2937', wordBreak: 'break-word' }}>
                     {selectedAddress.title}
                   </div>
-                  <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                  <div style={{ fontSize: '12px', color: '#6B7280', wordBreak: 'break-word' }}>
                     {selectedAddress.type === 'dormitory'
                       ? `${selectedAddress.dormName} (${selectedAddress.district})`
                       : `${selectedAddress.fullAddress || selectedAddress.district}`}
@@ -463,9 +472,9 @@ export const CartDrawer = () => {
               )}
 
               {/* Payment Method */}
-              <div style={{ marginBottom: '14px' }}>
+              <div style={{ marginBottom: '14px', width: '100%', boxSizing: 'border-box' }}>
                 <label className="form-label">Ödeme Yöntemi (Kapıda)</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', width: '100%', boxSizing: 'border-box' }}>
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('cash_at_door')}
@@ -482,6 +491,7 @@ export const CartDrawer = () => {
                       alignItems: 'center',
                       gap: '4px',
                       cursor: 'pointer',
+                      minWidth: 0,
                     }}
                   >
                     <Banknote size={20} />
@@ -503,6 +513,7 @@ export const CartDrawer = () => {
                       alignItems: 'center',
                       gap: '4px',
                       cursor: 'pointer',
+                      minWidth: 0,
                     }}
                   >
                     <CreditCard size={20} />

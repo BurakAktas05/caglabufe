@@ -83,7 +83,18 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
         }}
       >
         {/* Status Filters */}
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px', maxWidth: '100%' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '6px',
+            overflowX: 'auto',
+            paddingBottom: '4px',
+            width: '100%',
+            maxWidth: '100%',
+            scrollbarWidth: 'none',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
           {(['all', 'pending', 'preparing', 'on_the_way', 'delivered'] as const).map((f) => {
             const count =
               f === 'all'
@@ -104,7 +115,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                 type="button"
                 onClick={() => onFilterChange(f)}
                 style={{
-                  padding: '7px 14px',
+                  padding: '7px 12px',
                   borderRadius: '20px',
                   fontSize: '12px',
                   fontWeight: 800,
@@ -115,7 +126,8 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                   whiteSpace: 'nowrap',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '5px',
+                  flexShrink: 0,
                 }}
               >
                 <span>
@@ -142,7 +154,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
         </div>
 
         {/* Quick Search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px', flex: '1 1 220px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, width: '100%', flex: '1 1 200px' }}>
           <div
             style={{
               display: 'flex',
