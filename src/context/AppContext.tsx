@@ -24,6 +24,7 @@ import {
   getZoneForAddress,
   calculateDeliveryForZone,
   calculateCampaignDiscount,
+  evaluateSingleBestCampaign,
   hasActiveFreeDeliveryCampaign,
   isStoreOpen,
   formatTemplate,
@@ -57,6 +58,9 @@ interface AppContextType {
   deliveryFee: number;
   discountAmount: number;
   appliedCampaignTitle: string | null;
+  appliedCampaignDescription?: string | null;
+  isFreeDeliveryCampaign?: boolean;
+  isBundleCampaignApplied?: boolean;
   finalTotal: number;
 
   // Products & Dynamic Settings
@@ -578,25 +582,37 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const minOrderAmount = zoneCalc.minOrder;
   const freeDeliveryThreshold = zoneCalc.freeThreshold;
 
-  // Campaign discount
-  const campaignResult = useMemo(() => {
+  // Single Campaign Rule: Evaluate exactly one best campaign across discount, free delivery or bundle
+  const singleCampaignResult = useMemo(() => {
+    const hasBundle = cart.some(
+      (c) => c.product.id.startsWith('bundle_') || Boolean(c.product.campaignId)
+    );
     const items = cart.map((c) => ({
       productId: c.product.id,
       category: c.product.category,
       quantity: c.quantity,
       price: c.product.discountPrice ?? c.product.price,
     }));
-    return calculateCampaignDiscount(cartTotal, items);
-  }, [cart, cartTotal]);
+    return evaluateSingleBestCampaign({
+      cartTotal,
+      cartItems: items,
+      hasBundle,
+      standardDeliveryFee: zoneCalc.deliveryFee,
+      isZoneAlreadyFree: cartTotal >= freeDeliveryThreshold || cartTotal === 0,
+    });
+  }, [cart, cartTotal, zoneCalc.deliveryFee, freeDeliveryThreshold]);
 
-  const discountAmount = campaignResult.discountAmount;
-  const appliedCampaignTitle = campaignResult.campaignTitle;
+  const discountAmount = singleCampaignResult.discountAmount;
+  const appliedCampaignTitle = singleCampaignResult.appliedCampaignTitle;
+  const appliedCampaignDescription = singleCampaignResult.campaignDescription;
+  const isFreeDeliveryCampaign = singleCampaignResult.isFreeDeliveryCampaign;
+  const isBundleCampaignApplied = singleCampaignResult.isBundleApplied;
 
-  // Free delivery campaign override
-  const hasFreeDelivery = hasActiveFreeDeliveryCampaign();
-  const deliveryFee = hasFreeDelivery
-    ? 0
-    : (cartTotal >= freeDeliveryThreshold || cartTotal === 0 ? 0 : zoneCalc.deliveryFee);
+  // Delivery fee: Free if standard zone threshold is reached OR if winning campaign is free_delivery!
+  const deliveryFee =
+    cartTotal === 0 || cartTotal >= freeDeliveryThreshold || isFreeDeliveryCampaign
+      ? 0
+      : zoneCalc.deliveryFee;
 
   const rawFinal = cartTotal + deliveryFee - discountAmount;
   const finalTotal = cartTotal > 0 ? Math.max(0, Math.round(rawFinal * 100) / 100) : 0;
@@ -804,7 +820,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       totalAmount: cartTotal,
       deliveryFee,
       discountAmount: discountAmount > 0 ? discountAmount : undefined,
-      appliedCampaignId: campaignResult.campaignId || undefined,
+      appliedCampaignId: singleCampaignResult.appliedCampaignId || undefined,
       finalAmount: finalTotal,
       address: safeAddress,
       paymentMethod,
@@ -874,7 +890,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       value={{
         cart, addToCart, removeFromCart, deleteItemFromCart, clearCart, reorderItems,
         cartTotal, itemCount, minOrderAmount, freeDeliveryThreshold,
-        deliveryFee, discountAmount, appliedCampaignTitle, finalTotal,
+        deliveryFee, discountAmount, appliedCampaignTitle,
+        appliedCampaignDescription, isFreeDeliveryCampaign, isBundleCampaignApplied,
+        finalTotal,
         products, refreshProducts, systemSettings,
         user, loginUser, logoutUser,
         addresses, selectedAddress, saveNewAddress, deleteAddress, setSelectedAddressId,

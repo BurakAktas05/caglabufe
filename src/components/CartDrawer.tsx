@@ -31,6 +31,9 @@ export const CartDrawer = () => {
     deliveryFee,
     discountAmount,
     appliedCampaignTitle,
+    appliedCampaignDescription,
+    isFreeDeliveryCampaign,
+    isBundleCampaignApplied,
     finalTotal,
     minOrderAmount,
     freeDeliveryThreshold,
@@ -160,25 +163,96 @@ export const CartDrawer = () => {
                 </div>
               </div>
 
-              {/* Campaign discount banner */}
+              {/* Single Campaign Banner */}
               {discountAmount > 0 && appliedCampaignTitle && (
                 <div
                   style={{
                     backgroundColor: '#ECFDF5',
-                    border: '1px solid #A7F3D0',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
+                    border: '1.5px solid #A7F3D0',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: '#065F46' }}>
+                      <Tag size={15} style={{ flexShrink: 0 }} />
+                      <span>{appliedCampaignTitle}</span>
+                    </div>
+                    <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669', backgroundColor: '#D1FAE5', padding: '2px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                      -{discountAmount.toFixed(2)} TL
+                    </span>
+                  </div>
+                  {appliedCampaignDescription && (
+                    <div style={{ fontSize: '11px', color: '#047857', opacity: 0.9, lineHeight: 1.35 }}>
+                      {appliedCampaignDescription}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '10px', color: '#059669', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <span>•</span>
+                    <span>Aynı anda sadece 1 kampanya kullanılabilir (En avantajlı kampanya seçildi).</span>
+                  </div>
+                </div>
+              )}
+
+              {isFreeDeliveryCampaign && appliedCampaignTitle && (
+                <div
+                  style={{
+                    backgroundColor: '#F0FDF4',
+                    border: '1.5px solid #BBF7D0',
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    marginBottom: '14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 800, color: '#15803D' }}>
+                      <Tag size={15} style={{ flexShrink: 0 }} />
+                      <span>{appliedCampaignTitle}</span>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 900, color: '#15803D', backgroundColor: '#DCFCE7', padding: '2px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                      ÜCRETSİZ TESLİMAT
+                    </span>
+                  </div>
+                  {appliedCampaignDescription && (
+                    <div style={{ fontSize: '11px', color: '#166534', opacity: 0.9, lineHeight: 1.35 }}>
+                      {appliedCampaignDescription}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '10px', color: '#15803D', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                    <span>•</span>
+                    <span>Aynı anda sadece 1 kampanya kullanılabilir.</span>
+                  </div>
+                </div>
+              )}
+
+              {isBundleCampaignApplied && (
+                <div
+                  style={{
+                    backgroundColor: '#FEF2F2',
+                    border: '1.5px solid #FECDD3',
+                    borderRadius: '10px',
+                    padding: '9px 12px',
                     marginBottom: '14px',
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                     gap: '8px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#065F46',
                   }}
                 >
-                  <Tag size={15} style={{ flexShrink: 0 }} />
-                  <span>{appliedCampaignTitle}: -{discountAmount.toFixed(2)} TL indirim</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, color: '#991B1B' }}>
+                    <Flame size={15} color="#DC2626" style={{ flexShrink: 0 }} />
+                    <span>Fırsat Paketi (Kombin Menü) uygulandı</span>
+                  </div>
+                  <span style={{ fontSize: '10px', color: '#DC2626', fontWeight: 700, backgroundColor: '#FEE2E2', padding: '2px 6px', borderRadius: '4px' }}>
+                    Tek Kampanya
+                  </span>
                 </div>
               )}
 
@@ -594,12 +668,12 @@ export const CartDrawer = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280', marginBottom: '6px' }}>
                   <span>Teslimat Ücreti</span>
                   <span style={{ fontWeight: 600, color: deliveryFee === 0 ? '#10B981' : '#1F2937' }}>
-                    {deliveryFee === 0 ? 'ÜCRETSİZ' : `${deliveryFee.toFixed(2)} TL`}
+                    {deliveryFee === 0 ? (isFreeDeliveryCampaign ? 'ÜCRETSİZ (Kampanya)' : 'ÜCRETSİZ') : `${deliveryFee.toFixed(2)} TL`}
                   </span>
                 </div>
                 {discountAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#10B981', marginBottom: '6px' }}>
-                    <span>İndirim</span>
+                    <span>İndirim {appliedCampaignTitle ? `(${appliedCampaignTitle})` : ''}</span>
                     <span style={{ fontWeight: 700 }}>-{discountAmount.toFixed(2)} TL</span>
                   </div>
                 )}

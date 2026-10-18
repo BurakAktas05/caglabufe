@@ -902,28 +902,86 @@ export function calculateDeliveryForZone(
   };
 }
 
-// --- CAMPAIGN DISCOUNT CALCULATION ---
+// --- CAMPAIGN EVALUATION & DISCOUNT (SINGLE CAMPAIGN ENFORCEMENT) ---
 
-export function calculateCampaignDiscount(
-  cartTotal: number,
-  cartItems: { productId: string; category: string; quantity: number; price: number }[]
-): { discountAmount: number; campaignId: string | null; campaignTitle: string | null } {
-  const activeCampaigns = getActiveCampaigns();
-  if (activeCampaigns.length === 0) {
-    return { discountAmount: 0, campaignId: null, campaignTitle: null };
+export interface SingleCampaignEvaluationResult {
+  appliedCampaignId: string | null;
+  appliedCampaignTitle: string | null;
+  discountAmount: number;
+  isFreeDeliveryCampaign: boolean;
+  benefitAmount: number;
+  campaignDescription?: string | null;
+  isBundleApplied?: boolean;
+}
+
+/**
+ * Calculates the single best applicable campaign for an order.
+ * CRITICAL RULE: Exactly ONE campaign can be used per order at any time.
+ * Campaigns are never stacked or combined.
+ */
+export function evaluateSingleBestCampaign({
+  cartTotal,
+  cartItems,
+  hasBundle = false,
+  standardDeliveryFee = 0,
+  isZoneAlreadyFree = false,
+}: {
+  cartTotal: number;
+  cartItems: { productId: string; category: string; quantity: number; price: number }[];
+  hasBundle?: boolean;
+  standardDeliveryFee?: number;
+  isZoneAlreadyFree?: boolean;
+}): SingleCampaignEvaluationResult {
+  // If the cart contains a bundle deal (combo menu), that order is already using a campaign.
+  if (hasBundle) {
+    return {
+      appliedCampaignId: 'bundle_deal_active',
+      appliedCampaignTitle: 'Fırsat Paketi (Kombin Menü)',
+      discountAmount: 0,
+      isFreeDeliveryCampaign: false,
+      benefitAmount: 0,
+      campaignDescription: 'Sepette kombin menü kampanyası uygulandı. Kampanyalar birleştirilemez.',
+      isBundleApplied: true,
+    };
   }
 
-  let bestDiscount = 0;
-  let bestCampaignId: string | null = null;
-  let bestCampaignTitle: string | null = null;
+  const activeCampaigns = getActiveCampaigns();
+  if (activeCampaigns.length === 0 || cartTotal <= 0) {
+    return {
+      appliedCampaignId: null,
+      appliedCampaignTitle: null,
+      discountAmount: 0,
+      isFreeDeliveryCampaign: false,
+      benefitAmount: 0,
+    };
+  }
+
+  let bestBenefit = 0;
+  let bestCampaign: Campaign | null = null;
+  let isBestFreeDelivery = false;
 
   for (const campaign of activeCampaigns) {
-    // Min order check
+    // Ignore bundle deals here since bundles are evaluated via cart items above
+    if (campaign.type === 'bundle_deal') continue;
+
+    // Minimum order check
     if (campaign.minOrderAmount && cartTotal < campaign.minOrderAmount) continue;
 
-    let discount = 0;
+    if (campaign.type === 'free_delivery') {
+      // If delivery is already free by zone threshold, free delivery campaign adds 0 extra benefit
+      if (isZoneAlreadyFree || standardDeliveryFee <= 0) {
+        continue;
+      }
+      const benefit = standardDeliveryFee;
+      if (benefit > bestBenefit) {
+        bestBenefit = benefit;
+        bestCampaign = campaign;
+        isBestFreeDelivery = true;
+      }
+      continue;
+    }
 
-    // Determine applicable items total
+    // Determine applicable items total for category or product specific campaigns
     let applicableTotal = cartTotal;
     if (campaign.applicableCategories && campaign.applicableCategories.length > 0) {
       applicableTotal = cartItems
@@ -936,37 +994,56 @@ export function calculateCampaignDiscount(
         .reduce((sum, item) => sum + item.price * item.quantity, 0);
     }
 
-    switch (campaign.type) {
-      case 'percentage_discount':
-        discount = applicableTotal * (campaign.value / 100);
-        break;
-      case 'fixed_discount':
-        discount = campaign.value;
-        break;
-      case 'free_delivery':
-        // Handled separately
-        discount = 0;
-        break;
-      default:
-        discount = 0;
+    let discount = 0;
+    if (campaign.type === 'percentage_discount') {
+      discount = applicableTotal * (campaign.value / 100);
+    } else if (campaign.type === 'fixed_discount') {
+      discount = campaign.value;
     }
 
-    // Cap at maxDiscount
+    // Cap at maxDiscount if defined
     if (campaign.maxDiscount && discount > campaign.maxDiscount) {
       discount = campaign.maxDiscount;
     }
+    // Cannot discount more than cartTotal
+    discount = Math.min(discount, cartTotal);
 
-    if (discount > bestDiscount) {
-      bestDiscount = discount;
-      bestCampaignId = campaign.id;
-      bestCampaignTitle = campaign.title;
+    if (discount > bestBenefit) {
+      bestBenefit = discount;
+      bestCampaign = campaign;
+      isBestFreeDelivery = false;
     }
   }
 
+  if (!bestCampaign || bestBenefit <= 0) {
+    return {
+      appliedCampaignId: null,
+      appliedCampaignTitle: null,
+      discountAmount: 0,
+      isFreeDeliveryCampaign: false,
+      benefitAmount: 0,
+    };
+  }
+
   return {
-    discountAmount: Math.round(bestDiscount * 100) / 100,
-    campaignId: bestCampaignId,
-    campaignTitle: bestCampaignTitle,
+    appliedCampaignId: bestCampaign.id,
+    appliedCampaignTitle: bestCampaign.title,
+    discountAmount: isBestFreeDelivery ? 0 : Math.round(bestBenefit * 100) / 100,
+    isFreeDeliveryCampaign: isBestFreeDelivery,
+    benefitAmount: Math.round(bestBenefit * 100) / 100,
+    campaignDescription: bestCampaign.description,
+  };
+}
+
+export function calculateCampaignDiscount(
+  cartTotal: number,
+  cartItems: { productId: string; category: string; quantity: number; price: number }[]
+): { discountAmount: number; campaignId: string | null; campaignTitle: string | null } {
+  const res = evaluateSingleBestCampaign({ cartTotal, cartItems });
+  return {
+    discountAmount: res.discountAmount,
+    campaignId: res.appliedCampaignId,
+    campaignTitle: res.appliedCampaignTitle,
   };
 }
 

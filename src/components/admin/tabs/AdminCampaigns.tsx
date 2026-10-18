@@ -11,6 +11,10 @@ import {
   Trash2,
   CheckSquare,
   Square,
+  Pencil,
+  Info,
+  X,
+  Check,
 } from 'lucide-react';
 
 interface AdminCampaignsProps {
@@ -30,6 +34,7 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
 }) => {
   const [tabMode, setTabMode] = useState<'bundle' | 'general'>('bundle');
 
+  // Bundle Create States
   const [selectedBundleProductIds, setSelectedBundleProductIds] = useState<string[]>(['coca-cola-1l', 'tadim-cekirdek-180']);
   const [bundleTitle, setBundleTitle] = useState('');
   const [bundleDesc, setBundleDesc] = useState('');
@@ -38,6 +43,7 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
   const [bundleColor, setBundleColor] = useState('#DC2626');
   const [bundleSearchFilter, setBundleSearchFilter] = useState('');
 
+  // General Create States
   const [campTitle, setCampTitle] = useState('');
   const [campDesc, setCampDesc] = useState('');
   const [campType, setCampType] = useState<CampaignType>('percentage_discount');
@@ -47,6 +53,15 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
   const [campStartsAt, setCampStartsAt] = useState('');
   const [campEndsAt, setCampEndsAt] = useState('');
   const [campColor, setCampColor] = useState('#5D3EBC');
+
+  // Edit Modal States
+  const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editValue, setEditValue] = useState('');
+  const [editMinOrder, setEditMinOrder] = useState('');
+  const [editBannerColor, setEditBannerColor] = useState('#5D3EBC');
+  const [editIsActive, setEditIsActive] = useState(true);
 
   const selectedBundleProducts = useMemo(() => {
     return selectedBundleProductIds
@@ -80,9 +95,11 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
       ? bundleTitle.trim()
       : selectedBundleProducts.map((p) => p.name).join(' + ');
 
+    const finalDesc = bundleDesc.trim() || `Özel Kombin Fiyatı! Normalde ₺${bundleOriginalSum.toFixed(2)} yerine sadece ₺${finalPrice.toFixed(2)}`;
+
     onAddCampaign({
       title: autoTitle,
-      description: bundleDesc.trim() || `Özel Kombin Fiyatı! Normalde ₺${bundleOriginalSum.toFixed(2)} yerine sadece ₺${finalPrice.toFixed(2)}`,
+      description: finalDesc,
       type: 'bundle_deal',
       value: Math.max(0, bundleOriginalSum - finalPrice),
       isActive: true,
@@ -103,11 +120,22 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
 
   const handleCreateGeneral = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!campTitle.trim() || !campValue.trim()) return;
+    if (!campTitle.trim() || !campValue.trim()) {
+      alert('Lütfen kampanya başlığı ve değerini doldurunuz.');
+      return;
+    }
+
+    const autoDesc = campDesc.trim() || (
+      campType === 'free_delivery'
+        ? `${campMinOrder ? `${campMinOrder} TL ve üzeri siparişlerde ` : ''}teslimat ücreti sıfırlanır.`
+        : campType === 'percentage_discount'
+        ? `${campMinOrder ? `${campMinOrder} TL ve üzeri siparişlerde ` : ''}%${campValue} indirim uygulanır.`
+        : `${campMinOrder ? `${campMinOrder} TL ve üzeri siparişlerde ` : ''}${campValue} TL indirim uygulanır.`
+    );
 
     onAddCampaign({
       title: campTitle.trim(),
-      description: campDesc.trim(),
+      description: autoDesc,
       type: campType,
       value: Number(campValue),
       minOrderAmount: campMinOrder ? Number(campMinOrder) : undefined,
@@ -127,8 +155,62 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
     alert('Kampanya başarıyla oluşturuldu!');
   };
 
+  const openEditModal = (c: Campaign) => {
+    setEditingCampaign(c);
+    setEditTitle(c.title);
+    setEditDesc(c.description || '');
+    setEditValue(c.type === 'bundle_deal' ? String(c.bundlePrice ?? c.value) : String(c.value));
+    setEditMinOrder(c.minOrderAmount ? String(c.minOrderAmount) : '');
+    setEditBannerColor(c.bannerColor || '#5D3EBC');
+    setEditIsActive(c.isActive);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCampaign) return;
+
+    const updates: Partial<Campaign> = {
+      title: editTitle.trim(),
+      description: editDesc.trim(),
+      bannerColor: editBannerColor,
+      isActive: editIsActive,
+      minOrderAmount: editMinOrder ? Number(editMinOrder) : undefined,
+    };
+
+    if (editingCampaign.type === 'bundle_deal') {
+      const p = parseFloat(editValue) || 0;
+      updates.bundlePrice = p;
+      updates.value = Math.max(0, (editingCampaign.bundleOriginalPrice || 0) - p);
+    } else {
+      updates.value = Number(editValue) || 0;
+    }
+
+    onUpdateCampaign(editingCampaign.id, updates);
+    setEditingCampaign(null);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Tek Kampanya Kuralı Bilgilendirme Bandı */}
+      <div
+        style={{
+          backgroundColor: '#F8FAFC',
+          border: '1.5px solid #E2E8F0',
+          borderLeft: '4px solid #5D3EBC',
+          borderRadius: '12px',
+          padding: '14px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}
+      >
+        <Info size={22} color="#5D3EBC" style={{ flexShrink: 0 }} />
+        <div style={{ fontSize: '13px', color: '#334155', lineHeight: 1.45 }}>
+          <strong style={{ color: '#1E293B' }}>Sipariş Kampanya Kuralı:</strong> Bir siparişte aynı anda <strong>yalnızca 1 kampanya</strong> kullanılabilir. Sepette birden fazla kampanyanın şartı sağlansa dahi müşteriye en avantajlı olan tek kampanya otomatik seçilir; indirimler ve ücretsiz teslimat kampanyaları birbiriyle veya fırsat paketleriyle birleştirilemez.
+        </div>
+      </div>
+
+      {/* Tab Switcher */}
       <div style={{ display: 'flex', gap: '10px', backgroundColor: '#FFFFFF', padding: '6px', borderRadius: '14px', border: '1.5px solid #E2E8F0', width: 'fit-content', flexWrap: 'wrap' }}>
         <button
           type="button"
@@ -294,6 +376,19 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
                   style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
                 />
               </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                  Paket Açıklaması (Description) (Opsiyonel)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder={`Özel Kombin Fiyatı! Normalde ₺${bundleOriginalSum.toFixed(2)} yerine sadece ₺${bundlePrice || '0'}`}
+                  value={bundleDesc}
+                  onChange={(e) => setBundleDesc(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', resize: 'vertical' }}
+                />
+              </div>
             </div>
 
             <button
@@ -324,41 +419,75 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
           </h3>
           <form onSubmit={handleCreateGeneral}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-              <input
-                type="text"
-                placeholder="Kampanya Başlığı (Örn: Gece %15 İndirim)"
-                value={campTitle}
-                onChange={(e) => setCampTitle(e.target.value)}
-                required
-                style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-              />
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                  Kampanya Başlığı *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Örn: Gece %15 İndirim"
+                  value={campTitle}
+                  onChange={(e) => setCampTitle(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                />
+              </div>
 
-              <select
-                value={campType}
-                onChange={(e) => setCampType(e.target.value as CampaignType)}
-                style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', backgroundColor: '#FFFFFF' }}
-              >
-                <option value="percentage_discount">Yüzde İndirimi (%)</option>
-                <option value="fixed_discount">Sabit Tutar İndirimi (TL)</option>
-                <option value="free_delivery">Ücretsiz Teslimat</option>
-              </select>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                  Kampanya Türü *
+                </label>
+                <select
+                  value={campType}
+                  onChange={(e) => setCampType(e.target.value as CampaignType)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', backgroundColor: '#FFFFFF' }}
+                >
+                  <option value="percentage_discount">Yüzde İndirimi (%)</option>
+                  <option value="fixed_discount">Sabit Tutar İndirimi (TL)</option>
+                  <option value="free_delivery">Ücretsiz Teslimat</option>
+                </select>
+              </div>
 
-              <input
-                type="number"
-                placeholder="İndirim Değeri (% veya TL)"
-                value={campValue}
-                onChange={(e) => setCampValue(e.target.value)}
-                required
-                style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-              />
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                  İndirim Değeri (% veya TL) *
+                </label>
+                <input
+                  type="number"
+                  placeholder="25"
+                  value={campValue}
+                  onChange={(e) => setCampValue(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                />
+              </div>
 
-              <input
-                type="number"
-                placeholder="Min. Sepet Tutarı (TL)"
-                value={campMinOrder}
-                onChange={(e) => setCampMinOrder(e.target.value)}
-                style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
-              />
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                  Min. Sepet Tutarı (TL)
+                </label>
+                <input
+                  type="number"
+                  placeholder="200"
+                  value={campMinOrder}
+                  onChange={(e) => setCampMinOrder(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                />
+              </div>
+
+              {/* Description field - Crucial for user request */}
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                  Kampanya Açıklaması (Description) * (Müşteriye ve sepette gösterilecek metin)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Örn: 200 TL ve üzeri tüm siparişlerde sepette anında 25 TL indirim uygulanır!"
+                  value={campDesc}
+                  onChange={(e) => setCampDesc(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', resize: 'vertical' }}
+                />
+              </div>
             </div>
 
             <button
@@ -384,14 +513,15 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
         </div>
       )}
 
+      {/* Campaigns List */}
       <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '20px', border: '1px solid #E5E7EB' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1F2937', marginBottom: '14px' }}>
-          Aktif Kampanyalar ({campaigns.length})
+          Kayıtlı Kampanyalar ({campaigns.length})
         </h3>
 
         {campaigns.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '30px', color: '#9CA3AF', fontSize: '13px' }}>
-            Henüz aktif bir kampanya bulunmuyor.
+            Henüz kayıtlı bir kampanya bulunmuyor.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -408,47 +538,87 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     borderRadius: '12px',
-                    border: '1px solid ' + (c.isActive ? '#E2E8F0' : '#FECDD3'),
+                    border: '1.5px solid ' + (c.isActive ? '#E2E8F0' : '#FECDD3'),
                     backgroundColor: c.isActive ? '#FFFFFF' : '#FEF2F2',
                     flexWrap: 'wrap',
                     gap: '12px',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '240px', flex: 1 }}>
                     {isBundle && bundleProductsList.length > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                         {bundleProductsList.map((bp) => (
-                          <div key={bp.id} style={{ width: '36px', height: '36px', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid #CBD5E1' }}>
-                            <Image src={bp.imageUrl} alt={bp.name} fill sizes="36px" style={{ objectFit: 'cover' }} />
+                          <div key={bp.id} style={{ width: '38px', height: '38px', position: 'relative', borderRadius: '6px', overflow: 'hidden', border: '1px solid #CBD5E1' }}>
+                            <Image src={bp.imageUrl} alt={bp.name} fill sizes="38px" style={{ objectFit: 'cover' }} />
                           </div>
                         ))}
                       </div>
                     )}
 
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 800, fontSize: '14px', color: '#191919' }}>{c.title}</span>
-                        {isBundle && (
+                        {isBundle ? (
                           <span style={{ fontSize: '10px', fontWeight: 900, backgroundColor: '#DC2626', color: '#FFFFFF', padding: '2px 6px', borderRadius: '4px' }}>
                             {c.bundleBadge || 'FIRSAT PAKETİ'}
                           </span>
+                        ) : (
+                          <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: '#EEF2FF', color: '#4F46E5', padding: '2px 6px', borderRadius: '4px' }}>
+                            {c.type === 'percentage_discount' ? `%${c.value} İndirim` : c.type === 'fixed_discount' ? `₺${c.value} Sabit İndirim` : 'Ücretsiz Teslimat'}
+                          </span>
+                        )}
+                        {!c.isActive && (
+                          <span style={{ fontSize: '10px', fontWeight: 800, backgroundColor: '#FEE2E2', color: '#B91C1C', padding: '2px 6px', borderRadius: '4px' }}>
+                            Pasif
+                          </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#64748B', marginTop: '2px' }}>
+
+                      {/* Display Description Clearly */}
+                      <div style={{ fontSize: '13px', color: '#334155', marginTop: '3px', fontWeight: 500, lineHeight: 1.35 }}>
+                        {c.description || (isBundle ? `Kombin Fiyatı: ₺${c.bundlePrice?.toFixed(2)}` : `${c.value} TL İndirim`)}
+                      </div>
+
+                      {/* Conditions */}
+                      <div style={{ fontSize: '11px', color: '#64748B', marginTop: '3px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         {isBundle ? (
-                          <span>
-                            Normal: <del>₺{c.bundleOriginalPrice?.toFixed(2)}</del> ➡️ <strong>₺{c.bundlePrice?.toFixed(2)}</strong>
-                          </span>
+                          <span>Normal Fiyat: <del>₺{c.bundleOriginalPrice?.toFixed(2)}</del> • Satış: <strong style={{ color: '#DC2626' }}>₺{c.bundlePrice?.toFixed(2)}</strong></span>
                         ) : (
-                          <span>{c.description || `${c.value} TL indirim`}</span>
+                          <>
+                            {c.minOrderAmount ? <span>Min. Sepet: <strong>₺{c.minOrderAmount}</strong></span> : null}
+                            {c.maxDiscount ? <span>Maks. İndirim: <strong>₺{c.maxDiscount}</strong></span> : null}
+                          </>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                    {/* Edit button */}
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(c)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        backgroundColor: '#EEF2FF',
+                        color: '#4F46E5',
+                        border: '1px solid #C7D2FE',
+                        cursor: 'pointer',
+                      }}
+                      title="Kampanyayı ve Açıklamayı Düzenle"
+                    >
+                      <Pencil size={13} />
+                      <span>Düzenle</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => onUpdateCampaign(c.id, { isActive: !c.isActive })}
@@ -492,6 +662,163 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
           </div>
         )}
       </div>
+
+      {/* Edit Campaign Modal */}
+      {editingCampaign && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px',
+          }}
+          onClick={() => setEditingCampaign(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
+              maxWidth: '520px',
+              width: '100%',
+              padding: '24px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Pencil size={18} color="#5D3EBC" />
+                <h3 style={{ fontSize: '17px', fontWeight: 900, color: '#1E293B', margin: 0 }}>
+                  Kampanyayı Düzenle
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingCampaign(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748B' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                    Kampanya Başlığı *
+                  </label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    required
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                    Kampanya Açıklaması (Description) * (Müşterilere ve sepette gösterilen metin)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    required
+                    placeholder="Kampanya detaylarını açıklayınız..."
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                      {editingCampaign.type === 'bundle_deal' ? 'Paket Satış Fiyatı (₺) *' : 'İndirim Değeri *'}
+                    </label>
+                    <input
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      required
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                    />
+                  </div>
+
+                  {editingCampaign.type !== 'bundle_deal' && (
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                        Min. Sepet Tutarı (TL)
+                      </label>
+                      <input
+                        type="number"
+                        value={editMinOrder}
+                        onChange={(e) => setEditMinOrder(e.target.value)}
+                        placeholder="Örn: 200"
+                        style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                  <input
+                    type="checkbox"
+                    id="editIsActiveCheckbox"
+                    checked={editIsActive}
+                    onChange={(e) => setEditIsActive(e.target.checked)}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="editIsActiveCheckbox" style={{ fontSize: '13px', fontWeight: 700, color: '#1E293B', cursor: 'pointer' }}>
+                    Kampanya Aktif Olsun
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingCampaign(null)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    border: '1px solid #E2E8F0',
+                    backgroundColor: '#FFFFFF',
+                    color: '#64748B',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '8px 20px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    border: 'none',
+                    backgroundColor: '#5D3EBC',
+                    color: '#FFFFFF',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Check size={16} />
+                  <span>Kaydet</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
