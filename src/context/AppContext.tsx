@@ -199,7 +199,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
               orderNumber: updatedOrder.orderNumber,
               customerName: updatedOrder.customerName,
             })
-          : 'Tostunuz basılıyor, siparişiniz mutfakta özenle hazırlanıyor.';
+          : 'Siparişiniz paketleniyor, ürünleriniz özenle hazırlanıyor.';
       } else if (updatedOrder.status === 'on_the_way') {
         title = `🛵 Kuryemiz Yola Çıktı! #${updatedOrder.orderNumber}`;
         body = systemSettings.templateOrderOnTheWay

@@ -18,23 +18,23 @@ export const SEMANTIC_INTENTS: SemanticIntent[] = [
     id: 'acim',
     triggerWords: [
       'acim', 'aciktim', 'karnim', 'karnim acikti', 'yemek', 'doyur', 'aksam yemegi',
-      'oglen', 'oglen yemegi', 'sicak yemek', 'ne yesem', 'hizli yemek'
+      'oglen', 'oglen yemegi', 'sicak yemek', 'ne yesem', 'hizli yemek', 'hazir yemek'
     ],
-    label: 'Doyurucu Sıcak & Pratik Yemekler',
-    emoji: '🥪',
-    reason: 'Karnını hızlıca doyuracak tost, sandviç ve bakkal ürünleri',
-    targetTags: ['tost', 'sandvic', 'noodle', 'ton balik', 'patates', 'makarna', 'corba', 'ekmek', 'kasar'],
+    label: 'Pratik Lezzetler (Noodle, Çorba & Makarna)',
+    emoji: '🍜',
+    reason: 'Karnını hızlıca doyuracak hazır noodle, sıcak çorba ve makarna çeşitleri',
+    targetTags: ['noodle', 'corba', 'makarna', 'yulaf', 'fistik'],
   },
   {
     id: 'kahvalti',
     triggerWords: [
       'kahvalti', 'kahvaltilik', 'sabah', 'gunaydin', 'kahvaltiya', 'kahvalti paketi',
-      'peynir ekmek', 'cay demle', 'sut yumurta'
+      'cay demle', 'sut yulaf'
     ],
-    label: 'Kahvaltılık Bakkal Sepeti',
-    emoji: '🍳',
-    reason: 'Sabah güne enerjik başlamak için taze kahvaltılıklar',
-    targetTags: ['ekmek', 'yumurta', 'peynir', 'kasar', 'sut', 'cay', 'zeytin', 'tereyag', 'bazlama', 'tost'],
+    label: 'Çay, Kahve & Bisküvi',
+    emoji: '☕',
+    reason: 'Güne başlarken çay, kahve, yulaf ve kahvaltılık bisküviler',
+    targetTags: ['cay', 'kahve', 'yulaf', 'biskuvi', 'sut', 'kraker'],
   },
   {
     id: 'tatli',
@@ -44,8 +44,8 @@ export const SEMANTIC_INTENTS: SemanticIntent[] = [
     ],
     label: 'Tatlı & Çikolata Krizleri',
     emoji: '🍫',
-    reason: 'Canın tatlı çektiğinde kapına gelecek lezzetler',
-    targetTags: ['cikolata', 'gofret', 'browni', 'kek', 'biskrem', 'halley', 'tutku', 'sut'],
+    reason: 'Canın tatlı çektiğinde kapına gelecek çikolata, kek ve gofretler',
+    targetTags: ['cikolata', 'gofret', 'kek', 'biskuvi', 'sekerleme', 'sakiz'],
   },
   {
     id: 'susadim',
@@ -55,8 +55,8 @@ export const SEMANTIC_INTENTS: SemanticIntent[] = [
     ],
     label: 'Buz Gibi İçecek & Doğal Maden Suyu',
     emoji: '🧊',
-    reason: 'Hararetini alacak soğuk içecekler ve doğal kaynak suları',
-    targetTags: ['su', 'maden suyu', 'soda', 'kola', 'fusetea', 'didi', 'ayran', 'redbull', 'coca cola', 'icecek'],
+    reason: 'Hararetini alacak soğuk içecekler, meyve suları ve doğal maden suları',
+    targetTags: ['su', 'maden suyu', 'soda', 'kola', 'fusetea', 'didi', 'ayran', 'redbull', 'gazoz', 'limonata'],
   },
   {
     id: 'ders',
@@ -67,7 +67,7 @@ export const SEMANTIC_INTENTS: SemanticIntent[] = [
     label: 'Vize & Sınav Sabahlama Paketi',
     emoji: '⚡',
     reason: 'Ders başında uykuyu açacak ve enerji verecek destekler',
-    targetTags: ['redbull', 'kahve', 'nescafe', 'bitter', 'cikolata', 'fistik', 'noodle', 'su'],
+    targetTags: ['redbull', 'enerji', 'kahve', 'nescafe', 'cikolata', 'fistik', 'noodle', 'su'],
   },
   {
     id: 'keyif',
@@ -77,19 +77,19 @@ export const SEMANTIC_INTENTS: SemanticIntent[] = [
     ],
     label: 'Film, Dizi & Maç Keyfi Sepeti',
     emoji: '🍿',
-    reason: 'Ekrana karşı çıtır çıtır gidecek atıştırmalıklar',
-    targetTags: ['cips', 'cekirdek', 'findik', 'fistik', 'kola', 'doritos', 'ruffles', 'lays', 'biskuvi'],
+    reason: 'Ekrana karşı çıtır çıtır gidecek cips ve kuruyemiş çeşitleri',
+    targetTags: ['cips', 'cekirdek', 'findik', 'fistik', 'kola', 'kraker', 'patlayan misir'],
   },
   {
     id: 'bakkal',
     triggerWords: [
-      'bakkal', 'temel', 'ev ihtiyac', 'mutfak', 'yag seker', 'market', 'evde bitti',
-      'yemek yapma', 'yemeklik'
+      'bakkal', 'temel', 'ev ihtiyac', 'mutfak', 'market', 'evde bitti',
+      'pratik market'
     ],
-    label: 'Temel Mahalle Bakkalı Sepeti',
+    label: 'Pratik Market & Hazır Mutfak',
     emoji: '🛒',
-    reason: 'Mutfakta eksik kalmasın: Ekmek, süt, yumurta, yağ ve makarna',
-    targetTags: ['ekmek', 'sut', 'yumurta', 'yag', 'seker', 'makarna', 'salca', 'un', 'cay', 'su'],
+    reason: 'Noodle, çorba, makarna, ketçap ve şeker gibi temel market ürünleri',
+    targetTags: ['noodle', 'corba', 'makarna', 'seker', 'ketcap', 'yulaf', 'su'],
   },
   {
     id: 'hijyen',
@@ -97,10 +97,10 @@ export const SEMANTIC_INTENTS: SemanticIntent[] = [
       'hijyen', 'temizlik', 'banyo', 'tuvalet', 'dis', 'kisisel', 'dus', 'banyo ihtiyac',
       'mendil', 'pecete', 'sabun'
     ],
-    label: 'Kişisel Bakım & Ev İhtiyaçları',
+    label: 'Kişisel Bakım & Hijyen',
     emoji: '🧼',
-    reason: 'Yurt ve ev için gerekli temizlik ve kişisel bakım ürünleri',
-    targetTags: ['tuvalet kagidi', 'islak mendil', 'sampuan', 'dis macunu', 'cop torbasi', 'sabun', 'pil'],
+    reason: 'Yurt ve ev için gerekli şampuan, duş jeli, ıslak mendil ve temizlik ürünleri',
+    targetTags: ['tuvalet kagidi', 'islak mendil', 'sampuan', 'dus jeli', 'dis fircasi', 'ped', 'havlu'],
   },
   {
     id: 'ates',
@@ -109,8 +109,8 @@ export const SEMANTIC_INTENTS: SemanticIntent[] = [
     ],
     label: 'Taşlı Çakmak & Ateş',
     emoji: '🔥',
-    reason: 'Acil çakmak ve ateş ihtiyaçları',
-    targetTags: ['cakmak', 'tokai', 'kibrit'],
+    reason: 'Çakmak çeşitleri',
+    targetTags: ['cakmak'],
   },
 ];
 

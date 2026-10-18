@@ -28,13 +28,13 @@ import {
 } from 'lucide-react';
 
 const QUICK_INTENTS = [
-  { label: 'Açım / Yemek', query: 'açım', emoji: '🥪' },
-  { label: 'Kahvaltılık', query: 'kahvaltı', emoji: '🍳' },
-  { label: 'Tatlı Krizi', query: 'tatlı', emoji: '🍫' },
-  { label: 'Susadım / Soğuk', query: 'susadım', emoji: '🧊' },
-  { label: 'Vize & Sınav', query: 'ders', emoji: '⚡' },
-  { label: 'Film & Maç', query: 'film', emoji: '🍿' },
-  { label: 'Temel Bakkal', query: 'bakkal', emoji: '🛒' },
+  { label: 'Çikolata & Tatlı', query: 'Çikolata', emoji: '🍫' },
+  { label: 'Cips & Çerez', query: 'Cips', emoji: '🍿' },
+  { label: 'Enerji & Soğuk', query: 'Enerji İçeceği', emoji: '⚡' },
+  { label: 'Soğuk Çay & İçecek', query: 'Soğuk Çay', emoji: '🧊' },
+  { label: 'Noodle & Pratik', query: 'Hazır Noodle', emoji: '🍜' },
+  { label: 'Kahve & Çay', query: 'Tekli Poşet Kahve', emoji: '☕' },
+  { label: 'Kişisel Bakım', query: 'Şampuan', emoji: '🧴' },
 ];
 
 export default function Home() {
@@ -483,12 +483,7 @@ export default function Home() {
                 <span>&ldquo;{searchQuery}&rdquo; Arama Sonuçları</span>
               </>
             ) : selectedCategory === 'all' ? (
-              <span>Tüm Bakkal &amp; Büfe Reyonları</span>
-            ) : selectedCategory === 'sicak-lezzetler' ? (
-              <>
-                <Flame size={18} color="#EA580C" />
-                <span>Sıcak Büfe (Tost &amp; Sandviç)</span>
-              </>
+              <span>Tüm Market Reyonları</span>
             ) : (
               <span>{selectedCategory} Reyonu</span>
             )}

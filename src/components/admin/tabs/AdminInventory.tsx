@@ -21,17 +21,6 @@ interface AdminInventoryProps {
   onDeleteProduct?: (productId: string) => void;
 }
 
-const CATEGORIES = [
-  { id: 'all', name: 'Tümü' },
-  { id: 'tost-sandvic', name: 'Tost & Sandviç' },
-  { id: 'icecek', name: 'İçecekler' },
-  { id: 'atistirmalik', name: 'Cips & Çerez' },
-  { id: 'tatli-cikolata', name: 'Tatlı & Bisküvi' },
-  { id: 'kahvalti', name: 'Kahvaltılık' },
-  { id: 'temel-gida', name: 'Temel Gıda' },
-  { id: 'dondurma', name: 'Dondurma' },
-  { id: 'kisisel-bakim', name: 'Kişisel Bakım' },
-];
 
 export const AdminInventory: React.FC<AdminInventoryProps> = ({
   products,

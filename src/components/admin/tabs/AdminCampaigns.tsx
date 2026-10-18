@@ -182,7 +182,7 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
             </h3>
           </div>
           <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '18px' }}>
-            Örn: Kaşarlı Tost + Ayran veya Kola + Çekirdek gibi birden fazla ürünü cazip fiyata tek tıkla sepete ekletin.
+            Örn: Kola + Cips veya Red Bull + Çikolata gibi birden fazla ürünü cazip fiyata tek tıkla sepete ekletin.
           </p>
 
           <form onSubmit={handleCreateBundle}>

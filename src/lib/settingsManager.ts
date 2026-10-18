@@ -44,7 +44,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   isManuallyOpen: false,
   isManualOverride: false,
   closedMessage: 'Sipariş saatleri dışındayız. Hizmet saatlerimiz her gün 16:00 - 03:00 arasıdır.',
-  announcementText: '🛵 Karabük & KYK Yurtlarına 15-20 dakikada sıcak teslimat! Gece acıkanlara özel tost ve atıştırmalıklar kapınızda.',
+  announcementText: '🛵 Karabük & KYK Yurtlarına 15-20 dakikada hızlı teslimat! Soğuk içecek, çikolata, cips ve market ihtiyaçları kapınızda.',
   isAnnouncementActive: true,
   defaultMinOrder: 60,
   defaultDeliveryFee: 15,

@@ -67,7 +67,7 @@ export const OrderTrackingModal = () => {
 
   const stages = [
     { key: 'pending', label: 'Sipariş Alındı', icon: Clock, desc: 'Büfe siparişi onayladı' },
-    { key: 'preparing', label: 'Hazırlanıyor', icon: ChefHat, desc: 'Tostlar basılıyor & paketleniyor' },
+    { key: 'preparing', label: 'Hazırlanıyor', icon: ChefHat, desc: 'Siparişiniz paketleniyor' },
     { key: 'on_the_way', label: 'Kurye Yolda', icon: Bike, desc: 'Karabük içi teslimatta' },
     { key: 'delivered', label: 'Teslim Edildi', icon: CheckCircle, desc: 'Afiyet olsun!' },
   ];
@@ -447,10 +447,10 @@ export const OrderTrackingModal = () => {
                     }}
                   />
                   <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155', lineHeight: 1.3 }}>
-                    {order.status === 'pending' && '🔔 Sipariş büfe ekranına ulaştı • Mutfak onaylıyor...'}
-                    {order.status === 'preparing' && '🔥 Tost & lezzetler hazırlanıyor • Mutfak telaşta 👨‍🍳'}
+                    {order.status === 'pending' && '🔔 Sipariş market ekranına ulaştı • Hazırlık başlıyor...'}
+                    {order.status === 'preparing' && '📦 Siparişiniz hazırlanıyor & paketleniyor ⚡'}
                     {order.status === 'on_the_way' && '🛵 Kuryemiz yola çıktı! • Lütfen telefonunuzu açık tutunuz'}
-                    {order.status === 'delivered' && '✅ Siparişiniz teslim edildi! Afiyet olsun 🎉'}
+                    {order.status === 'delivered' && '✅ Siparişiniz teslim edildi! Teşekkür ederiz 🎉'}
                   </span>
                 </div>
               </div>

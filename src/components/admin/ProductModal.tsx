@@ -177,7 +177,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="Örn: Kaşarlı Sucuklu Tost, Coca Cola 1L"
+                placeholder="Örn: Coca Cola 1L, Indomie Hazır Noodle, Red Bull 250ml"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -246,7 +246,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 onChange={(e) => {
                   const val = e.target.value as ProductCategory;
                   setCategory(val);
-                  if (val === 'sicak-lezzetler') setIsKitchenItem(true);
                 }}
                 placeholder="Kategori seçin veya yazın..."
                 style={{
@@ -370,7 +369,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   checked={isKitchenItem}
                   onChange={(e) => setIsKitchenItem(e.target.checked)}
                 />
-                <span>Mutfak Ürünü (Tost, sandviç gibi hazırlık süresi gerektirir)</span>
+                <span>Hazırlık Süresi Gerektiren Ürün (Özel paketleme veya ısıl işlem)</span>
               </label>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: isAvailable ? '#059669' : '#DC2626' }}>

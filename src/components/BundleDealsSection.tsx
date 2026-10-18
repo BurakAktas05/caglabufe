@@ -76,7 +76,7 @@ export const BundleDealsSection: React.FC<BundleDealsSectionProps> = ({
             <span>Süper Fırsat Paketleri (Kombin Menüler)</span>
           </h2>
           <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '2px', fontWeight: 500 }}>
-            Kola + Çekirdek, Büfe Tost Menüleri tek fiyata ekstra indirimli!
+            Kola + Cips, Atıştırmalık &amp; İçecek Menüleri tek fiyata ekstra indirimli!
           </p>
         </div>
         <span className="bundle-header-badge">

@@ -25,7 +25,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
   const [settings, setSettings] = useState<SystemSettings>({
     ...initialSettings,
     storeName: initialSettings.storeName || 'Çağla Büfe & Market',
-    announcementText: initialSettings.announcementText || '🛵 Karabük & KYK Yurtlarına 15-20 dakikada sıcak teslimat! Gece acıkanlara özel tost ve atıştırmalıklar kapınızda.',
+    announcementText: initialSettings.announcementText || '🛵 Karabük & KYK Yurtlarına 15-20 dakikada hızlı teslimat! Soğuk içecek, çikolata, cips ve market ihtiyaçları kapınızda.',
     isAnnouncementActive: initialSettings.isAnnouncementActive ?? true,
     defaultDeliveryFee: initialSettings.defaultDeliveryFee ?? 15,
     soundPreset: initialSettings.soundPreset || 'bell',

@@ -30,7 +30,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
       try {
         await showLocalNotification(
           '🔔 Sipariş Bildirimleri Aktif!',
-          'Tostunuz hazırlandığında ve kuryemiz yola çıktığında anında bildirim alacaksınız.',
+          'Siparişiniz paketlendiğinde ve kuryemiz yola çıktığında anında bildirim alacaksınız.',
           '/',
           'caglabufe-permission-granted'
         );

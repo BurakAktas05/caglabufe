@@ -65,7 +65,7 @@ export default function NotFound() {
         </h1>
 
         <p style={{ fontSize: '14px', color: '#cbd5e1', lineHeight: 1.6, marginBottom: '28px' }}>
-          Aradığınız sayfa veya ürün kaldırılmış ya da adresi değişmiş olabilir. Sıcak tostlar ve atıştırmalıklar ana sayfada sizi bekliyor!
+          Aradığınız sayfa veya ürün kaldırılmış ya da adresi değişmiş olabilir. Soğuk içecekler ve atıştırmalıklar ana sayfada sizi bekliyor!
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

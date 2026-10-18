@@ -529,7 +529,7 @@ export const CartDrawer = () => {
                   <span style={{ fontSize: '11px', color: '#5D3EBC', fontWeight: 600 }}>Öğrenci Kurye Notları:</span>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                  {['Nizamiyede bekliyorum', 'Gelince çaldırın aşağı inerim', 'Güvenliğe bırakabilirsiniz', 'Tost çıtır ve sıcak olsun'].map((preset) => (
+                  {['Nizamiyede bekliyorum', 'Gelince çaldırın aşağı inerim', 'Güvenliğe bırakabilirsiniz', 'Kapıda temassız POS getirin'].map((preset) => (
                     <button
                       key={preset}
                       type="button"
@@ -553,7 +553,7 @@ export const CartDrawer = () => {
                   rows={2}
                   className="form-input"
                   style={{ fontSize: '13px', borderRadius: '6px', resize: 'none', lineHeight: 1.4 }}
-                  placeholder="Örn: Tostum bol acılı olsun, kapıda temassız POS getirin..."
+                  placeholder="Örn: Zile basmayın bebek uyuyor, kapıda temassız POS getirin..."
                   value={orderNote}
                   onChange={(e) => setOrderNote(e.target.value)}
                 />

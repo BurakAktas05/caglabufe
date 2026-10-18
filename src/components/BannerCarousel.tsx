@@ -20,7 +20,7 @@ export const BannerCarousel = () => {
             {storeName} Kapında
           </h1>
           <p className="promo-subtitle">
-            <span className="hide-on-mobile">Ekmek, süt, yumurta, 5L su, atıştırmalık ve </span>gece sıcak tostları 15-20 dakikada odana teslim.
+            Soğuk içecekler, cips, çikolata, bisküvi, enerji içecekleri ve market lezzetleri 15-20 dakikada odana teslim.
           </p>
 
           <div className="promo-info-row">

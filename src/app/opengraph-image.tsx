@@ -84,7 +84,7 @@ export default async function Image() {
               marginBottom: '36px',
             }}
           >
-            Gece Tost, Sandviç, İçecek & Market Kapında!
+            Gece Soğuk İçecek, Atıştırmalık & Market Kapında!
           </div>
 
           <div

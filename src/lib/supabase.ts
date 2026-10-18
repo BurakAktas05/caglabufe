@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { INITIAL_PRODUCTS } from '@/data/seedData';
 import { Order, Product, OrderStatus, BannedUser } from '@/types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';

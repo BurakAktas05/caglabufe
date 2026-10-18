@@ -60,17 +60,7 @@ export interface BannedUser {
   bannedAt: string;
 }
 
-export type ProductCategory =
-  | 'temel-gida'
-  | 'soguk-icecek'
-  | 'cay-kahve'
-  | 'cips-cerez'
-  | 'cikolata-tatli'
-  | 'biskuvi-kek'
-  | 'pratik-yemek'
-  | 'kisisel-bakim'
-  | 'sicak-lezzetler'
-  | (string & {});
+export type ProductCategory = string;
 
 export interface CategoryInfo {
   id: ProductCategory;
