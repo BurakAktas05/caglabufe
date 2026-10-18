@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: '%s | Çağla Büfe Karabük',
   },
   description:
-    'Karabük 100. Yıl ve KYK yurtlarına 15-20 dakikada soğuk içecek, atıştırmalık, cips, çikolata ve gece market teslimatı. Kapıda nakit ve POS ile ödeme kolaylığı.',
+    'Karabük 100. Yıl ve KYK yurtlarına 20-30 dakikada soğuk içecek, atıştırmalık, cips, çikolata ve gece market teslimatı. Kapıda nakit ve POS ile ödeme kolaylığı.',
   keywords: [
     'karabük sipariş',
     'kyk market',
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Çağla Büfe & Market | Karabük & KYK Hızlı Sipariş',
-    description: '100. Yıl ve KYK Yurtlarına 15-20 dakikada soğuk içecek, atıştırmalık ve gece market kapında!',
+    description: '100. Yıl ve KYK Yurtlarına 20-30 dakikada soğuk içecek, atıştırmalık ve gece market kapında!',
     url: siteUrl,
     siteName: 'Çağla Büfe & Market',
     locale: 'tr_TR',
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Çağla Büfe & Market | Karabük & KYK Hızlı Sipariş',
-    description: '100. Yıl ve KYK Yurtlarına 15-20 dakikada gece paket teslimatı.',
+    description: '100. Yıl ve KYK Yurtlarına 20-30 dakikada gece paket teslimatı.',
   },
   robots: {
     index: true,

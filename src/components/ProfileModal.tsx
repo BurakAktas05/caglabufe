@@ -405,7 +405,7 @@ export const ProfileModal = () => {
                       Henüz Bir Siparişiniz Yok
                     </h5>
                     <p style={{ fontSize: '12px', color: '#6B7280', marginBottom: '16px' }}>
-                      Atıştırmalıklar, soğuk içecekler ve market ürünleri 15-20 dakikada kapınızda!
+                      Atıştırmalıklar, soğuk içecekler ve market ürünleri 20-30 dakikada kapınızda!
                     </p>
                     <button
                       type="button"

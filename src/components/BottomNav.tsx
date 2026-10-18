@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
-import { Home, ShoppingBag, Clock, MapPin } from 'lucide-react';
+import { Home, ShoppingBag, Clock, User } from 'lucide-react';
 
 export const BottomNav = () => {
   const pathname = usePathname();
@@ -14,7 +14,9 @@ export const BottomNav = () => {
     orders,
     setActiveTrackingOrder,
     cartTotal,
-    setIsAddressModalOpen,
+    user,
+    setIsProfileModalOpen,
+    setIsAuthModalOpen,
     showToast,
   } = useApp();
 
@@ -73,13 +75,19 @@ export const BottomNav = () => {
         <button
           type="button"
           className="dock-item"
-          onClick={() => setIsAddressModalOpen(true)}
-          title="KYK & Teslimat Adresi"
+          onClick={() => {
+            if (user) {
+              setIsProfileModalOpen(true);
+            } else {
+              setIsAuthModalOpen(true);
+            }
+          }}
+          title="Hesabım & Profilim"
         >
           <div className="dock-icon-wrapper">
-            <MapPin size={20} />
+            <User size={20} />
           </div>
-          <span>Adresim</span>
+          <span>{user ? user.fullName.split(' ')[0] : 'Profilim'}</span>
         </button>
       </div>
     </nav>

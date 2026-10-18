@@ -614,7 +614,7 @@ export default function Home() {
                   }}
                 >
                   <Layers size={13} />
-                  <span>653 GERÇEK ÜRÜN • 11 MARKET REYONU</span>
+                  <span>GENİŞ MARKET KATALOĞU • 11 REYON</span>
                 </div>
                 <h3
                   style={{

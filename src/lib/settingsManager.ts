@@ -53,7 +53,7 @@ const DEFAULT_SETTINGS: SystemSettings = {
   isManuallyOpen: false,
   isManualOverride: false,
   closedMessage: 'Sipariş saatleri dışındayız. Hizmet saatlerimiz her gün 16:00 - 03:00 arasıdır.',
-  announcementText: '🛵 Karabük & KYK Yurtlarına 15-20 dakikada hızlı teslimat! Soğuk içecek, çikolata, cips ve market ihtiyaçları kapınızda.',
+  announcementText: '🛵 Karabük 100. Yıl & KYK Yurtlarına hızlı teslimat! Soğuk içecek, çikolata, cips ve market ihtiyaçları kapınızda.',
   isAnnouncementActive: true,
   defaultMinOrder: 60,
   defaultDeliveryFee: 15,
@@ -69,10 +69,10 @@ const DEFAULT_SETTINGS: SystemSettings = {
   soundRepeatCount: 2,
   enableVibration: true,
   templateOrderReceived: 'Siparişiniz alındı! #{orderNumber} nolu siparişiniz onaylandı.',
-  templateOrderPreparing: 'Mutfakta hazırlanıyor! #{orderNumber} nolu siparişiniz fırından çıkmak üzere.',
-  templateOrderOnTheWay: 'Kuryemiz yola çıktı! #{orderNumber} nolu siparişiniz ~10-15 dk içinde kapınızda.',
-  templateOrderDelivered: 'Siparişiniz teslim edildi! Afiyet olsun, Çağla Büfe keyifli geceler diler.',
-  templateWhatsApp: 'Merhaba Çağla Büfe, {orderNumber} nolu {totalAmount} TL siparişim ({dormOrAddress}) hakkında yazıyorum.',
+  templateOrderPreparing: 'Mutfakta hazırlanıyor! #{orderNumber} nolu siparişiniz paketlenmek üzere.',
+  templateOrderOnTheWay: 'Kuryemiz yola çıktı! #{orderNumber} nolu siparişiniz kapınıza doğru geliyor.',
+  templateOrderDelivered: 'Siparişiniz teslim edildi! Afiyet olsun, Çağla Büfe keyifli anlar diler.',
+  templateWhatsApp: 'Merhaba Çağla Büfe, {orderNumber} nolu {totalAmount} TL siparişim ({dormOrAddress}) hakkında bilgi almak istiyorum.',
 };
 
 /**
@@ -128,7 +128,7 @@ const DEFAULT_ZONES: DeliveryZone[] = [
     minOrderAmount: 50,
     deliveryFee: 10,
     freeDeliveryThreshold: 120,
-    estimatedMinutes: 12,
+    estimatedMinutes: 20,
     isActive: true,
     radiusKm: 1.5,
     hexRing: 1,
@@ -146,7 +146,7 @@ const DEFAULT_ZONES: DeliveryZone[] = [
     minOrderAmount: 60,
     deliveryFee: 15,
     freeDeliveryThreshold: 150,
-    estimatedMinutes: 18,
+    estimatedMinutes: 30,
     isActive: true,
     radiusKm: 3.0,
     hexRing: 2,
@@ -164,7 +164,7 @@ const DEFAULT_ZONES: DeliveryZone[] = [
     minOrderAmount: 80,
     deliveryFee: 20,
     freeDeliveryThreshold: 200,
-    estimatedMinutes: 25,
+    estimatedMinutes: 35,
     isActive: true,
     radiusKm: 5.0,
     hexRing: 3,
@@ -182,7 +182,7 @@ const DEFAULT_ZONES: DeliveryZone[] = [
     minOrderAmount: 120,
     deliveryFee: 30,
     freeDeliveryThreshold: 250,
-    estimatedMinutes: 35,
+    estimatedMinutes: 45,
     isActive: true,
     radiusKm: 7.5,
     hexRing: 4,
@@ -289,8 +289,11 @@ export function getSystemSettings(): SystemSettings {
       return DEFAULT_SETTINGS;
     }
     const parsed = JSON.parse(raw);
-    if (parsed.announcementText && parsed.announcementText.includes('tost')) {
-      parsed.announcementText = DEFAULT_SETTINGS.announcementText;
+    if (parsed.announcementText && (parsed.announcementText.includes('tost') || parsed.announcementText.includes('15-20'))) {
+      parsed.announcementText = parsed.announcementText.replace(/15-20/g, '20-30');
+      if (parsed.announcementText.includes('tost')) {
+        parsed.announcementText = DEFAULT_SETTINGS.announcementText;
+      }
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(parsed));
     }
     return { ...DEFAULT_SETTINGS, ...parsed };
@@ -350,6 +353,9 @@ export async function fetchSystemSettings(): Promise<SystemSettings> {
         .single();
       if (!error && data?.settings) {
         const merged: SystemSettings = { ...DEFAULT_SETTINGS, ...data.settings };
+        if (merged.announcementText && merged.announcementText.includes('15-20')) {
+          merged.announcementText = merged.announcementText.replace(/15-20/g, '20-30');
+        }
         if (typeof window !== 'undefined') {
           localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
           window.dispatchEvent(new CustomEvent('caglabufe_settings_updated', { detail: merged }));

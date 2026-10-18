@@ -73,7 +73,7 @@ export default async function Image() {
             }}
           >
             Karabük 100. Yıl & KYK Yurtlarına
-            <span style={{ color: '#FFD10D', marginLeft: '16px' }}>15-20 Dakikada</span>
+            <span style={{ color: '#FFD10D', marginLeft: '16px' }}>20-30 Dakikada</span>
           </div>
 
           <div

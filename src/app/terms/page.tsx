@@ -52,7 +52,7 @@ export default function TermsPage() {
                 <Clock size={16} color="#5D3EBC" /> 1. Çalışma Saatleri ve Teslimat Süreleri
               </h2>
               <p>
-                Sipariş servisimiz her gün <strong>16:00 - 03:00</strong> saatleri arasında aktiftir. KYK Yurtları ve 100. Yıl Mahallesine ortalama teslimat süresi 15-25 dakikadır. Olumsuz hava koşulları veya yoğunluk durumunda tahmini sürede esneme olabilir.
+                Sipariş servisimiz her gün <strong>16:00 - 03:00</strong> saatleri arasında aktiftir. KYK Yurtları ve 100. Yıl Mahallesine ortalama teslimat süresi 20-30 dakikadır. Olumsuz hava koşulları veya yoğunluk durumunda tahmini sürede esneme olabilir.
               </p>
             </section>
 

@@ -52,11 +52,11 @@ export const TrendyolCategoryGrid: React.FC<TrendyolCategoryGridProps> = () => {
                 border: '1px solid #DDD6FE',
               }}
             >
-              653 Gerçek Ürün
+              Hızlı Teslimat
             </span>
           </div>
           <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px', fontWeight: 500 }}>
-            İhtiyacın olan reyonu seç, 15-20 dakikada odana gelsin.
+            İhtiyacın olan reyonu seç, siparişin dakikalar içinde kapına gelsin.
           </p>
         </div>
 
@@ -76,7 +76,7 @@ export const TrendyolCategoryGrid: React.FC<TrendyolCategoryGridProps> = () => {
             transition: 'all 0.15s ease',
           }}
         >
-          <span>Tüm Ürünleri Gör (653)</span>
+          <span>Tüm Reyonları Gör</span>
           <ArrowRight size={14} />
         </Link>
       </div>
@@ -141,23 +141,6 @@ export const TrendyolCategoryGrid: React.FC<TrendyolCategoryGridProps> = () => {
                     }}
                     className="category-product-img"
                   />
-                  {/* Real count badge */}
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: '6px',
-                      right: '6px',
-                      fontSize: '10px',
-                      fontWeight: 800,
-                      backgroundColor: 'rgba(255,255,255,0.92)',
-                      color: '#1F2937',
-                      padding: '1px 6px',
-                      borderRadius: '8px',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
-                    }}
-                  >
-                    {dept.count}
-                  </span>
                 </div>
 
                 {/* Category Name */}

@@ -287,6 +287,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         lastKnownStatusRef.current[o.id] = o.status;
       });
 
+      // İlk açılışta müşterinin siparişlerini Supabase'den canlı çek
+      if (myOrderIds.length > 0) {
+        fetchCustomerOrders(myOrderIds).then((latest) => {
+          if (Array.isArray(latest) && latest.length > 0) {
+            setOrders(latest);
+            latest.forEach((o) => {
+              lastKnownStatusRef.current[o.id] = o.status;
+            });
+            const active = latest.find(
+              (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'on_the_way'
+            );
+            if (active) {
+              setActiveTrackingOrder(active);
+            }
+          }
+        });
+      }
+
       setSystemSettings(getSystemSettings());
       setProducts(getStoredProducts());
 

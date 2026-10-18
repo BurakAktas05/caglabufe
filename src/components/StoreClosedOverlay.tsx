@@ -19,9 +19,12 @@ export const StoreClosedOverlay = () => {
       setOpen(isOpen);
       if (!isOpen) {
         const settings = getSystemSettings();
-        setClosedMessage(settings.closedMessage || 'Sipariş saatleri dışındayız. Hizmet saatlerimiz her gün 16:00 - 03:00 arasıdır.');
-        setOpenTime(settings.storeOpenTime || '16:00');
-        setCloseTime(settings.storeCloseTime || '03:00');
+        const oTime = settings.storeOpenTime || '16:00';
+        const cTime = settings.storeCloseTime || '03:00';
+        setOpenTime(oTime);
+        setCloseTime(cTime);
+        const dynamicMsg = `Sipariş saatleri dışındayız. Hizmet saatlerimiz her gün ${oTime} - ${cTime} arasıdır.`;
+        setClosedMessage(settings.closedMessage?.includes('Hizmet saatlerimiz') ? dynamicMsg : (settings.closedMessage || dynamicMsg));
       }
     };
 

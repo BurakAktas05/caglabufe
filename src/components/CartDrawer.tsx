@@ -200,7 +200,7 @@ export const CartDrawer = () => {
                   }}
                 >
                   <Flame size={15} style={{ flexShrink: 0 }} />
-                  <span>Sıcak mutfak siparişi taze hazırlanıp sıcak teslim edilir (~15-20 dk).</span>
+                  <span>Sıcak mutfak siparişi taze hazırlanıp sıcak teslim edilir (~20-30 dk).</span>
                 </div>
               )}
 

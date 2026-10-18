@@ -324,7 +324,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                     </div>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <a
-                        href={`tel:${cleanPhone}`}
+                        href={`tel:0${cleanPhone}`}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',

@@ -329,40 +329,6 @@ export const AuthModal = () => {
                 </p>
               </div>
 
-              {/* Hızlı Test / Demo Kodu Doldurma Butonu */}
-              <div
-                onClick={() => setOtpCode(debugOtp || '1234')}
-                style={{
-                  backgroundColor: '#fffbeb',
-                  border: '1px dashed #f59e0b',
-                  borderRadius: '12px',
-                  padding: '10px 14px',
-                  marginBottom: '16px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  transition: 'all 0.2s',
-                }}
-                title="Tek tıkla gelen SMS kodunu doldur"
-              >
-                <div style={{ fontSize: '12px', color: '#b45309', fontWeight: 700 }}>
-                  💡 Gelen SMS Şifresi: <strong style={{ letterSpacing: '2px', fontSize: '14px' }}>{debugOtp || '1234'}</strong>
-                </div>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: '#5D3EBC',
-                    fontWeight: 800,
-                    backgroundColor: '#ede9fe',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                  }}
-                >
-                  Doldur ➔
-                </span>
-              </div>
-
               {/* 4 Haneli Şifre Girişi */}
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <input

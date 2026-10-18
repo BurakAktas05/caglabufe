@@ -27,38 +27,43 @@ export const Header = () => {
           <BrandLogo size="md" />
         </Link>
 
-        {/* Address Selector */}
-        <button
-          type="button"
-          className="address-selector-btn"
-          onClick={() => setIsAddressModalOpen(true)}
-          title="Teslimat Adresini Değiştir"
-        >
-          <div className="address-icon-wrap">
-            <MapPin size={16} />
-          </div>
-          <div className="address-text-col">
-            <span className="address-label">
-              Teslimat {minOrderAmount > 0 && <span style={{ color: '#FFD10D', fontWeight: 800, textTransform: 'none' }}>• Min {minOrderAmount}₺</span>}
-            </span>
-            <span className="address-title">
-              {selectedAddress
-                ? selectedAddress.type === 'dormitory'
-                  ? (selectedAddress.dormName || selectedAddress.title)
-                  : `${selectedAddress.title} (${selectedAddress.district})`
-                : '📍 Adres Ekleyiniz (Sokak, Bina)'}
-            </span>
-          </div>
-          <ChevronDown size={14} className="address-chevron" />
-        </button>
-
         {/* Right Actions */}
         <div className="header-actions">
-          {/* User Profile / Login */}
+          {/* Address Selector in Header (Sağ Üstte Adresler) */}
+          <button
+            type="button"
+            className="address-selector-btn"
+            onClick={() => setIsAddressModalOpen(true)}
+            title="Teslimat Adresini Değiştir / Kayıtlı Adreslerim"
+          >
+            <div className="address-icon-wrap">
+              <MapPin size={15} />
+            </div>
+            <div className="address-text-col">
+              <span className="address-label">
+                {selectedAddress ? 'Teslimat' : 'Adres Seç'}
+                {minOrderAmount > 0 && (
+                  <span style={{ color: '#FFD10D', fontWeight: 800, textTransform: 'none' }}>
+                    {' '}• {minOrderAmount}₺
+                  </span>
+                )}
+              </span>
+              <span className="address-title">
+                {selectedAddress
+                  ? selectedAddress.type === 'dormitory'
+                    ? (selectedAddress.dormName || selectedAddress.title)
+                    : `${selectedAddress.title} (${selectedAddress.district})`
+                  : '📍 Adres Ekle'}
+              </span>
+            </div>
+            <ChevronDown size={14} className="address-chevron" />
+          </button>
+
+          {/* User Profile on Desktop only (Mobilde sağ alt BottomNav'da) */}
           {user ? (
             <button
               type="button"
-              className="header-link-btn"
+              className="header-link-btn d-desktop"
               onClick={() => setIsProfileModalOpen(true)}
               title="Hesabım & Sipariş Geçmişim"
             >
@@ -68,7 +73,7 @@ export const Header = () => {
           ) : (
             <button
               type="button"
-              className="header-link-btn"
+              className="header-link-btn d-desktop"
               onClick={() => setIsAuthModalOpen(true)}
               title="Giriş Yap"
             >

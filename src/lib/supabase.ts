@@ -359,6 +359,16 @@ export const saveOrder = async (order: Order): Promise<Order> => {
     }
 
     if (data) {
+      const orders = getStoredOrders();
+      const exists = orders.some((o) => o.id === order.id);
+      const updatedList = exists
+        ? orders.map((o) => (o.id === order.id ? order : o))
+        : [order, ...orders];
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(updatedList));
+      }
+
       broadcastOrderUpdate(order);
       return order;
     }

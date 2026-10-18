@@ -153,7 +153,7 @@ export default function AdminPage() {
     const currentSettings = getSystemSettings();
     const expectedPassword = currentSettings.adminPassword || 'cagla2024';
 
-    if (adminPasswordInput === expectedPassword || adminPasswordInput === 'cagla2024') {
+    if (adminPasswordInput === expectedPassword) {
       recordAdminLoginAttempt(true);
       setIsAuthorized(true);
       setAuthError('');

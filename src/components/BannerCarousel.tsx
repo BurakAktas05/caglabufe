@@ -20,13 +20,13 @@ export const BannerCarousel = () => {
             {storeName} Kapında
           </h1>
           <p className="promo-subtitle">
-            Soğuk içecekler, cips, çikolata, bisküvi, enerji içecekleri ve market lezzetleri 15-20 dakikada odana teslim.
+            Soğuk içecekler, cips, çikolata, bisküvi, enerji içecekleri ve market lezzetleri 20-30 dakikada kapında.
           </p>
 
           <div className="promo-info-row">
             <div className="promo-info-item">
               <Clock size={13} color="#FFD10D" />
-              <span>15-20 Dk Teslim</span>
+              <span>20-30 Dk Teslimat</span>
             </div>
             <div className="promo-info-item">
               <CreditCard size={13} color="#FFD10D" />
@@ -34,7 +34,7 @@ export const BannerCarousel = () => {
             </div>
             <div className="promo-info-item hide-on-mobile">
               <ShoppingBag size={13} color="#FFD10D" />
-              <span>Gerçek Mahalle Bakkalı</span>
+              <span>Geniş Ürün Çeşidi</span>
             </div>
             <div className="promo-info-item hide-on-mobile">
               <ShieldCheck size={13} color="#FFD10D" />

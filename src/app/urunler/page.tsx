@@ -196,9 +196,15 @@ function ProductsPageContent() {
             </div>
           </div>
 
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#6B7280' }}>
-            {visibleProducts.length} / {searchResult.products.length} ürün
-          </span>
+          {searchQuery ? (
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#5D3EBC', backgroundColor: '#F3F0FE', padding: '4px 10px', borderRadius: '12px' }}>
+              {searchResult.products.length} ürün bulundu
+            </span>
+          ) : (
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280' }}>
+              {activeDepartment ? activeDepartment.badge : 'Tüm Reyonlar'}
+            </span>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -282,14 +288,6 @@ function ProductsPageContent() {
             }}
           >
             <span>Tüm Reyonlar</span>
-            <span
-              style={{
-                fontSize: '11px',
-                opacity: selectedDepartmentId === 'all' ? 0.9 : 0.6,
-              }}
-            >
-              (653)
-            </span>
           </button>
 
           {DEPARTMENTS.map((dept) => {
@@ -320,14 +318,6 @@ function ProductsPageContent() {
               >
                 <span>{dept.emoji}</span>
                 <span>{dept.name}</span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    opacity: isSelected ? 0.9 : 0.6,
-                  }}
-                >
-                  ({dept.count})
-                </span>
               </button>
             );
           })}
@@ -361,7 +351,7 @@ function ProductsPageContent() {
                 cursor: 'pointer',
               }}
             >
-              Hepsi ({filteredPool.length})
+              Hepsi
             </button>
 
             {subCategories.map((cat) => {
@@ -386,7 +376,7 @@ function ProductsPageContent() {
                     cursor: 'pointer',
                   }}
                 >
-                  {cat.name} ({count})
+                  {cat.name}
                 </button>
               );
             })}
@@ -467,46 +457,43 @@ function ProductsPageContent() {
             )}
 
             {/* Progressive Pagination Bar & Buttons */}
-            {searchResult.products.length > PAGE_SIZE && (
-              <div className="pagination-wrapper" style={{ marginTop: '28px' }}>
-                <div className="pagination-progress-container">
-                  <div className="pagination-progress-text">
-                    Toplam <strong>{searchResult.products.length}</strong> üründen{' '}
-                    <strong>{visibleProducts.length}</strong> tanesi listeleniyor
-                  </div>
-                  <div className="pagination-progress-track">
-                    <div
-                      className="pagination-progress-fill"
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.round((visibleProducts.length / searchResult.products.length) * 100)
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="pagination-actions">
-                  {hasMore && (
-                    <button
-                      type="button"
-                      className="pagination-btn pagination-btn-primary"
-                      onClick={handleLoadMore}
-                    >
-                      Daha Fazla Göster (+{PAGE_SIZE})
-                    </button>
-                  )}
-                  {hasMore && (
-                    <button
-                      type="button"
-                      className="pagination-btn pagination-btn-secondary"
-                      onClick={handleShowAll}
-                    >
-                      Tümünü Göster ({searchResult.products.length})
-                    </button>
-                  )}
-                </div>
+            {hasMore && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '32px', marginBottom: '24px' }}>
+                <button
+                  type="button"
+                  className="pagination-btn pagination-btn-primary"
+                  onClick={handleLoadMore}
+                  style={{
+                    padding: '12px 28px',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    borderRadius: '14px',
+                    backgroundColor: '#5D3EBC',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(93, 62, 188, 0.2)',
+                  }}
+                >
+                  Daha Fazla Ürün Göster
+                </button>
+                <button
+                  type="button"
+                  className="pagination-btn pagination-btn-secondary"
+                  onClick={handleShowAll}
+                  style={{
+                    padding: '12px 20px',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    borderRadius: '14px',
+                    backgroundColor: '#F3F0FE',
+                    color: '#5D3EBC',
+                    border: '1px solid #DDD6FE',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Tümünü Listele
+                </button>
               </div>
             )}
           </>

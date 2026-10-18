@@ -67,16 +67,17 @@ export const AddressModal = () => {
     setSelectedAddressId,
   } = useApp();
 
-  // If user has 0 addresses, start directly on 'add' mode
-  const [isAddingNew, setIsAddingNew] = useState(addresses.length === 0);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  const [activeTab, setActiveTab] = useState<'map' | 'dormitory' | 'home'>('map');
+  // Adres modalı açıldığında otomatik harita gelmesin; doğrudan kayıtlı adresler listesi gelsin
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [activeTab, setActiveTab] = useState<'dormitory' | 'home' | 'map'>('dormitory');
 
+  // Modal her açıldığında varsayılan olarak kayıtlı adresler listesi ile başla
   useEffect(() => {
-    if (addresses.length === 0) {
-      setIsAddingNew(true);
+    if (isAddressModalOpen) {
+      setIsAddingNew(false);
+      setActiveTab('dormitory');
     }
-  }, [addresses.length]);
+  }, [isAddressModalOpen]);
 
   // Dynamic dormitories & branches from admin settings
   const dorms = useMemo(() => {
@@ -364,97 +365,23 @@ export const AddressModal = () => {
           {!isAddingNew ? (
             /* --- SCREEN 1: SAVED ADDRESSES LIST --- */
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#4B5563' }}>
-                  Teslimat yapılacak adresi seçiniz:
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B' }}>
+                  Kayıtlı Teslimat Adreslerim ({addresses.length})
                 </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('list')}
-                    style={{
-                      padding: '4px 9px',
-                      borderRadius: '8px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      backgroundColor: viewMode === 'list' ? '#5D3EBC' : '#F1F5F9',
-                      color: viewMode === 'list' ? '#FFFFFF' : '#475569',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    📋 Liste
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('map')}
-                    style={{
-                      padding: '4px 9px',
-                      borderRadius: '8px',
-                      fontSize: '11px',
-                      fontWeight: 800,
-                      backgroundColor: viewMode === 'map' ? '#5D3EBC' : '#F1F5F9',
-                      color: viewMode === 'map' ? '#FFFFFF' : '#475569',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <Compass size={13} />
-                    <span>🗺️ Harita</span>
-                  </button>
-                </div>
+                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
+                  Seçmek için dokununuz
+                </span>
               </div>
 
-              {/* View Mode: Map vs List */}
-              {viewMode === 'map' ? (
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ marginBottom: '10px' }}>
-                    <DeliveryMap
-                      interactive={false}
-                      height="300px"
-                      selectedLocation={
-                        selectedAddress?.latitude && selectedAddress?.longitude
-                          ? { latitude: selectedAddress.latitude, longitude: selectedAddress.longitude }
-                          : undefined
-                      }
-                    />
-                  </div>
-                  {selectedAddress && (
-                    <div
-                      style={{
-                        backgroundColor: '#F3F0FE',
-                        border: '1.5px solid #DDD6FE',
-                        borderRadius: '12px',
-                        padding: '10px 14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '6px',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B' }}>
-                          📍 Seçili Adres: {selectedAddress.title}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>
-                          {selectedAddress.fullAddress || selectedAddress.district}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : addresses.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '36px 16px', backgroundColor: '#F8F9FC', borderRadius: '14px', marginBottom: '16px' }}>
+              {addresses.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '36px 16px', backgroundColor: '#F8F9FC', borderRadius: '16px', border: '1.5px dashed #E2E8F0', marginBottom: '16px' }}>
                   <Building2 size={36} color="#94A3B8" style={{ margin: '0 auto 8px' }} />
-                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#1E293B', margin: 0 }}>
+                  <p style={{ fontSize: '14px', fontWeight: 800, color: '#1E293B', margin: 0 }}>
                     Henüz kayıtlı bir adresiniz yok
                   </p>
-                  <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
-                    Sipariş verebilmek için lütfen yurt veya ev adresinizi ekleyiniz.
+                  <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', marginBottom: '14px' }}>
+                    Sipariş verebilmek için aşağıdaki butona dokunarak yurt veya ev adresinizi ekleyiniz.
                   </p>
                 </div>
               ) : (
@@ -616,19 +543,11 @@ export const AddressModal = () => {
               <div className="tab-switcher" style={{ margin: '0 0 16px 0', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
                 <button
                   type="button"
-                  className={`tab-btn ${activeTab === 'map' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('map')}
-                >
-                  <Compass size={15} />
-                  <span>🗺️ Harita ile Seç</span>
-                </button>
-                <button
-                  type="button"
                   className={`tab-btn ${activeTab === 'dormitory' ? 'active' : ''}`}
                   onClick={() => setActiveTab('dormitory')}
                 >
                   <GraduationCap size={15} />
-                  <span>🎓 Öğrenci Yurdu</span>
+                  <span>🎓 KYK Yurdu</span>
                 </button>
                 <button
                   type="button"
@@ -636,7 +555,15 @@ export const AddressModal = () => {
                   onClick={() => setActiveTab('home')}
                 >
                   <Home size={15} />
-                  <span>🏠 Manuel Adres</span>
+                  <span>🏠 Ev / İşyeri</span>
+                </button>
+                <button
+                  type="button"
+                  className={`tab-btn ${activeTab === 'map' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('map')}
+                >
+                  <Compass size={15} />
+                  <span>🗺️ Haritadan</span>
                 </button>
               </div>
 
