@@ -10,6 +10,7 @@ import { OrderTrackingModal } from '@/components/OrderTrackingModal';
 import { ToastContainer } from '@/components/ToastContainer';
 import { BottomNav } from '@/components/BottomNav';
 import { PWAInstallBanner } from '@/components/PWAInstallBanner';
+import { NotificationPromptBanner } from '@/components/NotificationPromptBanner';
 import { StoreClosedOverlay } from '@/components/StoreClosedOverlay';
 
 /**
@@ -37,6 +38,7 @@ export const CustomerShell = () => {
       <OrderTrackingModal />
       <ToastContainer />
       <BottomNav />
+      <NotificationPromptBanner />
       <PWAInstallBanner />
       <StoreClosedOverlay />
     </>

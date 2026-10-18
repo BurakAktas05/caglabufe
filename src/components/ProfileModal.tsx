@@ -20,8 +20,10 @@ import {
   Plus,
   Trash2,
   ArrowRight,
+  Bell,
 } from 'lucide-react';
 import { DigitalReceiptModal } from '@/components/DigitalReceipt';
+import { isPushSupported, getNotificationPermission, requestNotificationPermission } from '@/lib/pushNotifications';
 
 export const ProfileModal = () => {
   const {
@@ -37,10 +39,14 @@ export const ProfileModal = () => {
     setIsAddressModalOpen,
     setIsAuthModalOpen,
     setIsCartOpen,
+    showToast,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses'>('orders');
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
+  const [notifPerm, setNotifPerm] = useState<string>(() =>
+    typeof window !== 'undefined' ? getNotificationPermission() : 'default'
+  );
 
   if (!isProfileModalOpen) return null;
 
@@ -327,6 +333,59 @@ export const ProfileModal = () => {
                 </div>
               </div>
             </div>
+
+            {/* Notification Status & Permission Banner */}
+            {isPushSupported() && (
+              <div
+                style={{
+                  backgroundColor: notifPerm === 'granted' ? '#F0FDF4' : '#FFFBEB',
+                  border: `1px solid ${notifPerm === 'granted' ? '#BBF7D0' : '#FDE68A'}`,
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <Bell size={18} color={notifPerm === 'granted' ? '#16A34A' : '#D97706'} style={{ flexShrink: 0 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: notifPerm === 'granted' ? '#166534' : '#92400E' }}>
+                      {notifPerm === 'granted' ? 'Sipariş Bildirimleri Açık' : 'Sipariş Bildirimleri'}
+                    </div>
+                    <div style={{ fontSize: '11px', color: notifPerm === 'granted' ? '#15803D' : '#B45309', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {notifPerm === 'granted' ? 'Kurye hareketleri anında kilit ekranınıza gelir' : 'Kurye yola çıktığında anında bildirim alın'}
+                    </div>
+                  </div>
+                </div>
+                {notifPerm !== 'granted' && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const granted = await requestNotificationPermission();
+                      setNotifPerm(granted ? 'granted' : 'denied');
+                      if (granted) showToast('Bildirimler başarıyla açıldı!', 'success');
+                    }}
+                    style={{
+                      backgroundColor: '#5D3EBC',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px 10px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                  >
+                    İzin Ver
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Tabs */}
             <div
