@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { BannerCarousel } from '@/components/BannerCarousel';
 import { CategoryBar } from '@/components/CategoryBar';
 import { ProductCard } from '@/components/ProductCard';
 import { BundleDealsSection } from '@/components/BundleDealsSection';
 import { useApp } from '@/context/AppContext';
-import { ProductCategory } from '@/types';
+import { Product, ProductCategory } from '@/types';
 import { getActiveCampaigns, getActiveBundleDeals } from '@/lib/settingsManager';
 import { smartSearchProducts } from '@/lib/searchEngine';
 import {
@@ -23,6 +23,8 @@ import {
   Store,
   X,
   RotateCcw,
+  Plus,
+  Check,
 } from 'lucide-react';
 
 const QUICK_INTENTS = [
@@ -74,11 +76,44 @@ export default function Home() {
     return products.filter((p) => p.isAvailable && p.discountPrice && p.discountPrice < p.price);
   }, [products]);
 
-  // Essential bakkal products (Ekmek, süt, yumurta, peynir, su)
-  const essentialBakkalProducts = useMemo(() => {
-    return products.filter(
-      (p) => p.category === 'temel-gida' || p.id === 'su-erikli-5000' || p.id === 'beypazari-soda-6li'
-    ).slice(0, 6);
+  // Top Popular & Bestseller items for quick picks on home
+  const popularProducts = useMemo(() => {
+    const popularBrands = [
+      'Red Bull',
+      'Eti',
+      'Ülker',
+      'Tadım',
+      'Haribo',
+      'Indomie',
+      'Damla',
+      'Nescafe',
+      'Lipton Ice Tea',
+      'Uludağ',
+      'Cipso',
+      'Şölen',
+    ];
+    const chosen: Product[] = [];
+    const usedIds = new Set<string>();
+
+    for (const brand of popularBrands) {
+      const match = products.find((p) => p.brand === brand && p.isAvailable && !usedIds.has(p.id));
+      if (match) {
+        chosen.push(match);
+        usedIds.add(match.id);
+      }
+      if (chosen.length >= 8) break;
+    }
+
+    if (chosen.length < 8) {
+      for (const p of products) {
+        if (!usedIds.has(p.id) && p.isAvailable) {
+          chosen.push(p);
+          usedIds.add(p.id);
+          if (chosen.length >= 8) break;
+        }
+      }
+    }
+    return chosen;
   }, [products]);
 
   // Smart & Semantic Search Execution
@@ -98,6 +133,28 @@ export default function Home() {
 
     return smartSearchProducts(searchQuery, pool);
   }, [products, selectedCategory, searchQuery]);
+
+  // Progressive Pagination for high performance rendering
+  const PAGE_SIZE = 24;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [selectedCategory, searchQuery]);
+
+  const visibleProducts = useMemo(() => {
+    return searchResult.products.slice(0, visibleCount);
+  }, [searchResult.products, visibleCount]);
+
+  const hasMore = visibleCount < searchResult.products.length;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, searchResult.products.length));
+  };
+
+  const handleShowAll = () => {
+    setVisibleCount(searchResult.products.length);
+  };
 
   const activeOrders = useMemo(() => {
     return orders.filter(
@@ -375,21 +432,21 @@ export default function Home() {
           </div>
         )}
 
-        {/* 1. Essential Bakkal Groceries (Front & Center when browsing All with no search) */}
-        {selectedCategory === 'all' && searchQuery === '' && (
-          <div style={{ marginBottom: '28px' }}>
+        {/* 1. Popular & Bestsellers Section (when on All with no search) */}
+        {selectedCategory === 'all' && searchQuery === '' && popularProducts.length > 0 && (
+          <div style={{ marginBottom: '32px' }}>
             <div className="section-header">
               <h2 className="section-title">
-                <Store size={20} color="#5D3EBC" />
-                <span>Temel Mahalle Bakkalı</span>
+                <Flame size={20} color="#EA580C" />
+                <span>Popüler &amp; Çok Satanlar</span>
               </h2>
-              <span style={{ fontSize: '12px', color: '#5D3EBC', fontWeight: 800 }}>
-                Günlük Taze &amp; Eksiksiz
+              <span style={{ fontSize: '12px', color: '#EA580C', fontWeight: 800 }}>
+                En Çok Tercih Edilenler
               </span>
             </div>
             <div className="product-grid">
-              {essentialBakkalProducts.map((product) => (
-                <ProductCard key={`essential-${product.id}`} product={product} />
+              {popularProducts.map((product) => (
+                <ProductCard key={`pop-${product.id}`} product={product} />
               ))}
             </div>
           </div>
@@ -431,11 +488,11 @@ export default function Home() {
                 <span>Sıcak Büfe (Tost &amp; Sandviç)</span>
               </>
             ) : (
-              <span>Reyon Ürünleri</span>
+              <span>{selectedCategory} Reyonu</span>
             )}
           </h2>
           <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 700 }}>
-            {searchResult.products.length} ürün listeleniyor
+            {visibleProducts.length} / {searchResult.products.length} ürün listeleniyor
           </span>
         </div>
 
@@ -487,11 +544,58 @@ export default function Home() {
             )}
           </div>
         ) : (
-          <div className="product-grid">
-            {searchResult.products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <>
+            <div className="product-grid">
+              {visibleProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            {/* Progressive Pagination / Load More Box */}
+            {hasMore ? (
+              <div className="catalog-pagination-box">
+                <div className="pagination-progress-info">
+                  <span>
+                    Toplam {searchResult.products.length} üründen <strong>{visibleProducts.length}</strong> tanesi listeleniyor
+                  </span>
+                  <div className="pagination-progress-track">
+                    <div
+                      className="pagination-progress-bar"
+                      style={{
+                        width: `${Math.round((visibleProducts.length / searchResult.products.length) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="pagination-actions">
+                  <button
+                    type="button"
+                    className="btn-load-more"
+                    onClick={handleLoadMore}
+                  >
+                    <Plus size={16} />
+                    <span>Daha Fazla Göster (+{Math.min(PAGE_SIZE, searchResult.products.length - visibleProducts.length)})</span>
+                  </button>
+
+                  {searchResult.products.length > visibleCount + PAGE_SIZE && (
+                    <button
+                      type="button"
+                      className="btn-show-all"
+                      onClick={handleShowAll}
+                    >
+                      <span>Tümünü Göster ({searchResult.products.length})</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : searchResult.products.length > PAGE_SIZE ? (
+              <div className="catalog-end-banner">
+                <Check size={16} color="#059669" />
+                <span>Reyondaki tüm ürünler listelendi ({searchResult.products.length} ürün)</span>
+              </div>
+            ) : null}
+          </>
         )}
 
         {/* PWA Install & Quick Support */}
