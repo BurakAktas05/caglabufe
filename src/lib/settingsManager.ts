@@ -1,12 +1,21 @@
 import { SystemSettings, DeliveryZone, DormitoryConfig, Campaign, StoreBranch } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
-// --- STORAGE KEYS ---
-const SETTINGS_KEY = 'caglabufe_system_settings_v1';
+// --- STORAGE KEYS (v4: 100% Real Product Inventory) ---
+const SETTINGS_KEY = 'caglabufe_system_settings_v4';
 const ZONES_KEY = 'caglabufe_delivery_zones_v1';
 const DORMS_KEY = 'caglabufe_dormitories_v1';
-const CAMPAIGNS_KEY = 'caglabufe_campaigns_v2';
+const CAMPAIGNS_KEY = 'caglabufe_campaigns_v4';
 const BRANCHES_KEY = 'caglabufe_store_branches_v1';
+
+// Cleanup stale mock data keys from older development versions
+if (typeof window !== 'undefined') {
+  try {
+    ['caglabufe_campaigns_v1', 'caglabufe_campaigns_v2', 'caglabufe_campaigns_v3', 'caglabufe_system_settings_v1', 'caglabufe_system_settings_v2', 'caglabufe_system_settings_v3'].forEach((k) => {
+      localStorage.removeItem(k);
+    });
+  } catch {}
+}
 
 // --- 2 ANA MARKET / ŞUBE ODAK NOKTALARI ---
 export const DEFAULT_BRANCHES: StoreBranch[] = [
@@ -279,7 +288,12 @@ export function getSystemSettings(): SystemSettings {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(DEFAULT_SETTINGS));
       return DEFAULT_SETTINGS;
     }
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    if (parsed.announcementText && parsed.announcementText.includes('tost')) {
+      parsed.announcementText = DEFAULT_SETTINGS.announcementText;
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(parsed));
+    }
+    return { ...DEFAULT_SETTINGS, ...parsed };
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -712,7 +726,19 @@ export function getCampaigns(): Campaign[] {
       localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(DEFAULT_CAMPAIGNS));
       return DEFAULT_CAMPAIGNS;
     }
-    return JSON.parse(raw);
+    const parsed: Campaign[] = JSON.parse(raw);
+    // Sanitize any phantom / mock campaigns from older storage
+    const clean = parsed.filter(
+      (c) =>
+        !c.title.toLowerCase().includes('tost') &&
+        !c.description.toLowerCase().includes('tost') &&
+        c.id !== 'camp_bundle_bufe_menusu' &&
+        c.id !== 'camp_bundle_kola_cekirdek'
+    );
+    if (clean.length !== parsed.length) {
+      localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(clean));
+    }
+    return clean.length > 0 ? clean : DEFAULT_CAMPAIGNS;
   } catch {
     return DEFAULT_CAMPAIGNS;
   }
