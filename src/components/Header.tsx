@@ -15,7 +15,7 @@ export const Header = () => {
     setIsAddressModalOpen,
     user,
     setIsAuthModalOpen,
-    logoutUser,
+    setIsProfileModalOpen,
     minOrderAmount,
   } = useApp();
 
@@ -59,12 +59,8 @@ export const Header = () => {
             <button
               type="button"
               className="header-link-btn"
-              onClick={() => {
-                if (confirm(`${user.fullName} oturumunu kapatmak istiyor musunuz?`)) {
-                  logoutUser();
-                }
-              }}
-              title="Çıkış Yap"
+              onClick={() => setIsProfileModalOpen(true)}
+              title="Hesabım & Sipariş Geçmişim"
             >
               <UserIcon size={16} />
               <span className="header-btn-text">{user.fullName.split(' ')[0]}</span>

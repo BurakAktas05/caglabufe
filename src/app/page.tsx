@@ -99,9 +99,11 @@ export default function Home() {
     return smartSearchProducts(searchQuery, pool);
   }, [products, selectedCategory, searchQuery]);
 
-  const activeOrder = orders.find(
-    (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'on_the_way'
-  );
+  const activeOrders = useMemo(() => {
+    return orders.filter(
+      (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'on_the_way'
+    );
+  }, [orders]);
 
   const lastCompletedOrder = useMemo(() => {
     return orders.find((o) => o.status === 'delivered');
@@ -176,10 +178,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* Active order bar */}
-      {activeOrder && (
+      {/* Active order(s) bar */}
+      {activeOrders.length > 0 && (
         <div
-          onClick={() => setActiveTrackingOrder(activeOrder)}
+          onClick={() => setActiveTrackingOrder(activeOrders[0])}
           style={{
             backgroundColor: '#10B981',
             color: '#FFFFFF',
@@ -196,12 +198,20 @@ export default function Home() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
               <Clock size={16} style={{ flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <strong>{activeOrder.orderNumber}</strong> nolu siparişiniz{' '}
-                {activeOrder.status === 'pending' ? 'alındı' : activeOrder.status === 'preparing' ? 'hazırlanıyor' : 'kuryede yolda'}
+                {activeOrders.length > 1 ? (
+                  <span>
+                    <strong>{activeOrders.length} Aktif Siparişiniz Var:</strong> {activeOrders.map((o) => `${o.orderNumber} (${o.status === 'on_the_way' ? 'Kuryede' : o.status === 'preparing' ? 'Hazırlanıyor' : 'Alındı'})`).join(' • ')}
+                  </span>
+                ) : (
+                  <span>
+                    <strong>{activeOrders[0].orderNumber}</strong> nolu siparişiniz{' '}
+                    {activeOrders[0].status === 'pending' ? 'alındı' : activeOrders[0].status === 'preparing' ? 'hazırlanıyor' : 'kuryede yolda'}
+                  </span>
+                )}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'underline', flexShrink: 0 }}>
-              <span>Sipariş Durumu</span>
+              <span>{activeOrders.length > 1 ? 'Siparişleri Takip Et' : 'Sipariş Durumu'}</span>
               <ArrowRight size={14} />
             </div>
           </div>
@@ -209,7 +219,7 @@ export default function Home() {
       )}
 
       {/* Quick Repeat Last Order Banner for returning customers */}
-      {!activeOrder && lastCompletedOrder && cart.length === 0 && (
+      {activeOrders.length === 0 && lastCompletedOrder && cart.length === 0 && (
         <div
           style={{
             backgroundColor: '#F5F3FF',

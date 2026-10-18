@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { CartDrawer } from '@/components/CartDrawer';
 import { AddressModal } from '@/components/AddressModal';
 import { AuthModal } from '@/components/AuthModal';
+import { ProfileModal } from '@/components/ProfileModal';
 import { OrderTrackingModal } from '@/components/OrderTrackingModal';
 import { ToastContainer } from '@/components/ToastContainer';
 import { BottomNav } from '@/components/BottomNav';
@@ -32,6 +33,7 @@ export const CustomerShell = () => {
       <CartDrawer />
       <AddressModal />
       <AuthModal />
+      <ProfileModal />
       <OrderTrackingModal />
       <ToastContainer />
       <BottomNav />

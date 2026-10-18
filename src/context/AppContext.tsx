@@ -89,6 +89,8 @@ interface AppContextType {
   setIsAddressModalOpen: (open: boolean) => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
+  isProfileModalOpen: boolean;
+  setIsProfileModalOpen: (open: boolean) => void;
 
   // Store status
   storeOpen: boolean;
@@ -142,6 +144,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressIdState] = useState<string>('');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -816,6 +819,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         isCartOpen, setIsCartOpen,
         isAddressModalOpen, setIsAddressModalOpen,
         isAuthModalOpen, setIsAuthModalOpen,
+        isProfileModalOpen, setIsProfileModalOpen,
         storeOpen,
         toasts, showToast,
       }}

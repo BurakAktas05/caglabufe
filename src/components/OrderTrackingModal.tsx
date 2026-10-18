@@ -18,6 +18,7 @@ import {
   BellRing,
   RotateCcw,
   Sparkles,
+  ShoppingBag,
 } from 'lucide-react';
 import { getSystemSettings, formatTemplate } from '@/lib/settingsManager';
 import { DigitalReceiptModal } from '@/components/DigitalReceipt';
@@ -25,7 +26,15 @@ import { requestNotificationPermission } from '@/lib/pushNotifications';
 import { decodeHtmlEntities } from '@/lib/security';
 
 export const OrderTrackingModal = () => {
-  const { activeTrackingOrder, setActiveTrackingOrder, systemSettings, showToast, reorderItems } = useApp();
+  const {
+    activeTrackingOrder,
+    setActiveTrackingOrder,
+    orders,
+    setIsProfileModalOpen,
+    systemSettings,
+    showToast,
+    reorderItems,
+  } = useApp();
   const [copied, setCopied] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [notificationPerm, setNotificationPerm] = useState<string>(() => {
@@ -48,6 +57,9 @@ export const OrderTrackingModal = () => {
   if (!activeTrackingOrder) return null;
 
   const order = activeTrackingOrder;
+  const activeOrders = orders.filter(
+    (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'on_the_way'
+  );
   const settings = systemSettings || getSystemSettings();
   const storePhone = settings.storePhone || '0542 000 7878';
   const rawWhatsApp = (settings.storeWhatsApp || '905420007878').replace(/\D/g, '');
@@ -142,6 +154,67 @@ export const OrderTrackingModal = () => {
               <X size={18} />
             </button>
           </div>
+
+          {/* Multiple Active Orders Switcher Tabs (Never grows modal height!) */}
+          {activeOrders.length > 1 && (
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                overflowX: 'auto',
+                padding: '10px 16px',
+                backgroundColor: '#F3F0FE',
+                borderBottom: '1px solid #DDD6FE',
+                alignItems: 'center',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: '#5D3EBC',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {activeOrders.length} Aktif Sipariş:
+              </span>
+              {activeOrders.map((o) => {
+                const isCurrent = o.id === order.id;
+                const statusShort =
+                  o.status === 'pending' ? 'Alındı' : o.status === 'preparing' ? 'Hazırlanıyor' : 'Yolda';
+                const statusEmoji = o.status === 'on_the_way' ? '🛵' : o.status === 'preparing' ? '🍳' : '⏱️';
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => setActiveTrackingOrder(o)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 11px',
+                      borderRadius: '999px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      backgroundColor: isCurrent ? '#5D3EBC' : '#FFFFFF',
+                      color: isCurrent ? '#FFFFFF' : '#4C1D95',
+                      border: isCurrent ? '1px solid #5D3EBC' : '1px solid #C4B5FD',
+                      whiteSpace: 'nowrap',
+                      boxShadow: isCurrent ? '0 2px 5px rgba(93, 62, 188, 0.25)' : 'none',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span>{statusEmoji}</span>
+                    <span>{o.orderNumber}</span>
+                    <span style={{ opacity: isCurrent ? 0.95 : 0.7, fontSize: '10px' }}>({statusShort})</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Body */}
           <div className="sheet-body">
@@ -540,6 +613,34 @@ export const OrderTrackingModal = () => {
                   <span>WhatsApp</span>
                 </a>
               </div>
+
+              {/* View All Orders Shortcut */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTrackingOrder(null);
+                  setIsProfileModalOpen(true);
+                }}
+                style={{
+                  width: '100%',
+                  marginTop: '10px',
+                  padding: '9px 12px',
+                  backgroundColor: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: '#4B5563',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                <ShoppingBag size={14} color="#5D3EBC" />
+                <span>Tüm Sipariş Geçmişimi Görüntüle</span>
+              </button>
             </div>
           </div>
         </div>
