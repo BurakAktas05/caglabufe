@@ -72,9 +72,6 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           {product.name}
         </h3>
 
-        {/* Unit */}
-        <p className="card-unit">{product.unit}</p>
-
         {/* Action Button */}
         <div className="card-action">
           {quantity === 0 ? (

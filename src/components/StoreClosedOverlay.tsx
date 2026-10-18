@@ -2,30 +2,33 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { isStoreOpen, subscribeToSettings } from '@/lib/settingsManager';
 import { StoreLandingPage } from './StoreLandingPage';
 
 export const StoreClosedOverlay = () => {
   const pathname = usePathname();
-  const [storeIsOpen, setStoreIsOpen] = useState(true);
-  const [hasSeenLanding, setHasSeenLanding] = useState(true);
+  const [shouldShowSplash, setShouldShowSplash] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
 
   useEffect(() => {
-    // Check if user has already seen the landing page in this session
-    if (typeof window !== 'undefined') {
-      const seen = sessionStorage.getItem('cagla_seen_landing') === 'true';
-      setHasSeenLanding(seen);
+    if (typeof window === 'undefined') return;
+
+    // Detect if running as standalone PWA
+    const isPWA =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+
+    // Check conditions:
+    // 1. Device first visit: Never seen on this device before
+    const hasSeenDevice = localStorage.getItem('cagla_device_splash_seen') === 'true';
+
+    // 2. PWA Startup: Standalone PWA opened in a fresh session
+    const hasSeenPwaSession = sessionStorage.getItem('cagla_pwa_splash_seen') === 'true';
+
+    if (!hasSeenDevice) {
+      setShouldShowSplash(true);
+    } else if (isPWA && !hasSeenPwaSession) {
+      setShouldShowSplash(true);
     }
-
-    const check = () => {
-      const openStatus = isStoreOpen();
-      setStoreIsOpen(openStatus);
-    };
-
-    check();
-    const unsub = subscribeToSettings(check);
-    const interval = setInterval(check, 10000);
 
     // Listen for manual trigger to view store landing page / hours anytime
     const handleOpenLanding = () => {
@@ -35,13 +38,11 @@ export const StoreClosedOverlay = () => {
     window.addEventListener('open-cagla-landing', handleOpenLanding);
 
     return () => {
-      clearInterval(interval);
-      unsub();
       window.removeEventListener('open-cagla-landing', handleOpenLanding);
     };
   }, []);
 
-  // Do NOT show customer closed/landing overlay on admin portal!
+  // Do NOT show splash/landing overlay on admin portal!
   const isAdmin =
     Boolean(pathname && pathname.startsWith('/admin')) ||
     (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'));
@@ -50,11 +51,7 @@ export const StoreClosedOverlay = () => {
     return null;
   }
 
-  // Show landing if:
-  // 1. Manually requested (via click on status bar or info button)
-  // 2. First time opening the app (!hasSeenLanding)
-  // 3. Store is currently closed and hasn't been explicitly entered
-  const shouldShow = manualOpen || (!hasSeenLanding) || (!storeIsOpen && !hasSeenLanding);
+  const shouldShow = manualOpen || shouldShowSplash;
 
   if (!shouldShow) return null;
 
@@ -62,14 +59,22 @@ export const StoreClosedOverlay = () => {
     <StoreLandingPage
       forceShow={manualOpen}
       onEnterStore={() => {
-        setHasSeenLanding(true);
+        setShouldShowSplash(false);
         setManualOpen(false);
         if (typeof window !== 'undefined') {
+          localStorage.setItem('cagla_device_splash_seen', 'true');
+          sessionStorage.setItem('cagla_pwa_splash_seen', 'true');
           sessionStorage.setItem('cagla_seen_landing', 'true');
         }
       }}
       onClose={() => {
+        setShouldShowSplash(false);
         setManualOpen(false);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cagla_device_splash_seen', 'true');
+          sessionStorage.setItem('cagla_pwa_splash_seen', 'true');
+          sessionStorage.setItem('cagla_seen_landing', 'true');
+        }
       }}
     />
   );

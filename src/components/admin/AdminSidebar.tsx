@@ -15,6 +15,7 @@ import {
   X,
   Volume2,
   VolumeX,
+  Printer,
 } from 'lucide-react';
 
 export type AdminTab = 'orders' | 'daily' | 'inventory' | 'campaigns' | 'zones' | 'settings' | 'banned';
@@ -296,6 +297,32 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           >
             <span>Müşteri Sayfası</span>
             <ExternalLink size={14} />
+          </Link>
+
+          {/* Printable Flyer Link */}
+          <Link
+            href="/brosur"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '9px 12px',
+              borderRadius: '10px',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#1F2937',
+              backgroundColor: '#FFD10D',
+              textDecoration: 'none',
+              boxShadow: '0 2px 8px rgba(255, 209, 13, 0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Printer size={15} />
+              <span>Broşür &amp; Afiş Bas (A4/A5)</span>
+            </div>
+            <ExternalLink size={13} />
           </Link>
 
           {/* Logout */}

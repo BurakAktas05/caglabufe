@@ -48,11 +48,18 @@ export const Header = () => {
                   </span>
                 )}
               </span>
-              <span className="address-title">
+              <span
+                className="address-title"
+                title={
+                  selectedAddress
+                    ? `${selectedAddress.title} - ${selectedAddress.district || ''}`
+                    : 'Teslimat Adresi Seç'
+                }
+              >
                 {selectedAddress
                   ? selectedAddress.type === 'dormitory'
                     ? (selectedAddress.dormName || selectedAddress.title)
-                    : `${selectedAddress.title} (${selectedAddress.district})`
+                    : selectedAddress.title
                   : '📍 Adres Ekle'}
               </span>
             </div>

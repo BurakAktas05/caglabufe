@@ -239,6 +239,7 @@ input, textarea, select {
   flex: 1;
   border: 1.5px solid #6E4ED1;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 @media (min-width: 640px) {
@@ -1886,30 +1887,35 @@ input, textarea, select {
     font-size: 15px;
   }
 
-  .brand-tag {
-    font-size: 10px;
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 auto;
+    max-width: calc(100% - 110px);
+    justify-content: flex-end;
   }
 
   .address-selector-btn {
-    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    flex: 1 1 auto;
     min-width: 0;
-    max-width: none;
-    padding: 6px 10px;
-    gap: 6px;
+    max-width: 210px;
+    padding: 5px 8px;
+    gap: 5px;
+    overflow: hidden;
   }
 
   .address-title {
-    font-size: 12px;
+    font-size: 11.5px;
     max-width: 100%;
     width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .header-actions {
-    gap: 6px;
-    flex-shrink: 0;
+    display: block;
   }
 
   .header-btn-text {
@@ -1987,8 +1993,14 @@ input, textarea, select {
     gap: 6px;
   }
 
+  .address-selector-btn {
+    max-width: 175px;
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
   .address-title {
-    font-size: 11px;
+    font-size: 10.5px;
   }
 
   .promo-banner {

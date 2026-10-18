@@ -21,11 +21,12 @@ import { StoreClosedOverlay } from '@/components/StoreClosedOverlay';
 export const CustomerShell = () => {
   const pathname = usePathname();
 
-  const isAdmin =
-    Boolean(pathname && pathname.startsWith('/admin')) ||
-    (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'));
+  const isExcluded =
+    Boolean(pathname && (pathname.startsWith('/admin') || pathname === '/brosur')) ||
+    (typeof window !== 'undefined' &&
+      (window.location.pathname.startsWith('/admin') || window.location.pathname === '/brosur'));
 
-  if (isAdmin) {
+  if (isExcluded) {
     return null;
   }
 
