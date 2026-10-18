@@ -573,6 +573,19 @@ export function isPointInPolygon(lat: number, lng: number, polygon?: [number, nu
 }
 
 /**
+ * Calculates approximate 2D planar area of a polygon using the Shoelace formula
+ * Used to prioritize specific/smaller zones when polygons overlap
+ */
+export function calculatePolygonArea(coords: [number, number][]): number {
+  if (!coords || coords.length < 3) return 0;
+  let area = 0;
+  for (let i = 0, j = coords.length - 1; i < coords.length; j = i++) {
+    area += (coords[j][1] + coords[i][1]) * (coords[j][0] - coords[i][0]);
+  }
+  return Math.abs(area / 2);
+}
+
+/**
  * Finds the closest active store branch and the corresponding delivery zone for a customer point
  */
 export function getClosestBranchAndZone(lat: number, lng: number): {
@@ -614,14 +627,23 @@ export function getClosestBranchAndZone(lat: number, lng: number): {
   }
 
   // 2. Priority 1: Check if (lat, lng) falls directly inside any custom drawn polygon zone
-  const polygonMatch = zones.find(
+  // Handle overlaps: if multiple polygons match, pick the most specific (smallest area) one
+  const matchingPolygons = zones.filter(
     (z) => z.polygonCoords && z.polygonCoords.length >= 3 && isPointInPolygon(lat, lng, z.polygonCoords)
   );
 
-  if (polygonMatch) {
+  if (matchingPolygons.length > 0) {
+    const bestPolygonMatch = matchingPolygons.length === 1
+      ? matchingPolygons[0]
+      : [...matchingPolygons].sort((a, b) => {
+          const areaA = calculatePolygonArea(a.polygonCoords!);
+          const areaB = calculatePolygonArea(b.polygonCoords!);
+          return areaA - areaB;
+        })[0];
+
     return {
       branch: closestBranch,
-      zone: polygonMatch,
+      zone: bestPolygonMatch,
       distanceKm: minDistance,
     };
   }

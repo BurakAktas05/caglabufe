@@ -509,6 +509,42 @@ export const AdminZones: React.FC<AdminZonesProps> = ({
             </div>
           </div>
 
+          {/* Bölge Çizim Rehberi (Çakışmalar & Boş Alanlar) */}
+          <div
+            style={{
+              backgroundColor: 'rgba(30, 27, 75, 0.65)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '14px',
+              fontSize: '12px',
+              lineHeight: 1.5,
+              color: '#CBD5E1',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '12px',
+            }}
+          >
+            <div>
+              <span style={{ fontWeight: 800, color: '#A78BFA', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🎯</span>
+                <span>Bölgeler Çakışırsa (İç İçe Geçerse):</span>
+              </span>
+              <span style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', display: 'block' }}>
+                İki poligon üst üste bindiğinde (örn. 100. Yıl içine çizilen KYK Yurtları Kampüsü), sistem <strong>daha küçük ve özel olan bölgeyi</strong> otomatik olarak önceliklendirir.
+              </span>
+            </div>
+            <div>
+              <span style={{ fontWeight: 800, color: '#34D399', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🛡️</span>
+                <span>Boş Kalan Çizilmemiş Alanlar:</span>
+              </span>
+              <span style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px', display: 'block' }}>
+                Her sokağı tek tek çizmek zorunda değilsiniz! Poligon dışındaki boşluklara tıklayan müşteriler için dükkandan olan km mesafesine göre sistem <strong>otomatik mesafe halkası tarifesi</strong> uygular.
+              </span>
+            </div>
+          </div>
+
           {/* Interactive DeliveryMap (Polygons, no messy concentric overlapping circles) */}
           <DeliveryMap
             interactive={true}
