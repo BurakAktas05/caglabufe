@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { ProductCategory, CategoryInfo } from '@/types';
-import { CATEGORIES } from '@/data/seedData';
+import { CATEGORIES } from '@/data/categories';
 import { useApp } from '@/context/AppContext';
 import {
   Flame,

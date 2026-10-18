@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { DEPARTMENTS, Department } from '@/data/departments';
-import { CATEGORIES } from '@/data/seedData';
+import { CATEGORIES } from '@/data/categories';
 import { ArrowRight, Sparkles, ChevronDown, ChevronUp, Layers } from 'lucide-react';
 
 interface TrendyolCategoryGridProps {

@@ -16,13 +16,16 @@ const env = Object.fromEntries(
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 async function checkState() {
-  const { data: prods, count: prodCount } = await supabase.from('products').select('*', { count: 'exact' });
-  const { data: orders, count: orderCount } = await supabase.from('orders').select('*', { count: 'exact' });
-  const { data: camps } = await supabase.from('campaigns').select('*');
+  const { data: prods } = await supabase.from('products').select('id, name, image_url, category');
+  const { data: camps } = await supabase.from('campaigns').select('id, title, type');
   
   console.log(`Current products in DB: ${prods ? prods.length : 0}`);
-  console.log(`Current orders in DB: ${orders ? orders.length : 0}`);
-  console.log(`Current campaigns in DB: ${camps ? camps.length : 0}`);
+  const unsplashProds = (prods || []).filter(p => p.image_url && p.image_url.includes('unsplash'));
+  console.log(`Unsplash mock products count: ${unsplashProds.length}`);
+  if (unsplashProds.length > 0) {
+    console.log('Sample unsplash prods:', unsplashProds.slice(0, 3));
+  }
+  console.log(`Campaigns in DB:`, camps);
 }
 
 checkState();

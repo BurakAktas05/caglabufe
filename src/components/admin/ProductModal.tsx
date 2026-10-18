@@ -11,7 +11,7 @@ interface ProductModalProps {
   onSave: (product: Product) => void;
 }
 
-import { CATEGORIES } from '@/data/seedData';
+import { CATEGORIES } from '@/data/categories';
 
 interface ProductModalProps {
   product: Product | null;

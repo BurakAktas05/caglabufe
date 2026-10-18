@@ -8,7 +8,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { useApp } from '@/context/AppContext';
 import { Product } from '@/types';
 import { DEPARTMENTS, getDepartmentById, findDepartmentForCategory } from '@/data/departments';
-import { CATEGORIES } from '@/data/seedData';
+import { CATEGORIES } from '@/data/categories';
 import { smartSearchProducts, SmartSearchResult } from '@/lib/searchEngine';
 import {
   Search,

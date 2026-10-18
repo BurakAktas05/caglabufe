@@ -1,5 +1,6 @@
-import { CategoryInfo, Product } from '@/types';
+import { CategoryInfo } from '@/types';
 
+// 66 Gerçek Kategori - Excel Kataloğu (ÜrünOlusturma_5522d054)
 export const CATEGORIES: CategoryInfo[] = [
   { id: 'Çikolata', name: 'Çikolata', icon: 'Candy', description: 'Kare, tablet ve dolgulu çikolatalar' },
   { id: 'Sakız', name: 'Sakız', icon: 'Smile', description: 'Ferahlatıcı ve meyveli sakızlar' },
@@ -68,5 +69,3 @@ export const CATEGORIES: CategoryInfo[] = [
   { id: 'Ketçap', name: 'Ketçap', icon: 'Utensils', description: 'Ketçap ve soslar' },
   { id: 'Su', name: 'Su', icon: 'Droplets', description: 'Doğal kaynak suları' },
 ];
-
-export const INITIAL_PRODUCTS: Product[] = [];
