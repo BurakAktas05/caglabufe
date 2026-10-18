@@ -191,29 +191,31 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
                 Kategori *
               </label>
-              <select
+              <input
+                type="text"
+                list="category-suggestions"
                 value={category}
                 onChange={(e) => {
                   const val = e.target.value as ProductCategory;
                   setCategory(val);
                   if (val === 'sicak-lezzetler') setIsKitchenItem(true);
                 }}
+                placeholder="Kategori seçin veya yazın..."
                 style={{
                   width: '100%',
-                  padding: '10px 14px',
+                  padding: '9px 12px',
                   borderRadius: '10px',
                   border: '1.5px solid #E5E7EB',
                   fontSize: '14px',
                   outline: 'none',
                   backgroundColor: '#FFFFFF',
                 }}
-              >
+              />
+              <datalist id="category-suggestions">
                 {CATEGORIES.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+                  <option key={c.id} value={c.name} />
                 ))}
-              </select>
+              </datalist>
             </div>
 
             {/* Pricing Grid */}

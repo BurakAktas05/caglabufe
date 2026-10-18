@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
-import { ProductCategory } from '@/types';
+import React, { useMemo } from 'react';
+import { ProductCategory, CategoryInfo } from '@/types';
 import { CATEGORIES } from '@/data/seedData';
+import { useApp } from '@/context/AppContext';
 import {
   Flame,
   Droplets,
@@ -34,6 +35,24 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 export const CategoryBar = ({ selectedCategory, onSelectCategory }: CategoryBarProps) => {
+  const { products } = useApp();
+
+  const activeCategories: CategoryInfo[] = useMemo(() => {
+    if (CATEGORIES && CATEGORIES.length > 0) return CATEGORIES;
+    // Dynamically derive categories from uploaded products
+    const unique = Array.from(new Set((products || []).map((p) => p.category).filter(Boolean)));
+    return unique.map((catKey) => ({
+      id: catKey,
+      name: catKey,
+      icon: 'grid',
+      description: '',
+    }));
+  }, [products]);
+
+  if (activeCategories.length === 0) {
+    return null;
+  }
+
   return (
     <div className="category-bar-wrapper">
       <div className="category-bar">
@@ -46,7 +65,7 @@ export const CategoryBar = ({ selectedCategory, onSelectCategory }: CategoryBarP
           <span>Tüm Reyonlar</span>
         </button>
 
-        {CATEGORIES.map((cat) => {
+        {activeCategories.map((cat) => {
           const isActive = selectedCategory === cat.id;
           return (
             <button

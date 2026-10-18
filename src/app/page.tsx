@@ -455,30 +455,36 @@ export default function Home() {
                 width: '56px',
                 height: '56px',
                 borderRadius: '50%',
-                backgroundColor: '#F3F4F6',
-                color: '#6B7280',
+                backgroundColor: '#F3F0FE',
+                color: '#5D3EBC',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 14px',
               }}
             >
-              <Search size={26} />
+              <ShoppingBag size={26} color="#5D3EBC" />
             </div>
             <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#1F2937', marginBottom: '6px' }}>
-              Aradığınız Ürün Bulunamadı
+              {products.length === 0
+                ? 'Katalog Güncelleniyor'
+                : 'Aradığınız Ürün Bulunamadı'}
             </h3>
             <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '360px', margin: '0 auto 16px' }}>
-              &quot;{searchQuery}&quot; ifadesine uygun ürün bulamadık. Dilerseniz yukarıdaki hazır filtrelerden birine dokunabilir veya aramayı temizleyebilirsiniz.
+              {products.length === 0
+                ? 'Ürün kataloğu ve fiyat listesi güncellenmektedir. Lütfen birazdan tekrar kontrol ediniz.'
+                : `"${searchQuery}" ifadesine uygun ürün bulamadık. Dilerseniz aramayı temizleyebilirsiniz.`}
             </p>
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="btn-primary"
-              style={{ padding: '10px 20px', fontSize: '13px' }}
-            >
-              Tüm Ürünleri Göster
-            </button>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="btn-primary"
+                style={{ padding: '10px 20px', fontSize: '13px' }}
+              >
+                Aramayı Temizle
+              </button>
+            )}
           </div>
         ) : (
           <div className="product-grid">

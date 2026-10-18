@@ -69,7 +69,8 @@ export type ProductCategory =
   | 'biskuvi-kek'
   | 'pratik-yemek'
   | 'kisisel-bakim'
-  | 'sicak-lezzetler';
+  | 'sicak-lezzetler'
+  | (string & {});
 
 export interface CategoryInfo {
   id: ProductCategory;

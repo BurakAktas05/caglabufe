@@ -44,6 +44,12 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const dynamicCategories = useMemo(() => {
+    const set = new Set(products.map((p) => p.category).filter(Boolean));
+    const dynamic = Array.from(set).map((c) => ({ id: c, name: c }));
+    return [{ id: 'all', name: 'Tümü' }, ...dynamic];
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     let list = products;
     if (selectedCategory !== 'all') {
@@ -145,30 +151,32 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
       </div>
 
       {/* Category Filter Pills */}
-      <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
-        {CATEGORIES.map((cat) => {
-          const isActive = selectedCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              style={{
-                padding: '7px 14px',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: 700,
-                backgroundColor: isActive ? '#5D3EBC' : '#FFFFFF',
-                color: isActive ? '#FFFFFF' : '#4B5563',
-                border: '1px solid ' + (isActive ? '#5D3EBC' : '#E5E7EB'),
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {cat.name}
-            </button>
-          );
-        })}
-      </div>
+      {dynamicCategories.length > 1 && (
+        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
+          {dynamicCategories.map((cat) => {
+            const isActive = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  backgroundColor: isActive ? '#5D3EBC' : '#FFFFFF',
+                  color: isActive ? '#FFFFFF' : '#4B5563',
+                  border: '1px solid ' + (isActive ? '#5D3EBC' : '#E5E7EB'),
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Product Grid */}
       {filteredProducts.length === 0 ? (
