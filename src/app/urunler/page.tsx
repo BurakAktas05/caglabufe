@@ -58,8 +58,24 @@ function ProductsPageContent() {
     if (!activeDepartment) {
       return CATEGORIES;
     }
-    return CATEGORIES.filter((c) => activeDepartment.categories.includes(c.id));
-  }, [activeDepartment]);
+    const baseCats = CATEGORIES.filter((c) => activeDepartment.categories.includes(c.id));
+    // Also include any dynamically existing product categories belonging to this department
+    const dynamicCats = new Set<string>();
+    products.forEach((p) => {
+      const isMatch =
+        activeDepartment.categories.includes(p.category) ||
+        findDepartmentForCategory(p.category)?.id === activeDepartment.id;
+      if (isMatch && !baseCats.some((c) => c.id === p.category)) {
+        dynamicCats.add(p.category);
+      }
+    });
+    const extraCats = Array.from(dynamicCats).map((cat) => ({
+      id: cat as any,
+      name: cat,
+      description: `${cat} çeşitleri`,
+    }));
+    return [...baseCats, ...extraCats];
+  }, [activeDepartment, products]);
 
   // Filter pool
   const filteredPool = useMemo(() => {
@@ -67,7 +83,11 @@ function ProductsPageContent() {
 
     // Filter by department if chosen
     if (activeDepartment) {
-      pool = pool.filter((p) => activeDepartment.categories.includes(p.category));
+      pool = pool.filter(
+        (p) =>
+          activeDepartment.categories.includes(p.category) ||
+          findDepartmentForCategory(p.category)?.id === activeDepartment.id
+      );
     }
 
     // Filter by specific subcategory if chosen

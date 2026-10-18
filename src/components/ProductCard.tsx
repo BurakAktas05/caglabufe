@@ -62,9 +62,9 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           )}
         </div>
 
-        {/* Brand Badge */}
-        {product.brand && (
-          <span className="card-brand-badge">{product.brand}</span>
+        {/* Brand Badge (Only rendered if brand is present, e.g. Ülker, Eti. Omitted for Tost/unbranded products) */}
+        {product.brand && product.brand.trim() !== '' && (
+          <span className="card-brand-badge">{product.brand.trim()}</span>
         )}
 
         {/* Title */}

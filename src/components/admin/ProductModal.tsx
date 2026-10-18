@@ -5,12 +5,6 @@ import Image from 'next/image';
 import { Product, ProductCategory } from '@/types';
 import { X, Save, Package } from 'lucide-react';
 
-interface ProductModalProps {
-  product: Product | null;
-  onClose: () => void;
-  onSave: (product: Product) => void;
-}
-
 import { CATEGORIES } from '@/data/categories';
 
 interface ProductModalProps {
@@ -196,11 +190,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
-                  Marka (Örn: Eti, Ülker)
+                  Marka (Opsiyonel)
+                  <span style={{ fontSize: '11px', fontWeight: 500, color: '#6B7280', display: 'block' }}>
+                    Tost, sıcak sandviç gibi markasız ürünlerde boş bırakınız
+                  </span>
                 </label>
                 <input
                   type="text"
-                  placeholder="Marka adı..."
+                  placeholder="Marka yoksa boş bırakın..."
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
                   style={{
@@ -369,7 +366,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   checked={isKitchenItem}
                   onChange={(e) => setIsKitchenItem(e.target.checked)}
                 />
-                <span>Hazırlık Süresi Gerektiren Ürün (Özel paketleme veya ısıl işlem)</span>
+                <span>🥪 Sıcak Mutfak / Hazırlık Ürünü (Tost, sandviç, sıcak büfe lezzeti)</span>
               </label>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: isAvailable ? '#059669' : '#DC2626' }}>

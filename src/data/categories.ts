@@ -1,7 +1,9 @@
 import { CategoryInfo } from '@/types';
 
-// 66 Gerçek Kategori - Excel Kataloğu (ÜrünOlusturma_5522d054)
+// 68 Kategori - Excel Kataloğu + Büfe Mutfak Lezzetleri (Tost, Sandviç vb.)
 export const CATEGORIES: CategoryInfo[] = [
+  { id: 'Tost & Sıcak Lezzetler', name: 'Tost & Sıcak Lezzetler', icon: 'Flame', description: 'Karışık tost, Ayvalık tostu, bazlama ve sıcak büfe ürünleri' },
+  { id: 'Sandviç', name: 'Sandviç', icon: 'Croissant', description: 'Soğuk ve sıcak sandviç çeşitleri' },
   { id: 'Çikolata', name: 'Çikolata', icon: 'Candy', description: 'Kare, tablet ve dolgulu çikolatalar' },
   { id: 'Sakız', name: 'Sakız', icon: 'Smile', description: 'Ferahlatıcı ve meyveli sakızlar' },
   { id: 'Meyve Suyu', name: 'Meyve Suyu', icon: 'Apple', description: 'Doğal ve aromalı meyve suları' },

@@ -89,13 +89,24 @@ export const DEPARTMENTS: Department[] = [
   },
   {
     id: 'hazir-yiyecek',
-    name: 'Hazır Yiyecek & Noodle',
-    badge: 'Noodle, Çorba & Makarna',
-    emoji: '🍜',
+    name: 'Hazır Yiyecek & Tost',
+    badge: 'Tost, Noodle & Sıcaklar',
+    emoji: '🥪',
     count: 20,
     imageUrl: 'https://cdn.tgoapps.com/tgo1/prod/grocery/images/245768180_1733829087441_org.jpg',
     accentBg: '#FFFBEB',
-    categories: ['Hazır Noodle', 'Hazır Çorba', 'Makarna', 'Ketçap'],
+    categories: [
+      'Hazır Noodle',
+      'Hazır Çorba',
+      'Makarna',
+      'Ketçap',
+      'Tost & Sıcak Lezzetler',
+      'Tost',
+      'Sandviç',
+      'Sıcak Sandviç',
+      'Sıcak Lezzetler',
+      'Büfe'
+    ],
   },
   {
     id: 'kahve-cay',
@@ -181,5 +192,47 @@ export function getDepartmentById(id: string): Department | undefined {
 }
 
 export function findDepartmentForCategory(category: string): Department | undefined {
-  return DEPARTMENTS.find((d) => d.categories.includes(category));
+  if (!category) return undefined;
+  const direct = DEPARTMENTS.find((d) =>
+    d.categories.some((c) => c.toLowerCase() === category.toLowerCase())
+  );
+  if (direct) return direct;
+
+  const catLower = category.toLowerCase();
+  if (
+    catLower.includes('tost') ||
+    catLower.includes('sandvic') ||
+    catLower.includes('sandviç') ||
+    catLower.includes('burger') ||
+    catLower.includes('sicak') ||
+    catLower.includes('sıcak') ||
+    catLower.includes('patates') ||
+    catLower.includes('yemek')
+  ) {
+    return getDepartmentById('hazir-yiyecek');
+  }
+  if (
+    catLower.includes('tatli') ||
+    catLower.includes('tatlı') ||
+    catLower.includes('cikolata') ||
+    catLower.includes('çikolata') ||
+    catLower.includes('kek') ||
+    catLower.includes('gofret') ||
+    catLower.includes('sakiz') ||
+    catLower.includes('sakız')
+  ) {
+    return getDepartmentById('kantin-atistirmalik');
+  }
+  if (
+    catLower.includes('icecek') ||
+    catLower.includes('içecek') ||
+    catLower.includes('su') ||
+    catLower.includes('kola') ||
+    catLower.includes('gazoz') ||
+    catLower.includes('ayran')
+  ) {
+    return getDepartmentById('soguk-icecek');
+  }
+
+  return undefined;
 }
