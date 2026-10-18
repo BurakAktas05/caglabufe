@@ -77,8 +77,8 @@ export const KARABUK_DISTRICTS = [
 ];
 
 export const DELIVERY_PRESET_NOTES = [
-  'Nizamiyede teslim alacağım (gelince arayınız)',
-  'Yurt güvenliğine / danışmaya bırakabilirsiniz',
-  'Yurt giriş kapısındayım, gelince çaldırın',
-  'Girişte bekliyorum'
+  'Yurdun önünde teslim alacağım (gelince arayınız)',
+  'Gelince arayın yurdun önüne inerim',
+  'Yurt giriş kapısındayım / önündeyim',
+  'Yurt güvenliğine / danışmaya bırakabilirsiniz'
 ];

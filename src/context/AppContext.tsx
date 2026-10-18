@@ -135,7 +135,7 @@ const DEFAULT_KARABUK_ADDRESS: Address = {
   title: 'KYK Hubbi Hatun Kız Yurdu',
   dormName: 'KYK Hubbi Hatun Kız Öğrenci Yurdu',
   district: 'Demir Çelik Kampüsü',
-  deliveryPresetNote: 'Nizamiyede teslim alacağım (gelince arayınız)',
+  deliveryPresetNote: 'Yurdun önünde teslim alacağım (gelince arayınız)',
   isDefault: true,
 };
 

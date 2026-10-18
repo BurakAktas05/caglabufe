@@ -61,7 +61,7 @@ export default function TermsPage() {
                 2. KYK Yurt Teslimat Prosedürü
               </h2>
               <p>
-                KYK Yurt kuralları gereği kuryeler yurt binalarının içine veya katlara giremez. Kuryemiz yurt nizamiyesine / ana giriş kapısına ulaştığında siparişte belirttiğiniz telefon numarasından sizi arayacak veya WhatsApp ile haber verecektir. Lütfen telefonunuzu açık ve yanınızda bulundurunuz.
+                KYK Yurt kuralları gereği kuryeler yurt binalarının içine veya katlara giremez. Kuryemiz yurdun önüne / ana giriş kapısına ulaştığında siparişte belirttiğiniz telefon numarasından sizi arayacak veya WhatsApp ile haber verecektir. Lütfen telefonunuzu açık ve yanınızda bulundurunuz.
               </p>
             </section>
 

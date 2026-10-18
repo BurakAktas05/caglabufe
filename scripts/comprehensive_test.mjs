@@ -147,7 +147,7 @@ async function runAllTests() {
       blockNumber: 'A Blok',
       roomNumber: '304',
       district: 'Demir Çelik Kampüsü',
-      deliveryPresetNote: 'Nizamiyede teslim alacağım',
+      deliveryPresetNote: 'Yurdun önünde teslim alacağım',
       courierNote: 'Lütfen kapıda arayınız'
     },
     payment_method: 'card_at_door',

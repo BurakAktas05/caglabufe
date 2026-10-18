@@ -896,7 +896,7 @@ export const AddressModal = () => {
                   >
                     <ShieldAlert size={18} color="#5D3EBC" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', lineHeight: 1.45 }}>
-                      <strong>Karabük KYK Kuralı:</strong> Yurt güvenliği gereği teslimatlar kuryemiz tarafından <u>Nizamiye / Ana Güvenlik Kapısında</u> elden yapılır.
+                      <strong>Karabük KYK Teslimatı:</strong> Teslimatlar kuryemiz tarafından <u>Yurt Önünde / Ana Giriş Kapısında</u> elden yapılır.
                     </span>
                   </div>
 
@@ -932,7 +932,7 @@ export const AddressModal = () => {
                   >
                     <CheckCircle2 size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <div style={{ fontSize: '12px', color: '#166534', lineHeight: 1.45 }}>
-                      <strong>Yurtta blok ve oda bilgisine gerek yoktur!</strong> Kuryemiz siparişinizi yurt nizamiyesine / güvenliğine getirdiğinde sizi doğrudan telefonla arayacaktır.
+                      <strong>Yurtta blok ve oda bilgisine gerek yoktur!</strong> Kuryemiz siparişinizi yurdun önüne getirdiğinde sizi doğrudan telefonla arayacaktır.
                     </div>
                   </div>
 

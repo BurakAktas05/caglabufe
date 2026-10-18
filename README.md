@@ -13,7 +13,7 @@ Karabük Üniversitesi öğrencileri (KYK Yurtları & 100. Yıl Mahallesi) ve ye
 
 ### 2. Müşteri Deneyimi & Karabük KYK Adres Sistemi
 - **Anti-AI Slop Tasarım**: Göz yoran neon gradyanlar yerine sade, yüksek kontrastlı ve modern Getir moru (`#5D3EBC`) & sarısı (`#FFD10D`).
-- **KYK Yurtları Entegrasyonu**: Hubbi Hatun, Bahaddin Gazi, İsmail Necati Efendi, Asiye Hatun ve Karabük yurtlarına özel blok/oda/nizamiye teslimat notları.
+- **KYK Yurtları Entegrasyonu**: Hubbi Hatun, Bahaddin Gazi, İsmail Necati Efendi, Asiye Hatun ve Karabük yurtlarına özel yurt önü / kapı teslimat notları.
 - **Canlı Sipariş Takibi & Fişleme**: Sipariş durumu (Hazırlanıyor ➡️ Kuryede ➡️ Teslim Edildi) anlık güncellenir. Teslim edilen siparişler için 58mm/80mm termal yazıcı uyumlu dijital fiş görüntülenebilir.
 - **Tek Tıkla WhatsApp & Arama**: Müşteri siparişiyle ilgili tek tıkla WhatsApp veya telefonla büfeye ulaşabilir.
 

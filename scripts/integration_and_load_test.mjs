@@ -240,7 +240,7 @@ async function testSupabaseDatabaseAndSecurity() {
       title: 'KYK Hubbi Hatun Kız Yurdu',
       dormName: 'Hubbi Hatun',
       district: 'Demir Çelik Kampüsü',
-      deliveryPresetNote: 'Nizamiyeye teslim'
+      deliveryPresetNote: 'Yurdun önüne teslim'
     },
     payment_method: 'cash_at_door',
     status: 'pending'

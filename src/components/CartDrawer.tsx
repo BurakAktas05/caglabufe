@@ -555,7 +555,7 @@ export const CartDrawer = () => {
                   <span style={{ fontSize: '11px', color: '#5D3EBC', fontWeight: 600 }}>Öğrenci Kurye Notları:</span>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                  {['Nizamiyede bekliyorum', 'Gelince çaldırın aşağı inerim', 'Güvenliğe bırakabilirsiniz', 'Kapıda temassız POS getirin'].map((preset) => (
+                  {['Yurdun önünde bekliyorum', 'Gelince arayın aşağı inerim', 'Yurdun önüne inerim', 'Güvenliğe bırakabilirsiniz', 'Kapıda temassız POS getirin'].map((preset) => (
                     <button
                       key={preset}
                       type="button"
