@@ -284,15 +284,9 @@ export default function Home() {
             {activeCampaigns.map((campaign) => (
               <div
                 key={campaign.id}
+                className="campaign-banner-card"
                 style={{
-                  flexShrink: 0,
                   backgroundColor: campaign.bannerColor || '#5D3EBC',
-                  borderRadius: '12px',
-                  padding: '12px 18px',
-                  color: '#FFFFFF',
-                  minWidth: '280px',
-                  border: '1px solid #4D2FA9',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
