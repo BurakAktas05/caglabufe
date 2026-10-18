@@ -23,7 +23,7 @@ export const Header = () => {
     <header className="main-header">
       <div className="header-inner">
         {/* Brand / Logo */}
-        <Link href="/" style={{ textDecoration: 'none' }} title="Çağla Büfe & Market Karabük">
+        <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }} title="Çağla Büfe & Market Karabük">
           <BrandLogo size="md" />
         </Link>
 
@@ -82,10 +82,10 @@ export const Header = () => {
             </button>
           )}
 
-          {/* Cart Button */}
+          {/* Cart Button on Desktop only (Mobilde alt navigasyonda ve sepeti onayla çubuğunda) */}
           <button
             type="button"
-            className="header-cart-btn"
+            className="header-cart-btn d-desktop"
             onClick={() => setIsCartOpen(true)}
             aria-label="Sepeti Aç"
           >

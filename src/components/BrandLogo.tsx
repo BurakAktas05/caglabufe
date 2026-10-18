@@ -129,6 +129,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
         {showSubtitle && (
           <div
+            className="brand-logo-subtitle"
             style={{
               display: 'flex',
               alignItems: 'center',
