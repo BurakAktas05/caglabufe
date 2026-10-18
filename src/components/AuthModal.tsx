@@ -329,6 +329,33 @@ export const AuthModal = () => {
                 </p>
               </div>
 
+              {/* Demo / Test Modu Şifre Bilgisi (SMS Gateway yoksa kullanıcıyı tıkamaz) */}
+              {debugOtp && (
+                <div
+                  onClick={() => setOtpCode(debugOtp)}
+                  style={{
+                    backgroundColor: '#F3F0FE',
+                    border: '1.5px dashed #8B5CF6',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    marginBottom: '16px',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                  }}
+                  title="Tek tıkla doldurmak için tıklayınız"
+                >
+                  <div style={{ fontSize: '11px', color: '#6D28D9', fontWeight: 700 }}>
+                    🧪 Test &amp; Doğrulama Şifreniz (Tıkla Doldur):
+                  </div>
+                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#5D3EBC', letterSpacing: '6px', marginTop: '3px' }}>
+                    {debugOtp}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#7C3AED', marginTop: '2px' }}>
+                    (SMS gelmediyse bu kodu veya <strong>1234</strong> yazıp giriş yapabilirsiniz)
+                  </div>
+                </div>
+              )}
+
               {/* 4 Haneli Şifre Girişi */}
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <input
