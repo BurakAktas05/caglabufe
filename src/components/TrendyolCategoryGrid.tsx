@@ -135,8 +135,7 @@ export const TrendyolCategoryGrid: React.FC<TrendyolCategoryGridProps> = () => {
                     fill
                     sizes="(max-width: 640px) 30vw, (max-width: 1024px) 20vw, 15vw"
                     style={{
-                      objectFit: 'contain',
-                      padding: '8px',
+                      objectFit: 'cover',
                       transition: 'transform 0.25s ease',
                     }}
                     className="category-product-img"
