@@ -412,6 +412,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [cart]);
 
+  // Live Cart Validation: Auto-sync cart items with live database products (price changes, stock availability)
+  useEffect(() => {
+    if (products.length === 0 || cart.length === 0) return;
+
+    setCart((prevCart) => {
+      let changed = false;
+      const updated = prevCart.map((item) => {
+        const live = products.find((p) => p.id === item.product.id);
+        if (!live) return item;
+
+        const priceChanged =
+          live.price !== item.product.price ||
+          live.discountPrice !== item.product.discountPrice;
+        const availChanged = live.isAvailable !== item.product.isAvailable;
+        const nameChanged = live.name !== item.product.name;
+
+        if (priceChanged || availChanged || nameChanged) {
+          changed = true;
+          return {
+            ...item,
+            product: live,
+          };
+        }
+        return item;
+      });
+
+      return changed ? updated : prevCart;
+    });
+  }, [products]);
+
   const showToast = (message: string, type: Toast['type'] = 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -705,6 +735,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    // Live stock / availability validation: block order if any item became unavailable
+    const unavailableItem = cart.find((item) => {
+      const live = products.find((p) => p.id === item.product.id);
+      return (live && !live.isAvailable) || (!live && !item.product.id.startsWith('bundle_'));
+    });
+
+    if (unavailableItem) {
+      showToast(`"${unavailableItem.product.name}" şu anda tükendi. Lütfen sepetinizden çıkarıp tekrar deneyin.`, 'warning');
+      return null;
+    }
+
     // 3. XSS Sanitization for all customer text inputs
     const safeCustomerName = sanitizeInput(user.fullName);
     const safeOrderNote = sanitizeInput(orderNote || '');
@@ -730,14 +771,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       userId: user.id,
       customerName: safeCustomerName,
       customerPhone: cleanUserPhone,
-      items: cart.map((i) => ({
-        productId: i.product.id,
-        productName: sanitizeInput(i.product.name),
-        price: i.product.discountPrice ?? i.product.price,
-        quantity: i.quantity,
-        selectedOptions: i.selectedOptions,
-        isKitchenItem: i.product.isKitchenItem,
-      })),
+      items: cart.map((i) => {
+        const live = products.find((p) => p.id === i.product.id) || i.product;
+        const livePrice = live.discountPrice ?? live.price;
+        return {
+          productId: i.product.id,
+          productName: sanitizeInput(live.name),
+          price: livePrice,
+          quantity: i.quantity,
+          selectedOptions: i.selectedOptions,
+          isKitchenItem: live.isKitchenItem,
+        };
+      }),
       totalAmount: cartTotal,
       deliveryFee,
       discountAmount: discountAmount > 0 ? discountAmount : undefined,

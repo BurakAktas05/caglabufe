@@ -236,8 +236,34 @@ export const CartDrawer = () => {
                           />
                         </div>
                         <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontWeight: 700, fontSize: '13px', color: '#1F2937', lineHeight: 1.3, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
-                            {item.product.name}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span
+                              style={{
+                                fontWeight: 700,
+                                fontSize: '13px',
+                                color: item.product.isAvailable ? '#1F2937' : '#9CA3AF',
+                                lineHeight: 1.3,
+                                wordBreak: 'break-word',
+                                overflowWrap: 'break-word',
+                                textDecoration: item.product.isAvailable ? 'none' : 'line-through',
+                              }}
+                            >
+                              {item.product.name}
+                            </span>
+                            {!item.product.isAvailable && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  fontWeight: 800,
+                                  color: '#DC2626',
+                                  backgroundColor: '#FEE2E2',
+                                  padding: '1px 5px',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                Tükendi
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: '13px', fontWeight: 800, color: '#5D3EBC', marginTop: '2px' }}>
                             {(price * item.quantity).toFixed(2)} TL
@@ -590,30 +616,46 @@ export const CartDrawer = () => {
         {/* Footer */}
         {cart.length > 0 && (
           <div className="sheet-footer">
-            <button
-              className="btn-primary"
-              onClick={handleCheckout}
-              disabled={isSubmitting || cartTotal < minOrderAmount || !storeOpen}
-            >
-              <span>
-                {!storeOpen
-                  ? 'Mağaza Şu An Kapalı'
-                  : cartTotal < minOrderAmount
-                  ? `Min. Sepet: ${minOrderAmount} TL (${(minOrderAmount - cartTotal).toFixed(0)} TL eksik)`
-                  : !user
-                  ? 'Giriş Yap ve Onayla'
-                  : !selectedAddress
-                  ? '📍 Adres Ekleyiniz ve Onayla'
-                  : 'Siparişi Onayla'}
-              </span>
-              <span style={{ fontWeight: 800 }}>- {finalTotal.toFixed(2)} TL</span>
-              <ArrowRight size={16} />
-            </button>
-            {cartTotal < minOrderAmount && (
-              <p style={{ fontSize: '11px', color: '#EF4444', textAlign: 'center', marginTop: '6px', fontWeight: 600 }}>
-                Minimum sepet tutarı {minOrderAmount.toFixed(0)} TL olmalıdır.
-              </p>
-            )}
+            {(() => {
+              const hasUnavailableItem = cart.some((i) => !i.product.isAvailable);
+              return (
+                <>
+                  <button
+                    className="btn-primary"
+                    onClick={handleCheckout}
+                    disabled={isSubmitting || cartTotal < minOrderAmount || !storeOpen || hasUnavailableItem}
+                    style={{
+                      backgroundColor: hasUnavailableItem ? '#EF4444' : undefined,
+                    }}
+                  >
+                    <span>
+                      {!storeOpen
+                        ? 'Mağaza Şu An Kapalı'
+                        : hasUnavailableItem
+                        ? '⚠️ Tükenen Ürünü Çıkarınız'
+                        : cartTotal < minOrderAmount
+                        ? `Min. Sepet: ${minOrderAmount} TL (${(minOrderAmount - cartTotal).toFixed(0)} TL eksik)`
+                        : !user
+                        ? 'Giriş Yap ve Onayla'
+                        : !selectedAddress
+                        ? '📍 Adres Ekleyiniz ve Onayla'
+                        : 'Siparişi Onayla'}
+                    </span>
+                    <span style={{ fontWeight: 800 }}>- {finalTotal.toFixed(2)} TL</span>
+                    <ArrowRight size={16} />
+                  </button>
+                  {hasUnavailableItem ? (
+                    <p style={{ fontSize: '11px', color: '#DC2626', textAlign: 'center', marginTop: '6px', fontWeight: 700 }}>
+                      Stokta kalmayan ürünü (-) butonuna basarak sepetten çıkarınız.
+                    </p>
+                  ) : cartTotal < minOrderAmount ? (
+                    <p style={{ fontSize: '11px', color: '#EF4444', textAlign: 'center', marginTop: '6px', fontWeight: 600 }}>
+                      Minimum sepet tutarı {minOrderAmount.toFixed(0)} TL olmalıdır.
+                    </p>
+                  ) : null}
+                </>
+              );
+            })()}
           </div>
         )}
       </div>
