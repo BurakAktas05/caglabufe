@@ -1,0 +1,76 @@
+{
+  "name": "Çağla Büfe & Market Karabük",
+  "short_name": "Çağla Büfe",
+  "description": "Karabük KYK Yurtları ve 100. Yıl Online Tost & Hızlı Market Siparişi",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#5D3EBC",
+  "theme_color": "#5D3EBC",
+  "orientation": "portrait",
+  "lang": "tr",
+  "dir": "ltr",
+  "categories": [
+    "food",
+    "shopping",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Sipariş Ver",
+      "short_name": "Sipariş",
+      "description": "Çağla Büfe sıcak tost ve market siparişi ver",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Sipariş Takibi",
+      "short_name": "Siparişim",
+      "description": "Aktif siparişini canlı takip et",
+      "url": "/?action=track",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
