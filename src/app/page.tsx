@@ -307,7 +307,7 @@ export default function Home() {
           <input
             type="text"
             className="search-input"
-            placeholder="Ürün veya kategori ara... (tost, içecek, kahve)"
+            placeholder="Ürün, marka veya kategori ara... (örn: Eti, Ülker, Cips, Red Bull)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -322,20 +322,20 @@ export default function Home() {
           )}
         </div>
 
-        {/* Quick Semantic Intent Pills */}
+        {/* Quick Popular Brand Pills */}
         <div className="search-quick-tags">
-          <span className="search-tag-label">Akıllı Arama:</span>
-          {QUICK_INTENTS.map((chip) => {
-            const isActive = searchQuery === chip.query;
+          <span className="search-tag-label">Popüler:</span>
+          {['Ülker', 'Eti', 'Haribo', 'Red Bull', 'Tadım', 'Uludağ', 'Nescafe', 'Şölen'].map((brandName) => {
+            const isActive = searchQuery.toLowerCase() === brandName.toLowerCase();
             return (
               <button
-                key={chip.label}
+                key={brandName}
                 type="button"
                 className={`search-chip ${isActive ? 'active' : ''}`}
-                onClick={() => setSearchQuery(isActive ? '' : chip.query)}
+                onClick={() => setSearchQuery(isActive ? '' : brandName)}
               >
-                <span>{chip.emoji}</span>
-                <span>{chip.label}</span>
+                <span>🏷️</span>
+                <span>{brandName}</span>
               </button>
             );
           })}

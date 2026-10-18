@@ -64,22 +64,26 @@ export const fetchProducts = async (): Promise<Product[]> => {
 
       if (!error && data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped: Product[] = data.map((row: any) => ({
-          id: row.id,
-          name: row.name,
-          category: row.category,
-          price: Number(row.price),
-          discountPrice: row.discount_price ? Number(row.discount_price) : undefined,
-          imageUrl: row.image_url,
-          description: row.description || '',
-          unit: row.unit || 'adet',
-          barcode: row.barcode || undefined,
-          isAvailable: row.is_available,
-          isKitchenItem: row.is_kitchen_item,
-          prepTimeMinutes: row.prep_time_minutes || 10,
-          options: row.options || [],
-          searchKeywords: row.search_keywords || [],
-        }));
+        const mapped: Product[] = data.map((row: any) => {
+          const brand = (row.options && typeof row.options === 'object' && !Array.isArray(row.options) ? row.options.brand : undefined) || row.brand || undefined;
+          return {
+            id: row.id,
+            name: row.name,
+            brand: brand || undefined,
+            category: row.category,
+            price: Number(row.price),
+            discountPrice: row.discount_price ? Number(row.discount_price) : undefined,
+            imageUrl: row.image_url,
+            description: row.description || '',
+            unit: row.unit || 'Adet',
+            barcode: row.barcode || undefined,
+            isAvailable: row.is_available,
+            isKitchenItem: row.is_kitchen_item,
+            prepTimeMinutes: row.prep_time_minutes || 0,
+            options: row.options || [],
+            searchKeywords: row.search_keywords || [],
+          };
+        });
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_PRODUCTS_KEY, JSON.stringify(mapped));
         }
@@ -178,6 +182,24 @@ export const saveOrUpdateProduct = (product: Product): Product[] => {
 
   if (isSupabaseConfigured() && supabase) {
     try {
+      const optionsPayload = {
+        ...(typeof product.options === 'object' && !Array.isArray(product.options) ? product.options : {}),
+        ...(product.brand ? { brand: product.brand } : {}),
+      };
+
+      const keywords = product.searchKeywords && product.searchKeywords.length > 0
+        ? product.searchKeywords
+        : Array.from(
+            new Set(
+              [
+                (product.brand || '').toLowerCase(),
+                (product.category || '').toLowerCase(),
+                product.barcode || '',
+                ...product.name.toLowerCase().split(/[\s,\.\-]+/).filter((w) => w.length > 1),
+              ].filter(Boolean)
+            )
+          );
+
       supabase.from('products').upsert({
         id: product.id,
         name: product.name,
@@ -186,10 +208,13 @@ export const saveOrUpdateProduct = (product: Product): Product[] => {
         discount_price: product.discountPrice || null,
         image_url: product.imageUrl,
         description: product.description,
-        unit: product.unit,
+        unit: product.unit || 'Adet',
+        barcode: product.barcode || null,
         is_available: product.isAvailable,
         is_kitchen_item: product.isKitchenItem,
-        prep_time_minutes: product.prepTimeMinutes || 15,
+        prep_time_minutes: product.prepTimeMinutes || 0,
+        options: optionsPayload,
+        search_keywords: keywords,
         updated_at: new Date().toISOString(),
       }).then();
     } catch {}

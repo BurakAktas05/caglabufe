@@ -62,6 +62,11 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           )}
         </div>
 
+        {/* Brand Badge */}
+        {product.brand && (
+          <span className="card-brand-badge">{product.brand}</span>
+        )}
+
         {/* Title */}
         <h3 className="card-title" title={product.name}>
           {product.name}

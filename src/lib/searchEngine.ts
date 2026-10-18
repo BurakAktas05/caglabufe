@@ -211,7 +211,13 @@ export const smartSearchProducts = (query: string, allProducts: Product[]): Smar
     const keywords = (product.searchKeywords || []).map((k) => normalizeTurkish(k));
     const nameWords = normName.split(' ');
 
-    // (A) Tam Eşleşme
+    const normBrand = normalizeTurkish(product.brand || '');
+    const normCategory = normalizeTurkish(product.category || '');
+
+    // (A) Barkod & Tam / Ön Ek Eşleşme
+    if (product.barcode && product.barcode.includes(cleanQuery)) {
+      score += 150;
+    }
     if (normName === cleanQuery) {
       score += 120;
     } else if (normName.startsWith(cleanQuery)) {
@@ -220,8 +226,28 @@ export const smartSearchProducts = (query: string, allProducts: Product[]): Smar
       score += 70;
     }
 
+    if (normBrand && (normBrand === cleanQuery || normBrand.startsWith(cleanQuery))) {
+      score += 85;
+    } else if (normBrand.includes(cleanQuery)) {
+      score += 60;
+    }
+
+    if (normCategory && (normCategory === cleanQuery || normCategory.includes(cleanQuery))) {
+      score += 65;
+    }
+
     // (B) Kelime Bazlı İnceleme
     for (const qWord of queryWords) {
+      // Marka kelimesi
+      if (normBrand && (normBrand === qWord || normBrand.includes(qWord))) {
+        score += 45;
+      }
+
+      // Kategori kelimesi
+      if (normCategory && (normCategory === qWord || normCategory.includes(qWord))) {
+        score += 35;
+      }
+
       // İsim kelimeleri
       for (const nWord of nameWords) {
         if (nWord === qWord) {

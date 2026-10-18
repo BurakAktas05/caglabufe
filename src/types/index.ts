@@ -83,6 +83,7 @@ export interface CategoryInfo {
 export interface Product {
   id: string;
   name: string;
+  brand?: string; // Marka Adı (Eti, Ülker, Damla, Nescafe vb.)
   category: ProductCategory;
   price: number;
   discountPrice?: number;
@@ -93,10 +94,8 @@ export interface Product {
   isAvailable: boolean;
   isKitchenItem: boolean;
   prepTimeMinutes?: number;
-  options?: {
-    name: string;
-    choices: string[];
-  }[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  options?: any;
   campaignId?: string; // Hangi kampanyaya dahil
   searchKeywords?: string[]; // Akıllı / Semantik arama anahtar kelimeleri
 }

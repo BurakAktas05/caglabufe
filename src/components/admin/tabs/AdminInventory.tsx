@@ -60,6 +60,9 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(term) ||
+          (p.brand && p.brand.toLowerCase().includes(term)) ||
+          (p.barcode && p.barcode.includes(term)) ||
+          (p.category && p.category.toLowerCase().includes(term)) ||
           (p.description && p.description.toLowerCase().includes(term))
       );
     }
@@ -241,8 +244,15 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
                   >
                     {p.name}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
-                    {p.category} {p.isKitchenItem && '• Mutfak'}
+                  <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    {p.brand && (
+                      <span style={{ backgroundColor: '#EDE9FE', color: '#5D3EBC', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, fontSize: '10px' }}>
+                        {p.brand}
+                      </span>
+                    )}
+                    <span style={{ fontWeight: 600 }}>{p.category}</span>
+                    {p.barcode && <span style={{ color: '#9CA3AF', fontFamily: 'monospace' }}>#{p.barcode}</span>}
+                    {p.isKitchenItem && <span style={{ color: '#EA580C' }}>• Mutfak</span>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                     <span style={{ fontSize: '15px', fontWeight: 900, color: '#5D3EBC' }}>

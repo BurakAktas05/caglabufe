@@ -11,17 +11,13 @@ interface ProductModalProps {
   onSave: (product: Product) => void;
 }
 
-const CATEGORIES: { id: ProductCategory; name: string }[] = [
-  { id: 'sicak-lezzetler', name: 'Sıcak Lezzetler & Tost' },
-  { id: 'soguk-icecek', name: 'Soğuk İçecek' },
-  { id: 'cay-kahve', name: 'Çay & Kahve' },
-  { id: 'cips-cerez', name: 'Cips & Çerez' },
-  { id: 'cikolata-tatli', name: 'Çikolata & Tatlı' },
-  { id: 'biskuvi-kek', name: 'Bisküvi & Kek' },
-  { id: 'pratik-yemek', name: 'Pratik Yemek & Noodle' },
-  { id: 'temel-gida', name: 'Temel Gıda & Kahvaltılık' },
-  { id: 'kisisel-bakim', name: 'Kişisel Bakım & Hijyen' },
-];
+import { CATEGORIES } from '@/data/seedData';
+
+interface ProductModalProps {
+  product: Product | null;
+  onClose: () => void;
+  onSave: (product: Product) => void;
+}
 
 export const ProductModal: React.FC<ProductModalProps> = ({
   product,
@@ -32,12 +28,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   const [id, setId] = useState('');
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<ProductCategory>('sicak-lezzetler');
+  const [brand, setBrand] = useState('');
+  const [barcode, setBarcode] = useState('');
+  const [category, setCategory] = useState<ProductCategory>('Çikolata');
   const [price, setPrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [description, setDescription] = useState('');
-  const [unit, setUnit] = useState('adet');
+  const [unit, setUnit] = useState('Adet');
   const [isKitchenItem, setIsKitchenItem] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
 
@@ -45,23 +43,27 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     if (product) {
       setId(product.id);
       setName(product.name);
+      setBrand(product.brand || '');
+      setBarcode(product.barcode || '');
       setCategory(product.category);
       setPrice(product.price.toString());
       setDiscountPrice(product.discountPrice ? product.discountPrice.toString() : '');
       setImageUrl(product.imageUrl);
       setDescription(product.description || '');
-      setUnit(product.unit || 'adet');
+      setUnit(product.unit || 'Adet');
       setIsKitchenItem(Boolean(product.isKitchenItem));
       setIsAvailable(product.isAvailable);
     } else {
       setId('');
       setName('');
-      setCategory('sicak-lezzetler');
+      setBrand('');
+      setBarcode('');
+      setCategory('Çikolata');
       setPrice('');
       setDiscountPrice('');
       setImageUrl('');
       setDescription('');
-      setUnit('adet');
+      setUnit('Adet');
       setIsKitchenItem(false);
       setIsAvailable(true);
     }
@@ -73,20 +75,24 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
     const finalId = id.trim()
       ? id.trim()
-      : name
-          .toLowerCase()
-          .replace(/ğ/g, 'g')
-          .replace(/ü/g, 'u')
-          .replace(/ş/g, 's')
-          .replace(/ı/g, 'i')
-          .replace(/ö/g, 'o')
-          .replace(/ç/g, 'c')
-          .replace(/[^a-z0-9]/g, '-')
-          .replace(/-+/g, '-') + '-' + Date.now().toString().slice(-4);
+      : barcode.trim()
+        ? `prod_${barcode.trim()}`
+        : name
+            .toLowerCase()
+            .replace(/ğ/g, 'g')
+            .replace(/ü/g, 'u')
+            .replace(/ş/g, 's')
+            .replace(/ı/g, 'i')
+            .replace(/ö/g, 'o')
+            .replace(/ç/g, 'c')
+            .replace(/[^a-z0-9]/g, '-')
+            .replace(/-+/g, '-') + '-' + Date.now().toString().slice(-4);
 
     const updatedProduct: Product = {
       id: finalId,
       name: name.trim(),
+      brand: brand.trim() || undefined,
+      barcode: barcode.trim() || undefined,
       category,
       price: parseFloat(price) || 0,
       discountPrice: discountPrice ? parseFloat(discountPrice) : undefined,
@@ -184,6 +190,48 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   outline: 'none',
                 }}
               />
+            </div>
+
+            {/* Brand & Barcode Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                  Marka (Örn: Eti, Ülker)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Marka adı..."
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #E5E7EB',
+                    fontSize: '14px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+                  Barkod (BenimPOS)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Örn: 8690526095226"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: '10px',
+                    border: '1.5px solid #E5E7EB',
+                    fontSize: '14px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
             </div>
 
             {/* Category */}
