@@ -65,23 +65,36 @@ export async function showLocalNotification(
       const reg = await Promise.race([
         navigator.serviceWorker.ready,
         new Promise<ServiceWorkerRegistration | undefined>((resolve) =>
-          setTimeout(() => resolve(undefined), 1000)
+          setTimeout(() => resolve(undefined), 2500)
         ),
       ]);
 
       const activeReg = reg || (await navigator.serviceWorker.getRegistration());
 
       if (activeReg && activeReg.showNotification) {
-        await activeReg.showNotification(title, {
-          body,
-          icon: '/icon-192.png',
-          badge: '/favicon.png',
-          vibrate: [250, 100, 250, 100, 350],
-          data: { url },
-          tag,
-          renotify: true,
-        } as NotificationOptions);
-        return true;
+        try {
+          await activeReg.showNotification(title, {
+            body,
+            icon: '/icon-192.png',
+            badge: '/favicon.png',
+            vibrate: [250, 100, 250, 100, 350],
+            data: { url },
+            tag: tag || 'caglabufe-order-status',
+            renotify: Boolean(tag),
+          } as NotificationOptions);
+          return true;
+        } catch (swShowErr) {
+          console.warn('[Push] showNotification with options error, retrying plain:', swShowErr);
+          try {
+            await activeReg.showNotification(title, {
+              body,
+              icon: '/icon-192.png',
+              badge: '/favicon.png',
+              data: { url },
+            } as NotificationOptions);
+            return true;
+          } catch {}
+        }
       }
     } catch (err) {
       console.warn('[Push] ServiceWorker showNotification fallback:', err);

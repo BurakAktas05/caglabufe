@@ -528,27 +528,52 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                   )}
 
                   {order.status === 'preparing' && (
-                    <button
-                      onClick={() => onStatusChange(order.id, 'on_the_way')}
-                      style={{
-                        flex: 1,
-                        padding: '9px 12px',
-                        borderRadius: '10px',
-                        backgroundColor: '#1D4ED8',
-                        color: '#FFFFFF',
-                        fontWeight: 800,
-                        fontSize: '12px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      <Bike size={14} />
-                      <span>Kuryeye Ver</span>
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px', flex: 1, flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => onStatusChange(order.id, 'on_the_way')}
+                        style={{
+                          flex: 1,
+                          minWidth: '120px',
+                          padding: '9px 12px',
+                          borderRadius: '10px',
+                          backgroundColor: '#1D4ED8',
+                          color: '#FFFFFF',
+                          fontWeight: 800,
+                          fontSize: '12px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <Bike size={14} />
+                        <span>Kuryeye Ver</span>
+                      </button>
+                      <button
+                        onClick={() => onStatusChange(order.id, 'delivered')}
+                        style={{
+                          flex: 1,
+                          minWidth: '120px',
+                          padding: '9px 12px',
+                          borderRadius: '10px',
+                          backgroundColor: '#10B981',
+                          color: '#FFFFFF',
+                          fontWeight: 800,
+                          fontSize: '12px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <CheckCircle size={14} />
+                        <span>Teslim Et</span>
+                      </button>
+                    </div>
                   )}
 
                   {order.status === 'on_the_way' && (

@@ -320,8 +320,8 @@ export const fetchCustomerOrders = async (orderIds: string[]): Promise<Order[]> 
 };
 
 export const VALID_ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  pending: ['preparing', 'cancelled'],
-  preparing: ['on_the_way', 'cancelled'],
+  pending: ['preparing', 'on_the_way', 'delivered', 'cancelled'],
+  preparing: ['on_the_way', 'delivered', 'cancelled'],
   on_the_way: ['delivered', 'cancelled'],
   delivered: [],
   cancelled: [],
@@ -467,41 +467,52 @@ const broadcastOrderUpdate = (order: Order) => {
   }
 };
 
+// Shared Supabase channel singleton for orders
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let sharedOrderChannel: any = null;
+
 export const subscribeToOrders = (callback: RealtimeCallback): (() => void) => {
   orderListeners.add(callback);
 
-  // If live Supabase Realtime is enabled
-  let supabaseSubscription: { unsubscribe: () => void } | null = null;
-  if (isSupabaseConfigured() && supabase) {
+  // If live Supabase Realtime is enabled, ensure single active channel
+  if (isSupabaseConfigured() && supabase && !sharedOrderChannel) {
     try {
-      const channel = supabase
-        .channel('public:orders')
+      sharedOrderChannel = supabase
+        .channel('public:orders_stream_v1')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'orders' },
           (payload) => {
             if (payload.new) {
               const updated = mapSupabaseOrderToOrder(payload.new);
-              callback(updated);
+              orderListeners.forEach((cb) => {
+                try {
+                  cb(updated);
+                } catch (e) {
+                  console.warn('[Realtime order callback error]:', e);
+                }
+              });
             }
           }
         )
-        .subscribe();
-
-      supabaseSubscription = {
-        unsubscribe: () => {
-          supabase?.removeChannel(channel);
-        }
-      };
-    } catch {
-      // ignore
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR') {
+            console.warn('[Supabase Realtime] orders channel error, resetting...');
+            sharedOrderChannel = null;
+          }
+        });
+    } catch (e) {
+      console.warn('[Supabase] orders channel subscription error:', e);
     }
   }
 
   return () => {
     orderListeners.delete(callback);
-    if (supabaseSubscription) {
-      supabaseSubscription.unsubscribe();
+    if (orderListeners.size === 0 && sharedOrderChannel && supabase) {
+      try {
+        supabase.removeChannel(sharedOrderChannel);
+      } catch {}
+      sharedOrderChannel = null;
     }
   };
 };

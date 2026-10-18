@@ -172,6 +172,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>(getCampaigns);
   const lastKnownStatusRef = useRef<Record<string, OrderStatus>>({});
 
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+
+  const systemSettingsRef = useRef(systemSettings);
+  useEffect(() => { systemSettingsRef.current = systemSettings; }, [systemSettings]);
+
+  const activeTrackingOrderRef = useRef(activeTrackingOrder);
+  useEffect(() => { activeTrackingOrderRef.current = activeTrackingOrder; }, [activeTrackingOrder]);
+
   const refreshProducts = () => {
     setProducts(getStoredProducts());
   };
@@ -200,12 +209,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    const currentUser = userRef.current;
+    const currentSettings = systemSettingsRef.current;
+    const currentActiveOrder = activeTrackingOrderRef.current;
+
     const myOrderIds = getCustomerOrderIds();
     const isMyOrder =
       myOrderIds.includes(updatedOrder.id) ||
-      (user && user.phone && normalizePhoneNumber(user.phone) === normalizePhoneNumber(updatedOrder.customerPhone)) ||
-      (user && user.id && user.id === updatedOrder.userId) ||
-      (activeTrackingOrder && activeTrackingOrder.id === updatedOrder.id);
+      (currentUser && currentUser.phone && normalizePhoneNumber(currentUser.phone) === normalizePhoneNumber(updatedOrder.customerPhone)) ||
+      (currentUser && currentUser.id && currentUser.id === updatedOrder.userId) ||
+      (currentActiveOrder && currentActiveOrder.id === updatedOrder.id);
 
     if (!isMyOrder) return;
 
@@ -218,24 +231,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
       if (updatedOrder.status === 'preparing') {
         title = `👨‍🍳 Siparişiniz Hazırlanıyor! #${updatedOrder.orderNumber}`;
-        body = systemSettings.templateOrderPreparing
-          ? formatTemplate(systemSettings.templateOrderPreparing, {
+        body = currentSettings.templateOrderPreparing
+          ? formatTemplate(currentSettings.templateOrderPreparing, {
               orderNumber: updatedOrder.orderNumber,
               customerName: updatedOrder.customerName,
             })
           : 'Siparişiniz paketleniyor, ürünleriniz özenle hazırlanıyor.';
       } else if (updatedOrder.status === 'on_the_way') {
         title = `🛵 Kuryemiz Yola Çıktı! #${updatedOrder.orderNumber}`;
-        body = systemSettings.templateOrderOnTheWay
-          ? formatTemplate(systemSettings.templateOrderOnTheWay, {
+        body = currentSettings.templateOrderOnTheWay
+          ? formatTemplate(currentSettings.templateOrderOnTheWay, {
               orderNumber: updatedOrder.orderNumber,
               customerName: updatedOrder.customerName,
             })
           : 'Kuryemiz siparişinizi teslim etmek üzere yola çıktı!';
       } else if (updatedOrder.status === 'delivered') {
         title = `✅ Siparişiniz Teslim Edildi! #${updatedOrder.orderNumber}`;
-        body = systemSettings.templateOrderDelivered
-          ? formatTemplate(systemSettings.templateOrderDelivered, {
+        body = currentSettings.templateOrderDelivered
+          ? formatTemplate(currentSettings.templateOrderDelivered, {
               orderNumber: updatedOrder.orderNumber,
               customerName: updatedOrder.customerName,
             })
@@ -260,12 +273,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         title,
         body,
         '/',
-        `caglabufe-order-${updatedOrder.id}-${updatedOrder.status}`
+        `caglabufe-order-${updatedOrder.id}`
       );
 
       // 4. In-app toast banner
       showToast(
-        title,
+        body ? `${title} • ${body}` : title,
         updatedOrder.status === 'delivered' ? 'success' : updatedOrder.status === 'cancelled' ? 'error' : 'info'
       );
     }
@@ -387,7 +400,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           setCampaigns(latest);
         }
       });
-    }, 15000);
+
+      // Background order status sync for mobile devices
+      const myIds = getCustomerOrderIds();
+      if (myIds.length > 0) {
+        fetchCustomerOrders(myIds).then((latestOrders) => {
+          if (Array.isArray(latestOrders)) {
+            latestOrders.forEach((o) => {
+              const prev = lastKnownStatusRef.current[o.id];
+              if (prev && prev !== o.status) {
+                lastKnownStatusRef.current[o.id] = o.status;
+                handleOrderNotification(o, prev);
+              } else if (!prev) {
+                lastKnownStatusRef.current[o.id] = o.status;
+              }
+            });
+            setOrders(latestOrders);
+          }
+        });
+      }
+    }, 8000);
 
     return () => {
       clearInterval(interval);
@@ -397,16 +429,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Realtime order updates & status notifications
+  // Realtime order updates & status notifications (single stable subscription)
   useEffect(() => {
     const unsubscribe = subscribeToOrders((updatedOrder) => {
       const prevStatus = lastKnownStatusRef.current[updatedOrder.id];
       lastKnownStatusRef.current[updatedOrder.id] = updatedOrder.status;
 
       setOrders((prev) => {
-        const exists = prev.some((o) => o.id === updatedOrder.id);
-        if (exists) {
-          return prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o));
+        const index = prev.findIndex((o) => o.id === updatedOrder.id);
+        if (index > -1) {
+          const next = [...prev];
+          next[index] = updatedOrder;
+          return next;
         }
         return [updatedOrder, ...prev];
       });
@@ -459,8 +493,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       window.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', syncLatest);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, systemSettings, activeTrackingOrder]);
+  }, []);
 
   // Persist cart
   useEffect(() => {
