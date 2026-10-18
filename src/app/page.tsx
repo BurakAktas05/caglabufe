@@ -492,11 +492,10 @@ export default function Home() {
               </div>
             )}
 
-            {/* Netflix-Style Related Category Recommendations on search */}
+            {/* Related Category Recommendations on search */}
             {searchResult.relatedProducts && searchResult.relatedProducts.length > 0 && (
               <div className="netflix-rec-wrapper" style={{ marginTop: '24px' }}>
                 <div className="netflix-rec-header">
-                  <span className="netflix-rec-badge">🎬 NETFLIX TARZI ÖNERİLER</span>
                   <h3 className="netflix-rec-title">
                     <Sparkles size={18} color="#8B5CF6" />
                     <span>{searchResult.relatedTitle || `"${searchQuery}" ile İlgili Popüler Seçenekler`}</span>

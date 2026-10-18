@@ -426,24 +426,21 @@ function ProductsPageContent() {
               ))}
             </div>
 
-            {/* Netflix Style Related Recommendations */}
+            {/* Related Recommendations */}
             {searchResult.relatedProducts && searchResult.relatedProducts.length > 0 && (
               <div className="netflix-recommendations-wrapper" style={{ marginTop: '36px' }}>
                 <div className="netflix-rec-header">
-                  <div className="netflix-rec-badge">
-                    <Sparkles size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                    Öneri Reyonu
-                  </div>
                   <h3 className="netflix-rec-title">
-                    {searchResult.relatedTitle || 'İlginizi Çekebilecek Diğer Lezzetler'}
+                    <Sparkles size={18} color="#8B5CF6" />
+                    <span>{searchResult.relatedTitle || 'İlginizi Çekebilecek Diğer Lezzetler'}</span>
                   </h3>
                   <p className="netflix-rec-subtitle">
-                    Aradığınız &ldquo;{searchResult.query}&rdquo; lezzetini tamamlayacak eşlikçiler
+                    Aradığınız lezzete benzer ve birlikte tercih edilen alternatifler
                   </p>
                 </div>
                 <div className="product-grid">
                   {searchResult.relatedProducts.map((p) => (
-                    <ProductCard key={`netflix-rec-${p.id}`} product={p} />
+                    <ProductCard key={`rec-${p.id}`} product={p} />
                   ))}
                 </div>
               </div>
