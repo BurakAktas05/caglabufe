@@ -2315,6 +2315,56 @@ input, textarea, select {
   box-sizing: border-box;
 }
 
+/* ==========================================================================
+   NETFLIX-STYLE SEARCH RECOMMENDATIONS
+   ========================================================================== */
+.netflix-rec-wrapper {
+  margin-top: 32px;
+  margin-bottom: 24px;
+  padding: 22px 18px;
+  background: linear-gradient(135deg, rgba(93, 62, 188, 0.03) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border: 1.5px solid #E9D5FF;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 18px rgba(139, 92, 246, 0.08);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.netflix-rec-header {
+  margin-bottom: 16px;
+}
+
+.netflix-rec-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #7C3AED;
+  background-color: #EDE9FE;
+  padding: 3px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.netflix-rec-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1F2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px 0;
+}
+
+.netflix-rec-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+
 
 
 

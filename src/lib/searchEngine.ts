@@ -168,10 +168,80 @@ export const isFuzzyMatch = (inputWord: string, targetWord: string): boolean => 
 // --- ARAMA SONUCU TİPİ ---
 export interface SmartSearchResult {
   products: Product[];
+  relatedProducts: Product[];
+  relatedTitle?: string;
   matchedIntent: SemanticIntent | null;
   query: string;
   totalFound: number;
 }
+
+// Netflix Tarzı Kategori & Ürün İlgi Haritası
+export const RELATED_CATEGORY_MAP: Record<string, { relatedCats: string[]; defaultTitle: string }> = {
+  'Soğuk Çay': {
+    relatedCats: ['Enerji İçeceği', 'Soğuk Kahve', 'Gazoz', 'Kola', 'Limonata', 'Soda', 'Meyve Suyu'],
+    defaultTitle: 'Enerji İçecekleri & Soğuk Lezzetler',
+  },
+  'Enerji İçeceği': {
+    relatedCats: ['Soğuk Çay', 'Soğuk Kahve', 'Kola', 'Gazoz', 'Cips'],
+    defaultTitle: 'Buz Gibi İçecekler & Enerji Verenler',
+  },
+  'Kola': {
+    relatedCats: ['Enerji İçeceği', 'Gazoz', 'Soğuk Çay', 'Cips', 'Kraker'],
+    defaultTitle: 'Ferahlatıcı İçecekler & Cips Çeşitleri',
+  },
+  'Gazoz': {
+    relatedCats: ['Kola', 'Enerji İçeceği', 'Soğuk Çay', 'Soda', 'Cips'],
+    defaultTitle: 'Gazlı İçecekler & Serinletici Tatlar',
+  },
+  'Soda': {
+    relatedCats: ['Gazoz', 'Meyve Suyu', 'Soğuk Çay', 'Enerji İçeceği'],
+    defaultTitle: 'Maden Suları & Soğuk İçecekler',
+  },
+  'Soğuk Kahve': {
+    relatedCats: ['Enerji İçeceği', 'Soğuk Çay', 'Kek', 'Bisküvi', 'Çikolata'],
+    defaultTitle: 'Enerji Veren İçecekler & Kahve Yanı Tatlılar',
+  },
+  'Meyve Suyu': {
+    relatedCats: ['Soğuk Çay', 'Limonata', 'Soda', 'Kola', 'Bisküvi'],
+    defaultTitle: 'Meyveli ve Doğal İçecekler',
+  },
+  'Çikolata': {
+    relatedCats: ['Gofret', 'Bisküvi', 'Kek', 'Şekerleme', 'Atıştırmalık Bar', 'Soğuk Kahve'],
+    defaultTitle: 'Gofret, Bisküvi & Tatlı Çeşitleri',
+  },
+  'Gofret': {
+    relatedCats: ['Çikolata', 'Bisküvi', 'Kek', 'Soğuk Kahve'],
+    defaultTitle: 'Çikolata & Bisküvi Dünyası',
+  },
+  'Bisküvi': {
+    relatedCats: ['Kek', 'Gofret', 'Çikolata', 'Kraker', 'Dökme Çay'],
+    defaultTitle: 'Çay & Kahve Yanı Bisküviler ve Kekler',
+  },
+  'Kek': {
+    relatedCats: ['Bisküvi', 'Çikolata', 'Gofret', 'Soğuk Kahve'],
+    defaultTitle: 'Kekler & Çikolata Çeşitleri',
+  },
+  'Cips': {
+    relatedCats: ['Yer Fıstığı', 'Ay Çekirdeği', 'Kraker', 'Kola', 'Gazoz', 'Enerji İçeceği'],
+    defaultTitle: 'Kuruyemiş, Çerez & Gazlı İçecekler',
+  },
+  'Yer Fıstığı': {
+    relatedCats: ['Cips', 'Ay Çekirdeği', 'Kaju', 'Fındık', 'Kola', 'Gazoz'],
+    defaultTitle: 'Cips & Çerez Eşlikçileri',
+  },
+  'Ay Çekirdeği': {
+    relatedCats: ['Yer Fıstığı', 'Cips', 'Kola', 'Gazoz', 'Soda'],
+    defaultTitle: 'Çerez & Soğuk İçecekler',
+  },
+  'Hazır Noodle': {
+    relatedCats: ['Hazır Çorba', 'Makarna', 'Ketçap', 'İçecek', 'Kola'],
+    defaultTitle: 'Pratik Yemekler & Çorbalar',
+  },
+  'Hazır Çorba': {
+    relatedCats: ['Hazır Noodle', 'Makarna', 'Ekmek'],
+    defaultTitle: 'Sıcak ve Pratik Lezzetler',
+  },
+};
 
 // --- AKILLI ARAMA ÇEKİRDEĞİ ---
 export const smartSearchProducts = (query: string, allProducts: Product[]): SmartSearchResult => {
@@ -179,6 +249,7 @@ export const smartSearchProducts = (query: string, allProducts: Product[]): Smar
   if (!cleanQuery) {
     return {
       products: allProducts,
+      relatedProducts: [],
       matchedIntent: null,
       query: '',
       totalFound: allProducts.length,
@@ -200,7 +271,7 @@ export const smartSearchProducts = (query: string, allProducts: Product[]): Smar
     }
   }
 
-  // 2. Ürün Puanlama Motoru
+  // 2. Doğrudan Eşleşme Puanlama Motoru
   const scoredProducts: { product: Product; score: number }[] = [];
 
   for (const product of allProducts) {
@@ -295,13 +366,76 @@ export const smartSearchProducts = (query: string, allProducts: Product[]): Smar
 
   // Skorlara göre sırala
   scoredProducts.sort((a, b) => b.score - a.score);
+  const directMatches = scoredProducts.map((sp) => sp.product);
 
-  const finalProducts = scoredProducts.map((sp) => sp.product);
+  // 3. NETFLIX TARZI İLGİLİ ÜRÜN ÖNERİ MOTORU
+  // Doğrudan eşleşen ürünlerin kategorilerini ve niyetlerini analiz et
+  const directIds = new Set(directMatches.map((p) => p.id));
+  const directCategories = Array.from(new Set(directMatches.map((p) => p.category).filter(Boolean)));
+
+  // İlgili hedef kategorileri belirle
+  const targetRelatedCategories = new Set<string>();
+  let customTitle: string | undefined = undefined;
+
+  for (const cat of directCategories) {
+    const config = RELATED_CATEGORY_MAP[cat];
+    if (config) {
+      config.relatedCats.forEach((rc) => targetRelatedCategories.add(rc));
+      if (!customTitle) customTitle = `"${query}" ile İlgili ${config.defaultTitle}`;
+    }
+  }
+
+  // Eğer doğrudan eşleşme yoksa (örneğin "fusetea" yerine "fuse" yazıldı ama doğrudan kategori eşleşmedi)
+  // veya genel içecek/atıştırmalık aramasıysa akıllı fallback
+  if (targetRelatedCategories.size === 0) {
+    if (cleanQuery.includes('tea') || cleanQuery.includes('cay') || cleanQuery.includes('soguk') || cleanQuery.includes('icecek')) {
+      ['Enerji İçeceği', 'Soğuk Çay', 'Kola', 'Gazoz', 'Soğuk Kahve'].forEach((rc) => targetRelatedCategories.add(rc));
+      customTitle = `"${query}" ile İlgili Enerji İçecekleri & Soğuk Lezzetler`;
+    } else if (cleanQuery.includes('cips') || cleanQuery.includes('atistir') || cleanQuery.includes('cerez')) {
+      ['Cips', 'Yer Fıstığı', 'Ay Çekirdeği', 'Kraker', 'Enerji İçeceği'].forEach((rc) => targetRelatedCategories.add(rc));
+      customTitle = `"${query}" ile İlgili Çerezler & İçecekler`;
+    } else if (cleanQuery.includes('tatli') || cleanQuery.includes('cikolata') || cleanQuery.includes('seker')) {
+      ['Çikolata', 'Gofret', 'Bisküvi', 'Kek'].forEach((rc) => targetRelatedCategories.add(rc));
+      customTitle = `"${query}" ile İlgili Çikolata & Tatlı Çeşitleri`;
+    }
+  }
+
+  // Netflix tarzı önerileri topla (farklı markalardan ve popüler ürünlerden çeşitlendirerek)
+  const relatedProducts: Product[] = [];
+  const chosenBrands = new Set<string>();
+
+  for (const cat of targetRelatedCategories) {
+    const candidates = allProducts.filter((p) => p.category === cat && !directIds.has(p.id) && p.isAvailable);
+    for (const c of candidates) {
+      if (!c.brand || !chosenBrands.has(c.brand) || relatedProducts.length < 4) {
+        relatedProducts.push(c);
+        if (c.brand) chosenBrands.add(c.brand);
+      }
+      if (relatedProducts.length >= 8) break;
+    }
+    if (relatedProducts.length >= 8) break;
+  }
+
+  // Eğer hala 8'den azsa, ilgili kategorilerden herhangi bir ürünü ekle
+  if (relatedProducts.length < 8 && targetRelatedCategories.size > 0) {
+    for (const cat of targetRelatedCategories) {
+      const candidates = allProducts.filter(
+        (p) => p.category === cat && !directIds.has(p.id) && !relatedProducts.some((r) => r.id === p.id) && p.isAvailable
+      );
+      for (const c of candidates) {
+        relatedProducts.push(c);
+        if (relatedProducts.length >= 8) break;
+      }
+      if (relatedProducts.length >= 8) break;
+    }
+  }
 
   return {
-    products: finalProducts,
+    products: directMatches,
+    relatedProducts,
+    relatedTitle: customTitle || `"${query}" ile İlgili Önerilen Popüler Seçenekler`,
     matchedIntent,
     query,
-    totalFound: finalProducts.length,
+    totalFound: directMatches.length,
   };
 };

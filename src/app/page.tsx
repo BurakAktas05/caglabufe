@@ -9,7 +9,7 @@ import { BundleDealsSection } from '@/components/BundleDealsSection';
 import { useApp } from '@/context/AppContext';
 import { Product, ProductCategory } from '@/types';
 import { getActiveCampaigns, getActiveBundleDeals } from '@/lib/settingsManager';
-import { smartSearchProducts } from '@/lib/searchEngine';
+import { smartSearchProducts, SmartSearchResult } from '@/lib/searchEngine';
 import {
   Search,
   ShoppingBag,
@@ -117,7 +117,7 @@ export default function Home() {
   }, [products]);
 
   // Smart & Semantic Search Execution
-  const searchResult = useMemo(() => {
+  const searchResult: SmartSearchResult = useMemo(() => {
     const pool = selectedCategory === 'all'
       ? products
       : products.filter((p) => p.category === selectedCategory);
@@ -125,6 +125,8 @@ export default function Home() {
     if (!searchQuery.trim()) {
       return {
         products: pool,
+        relatedProducts: [],
+        relatedTitle: undefined,
         matchedIntent: null,
         query: '',
         totalFound: pool.length,
@@ -527,9 +529,11 @@ export default function Home() {
                 ? 'Katalog Güncelleniyor'
                 : 'Aradığınız Ürün Bulunamadı'}
             </h3>
-            <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '360px', margin: '0 auto 16px' }}>
+            <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '380px', margin: '0 auto 16px', lineHeight: 1.4 }}>
               {products.length === 0
                 ? 'Ürün kataloğu ve fiyat listesi güncellenmektedir. Lütfen birazdan tekrar kontrol ediniz.'
+                : searchResult.relatedProducts && searchResult.relatedProducts.length > 0
+                ? `"${searchQuery}" ifadesine birebir uyan ürün bulunamadı, ancak aşağıda senin için önerdiğimiz benzer lezzetlere göz atabilirsin:`
                 : `"${searchQuery}" ifadesine uygun ürün bulamadık. Dilerseniz aramayı temizleyebilirsiniz.`}
             </p>
             {searchQuery && (
@@ -596,6 +600,27 @@ export default function Home() {
               </div>
             ) : null}
           </>
+        )}
+
+        {/* Netflix-Style Related Category Recommendations */}
+        {searchQuery.trim() !== '' && searchResult.relatedProducts && searchResult.relatedProducts.length > 0 && (
+          <div className="netflix-rec-wrapper">
+            <div className="netflix-rec-header">
+              <span className="netflix-rec-badge">🎬 NETFLIX TARZI ÖNERİLER</span>
+              <h3 className="netflix-rec-title">
+                <Sparkles size={18} color="#8B5CF6" />
+                <span>{searchResult.relatedTitle || `"${searchQuery}" ile İlgili Popüler Seçenekler`}</span>
+              </h3>
+              <p className="netflix-rec-subtitle">
+                Aradığın lezzete benzer ve birlikte en çok tercih edilen alternatif ürünler
+              </p>
+            </div>
+            <div className="product-grid">
+              {searchResult.relatedProducts.map((product: Product) => (
+                <ProductCard key={`rec-${product.id}`} product={product} />
+              ))}
+            </div>
+          </div>
         )}
 
         {/* PWA Install & Quick Support */}
