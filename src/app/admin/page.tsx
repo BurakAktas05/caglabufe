@@ -34,6 +34,8 @@ import {
   addCampaign,
   updateCampaign,
   deleteCampaign,
+  fetchCampaignsFromSupabase,
+  subscribeToCampaigns,
   getDormitories,
   addDormitory,
   updateDormitory,
@@ -202,9 +204,16 @@ export default function AdminPage() {
     fetchSystemSettings().then((liveSettings) => {
       if (liveSettings) setSettingsState(liveSettings);
     });
+    fetchCampaignsFromSupabase().then((liveCampaigns) => {
+      if (liveCampaigns && liveCampaigns.length > 0) setCampaigns(liveCampaigns);
+    });
 
     const unsubSettings = subscribeToSettings((newSettings) => {
       setSettingsState(newSettings);
+    });
+
+    const unsubCampaigns = subscribeToCampaigns((newCampaigns) => {
+      setCampaigns(newCampaigns);
     });
 
     const unsubscribe = subscribeToOrders((newOrUpdatedOrder) => {
@@ -239,6 +248,7 @@ export default function AdminPage() {
     return () => {
       unsubscribe();
       unsubSettings();
+      unsubCampaigns();
     };
   }, [soundEnabled]);
 
@@ -296,18 +306,18 @@ export default function AdminPage() {
   };
 
   // Campaign Handlers
-  const handleAddCampaign = (camp: Omit<Campaign, 'id'>) => {
-    addCampaign(camp);
+  const handleAddCampaign = async (camp: Omit<Campaign, 'id'>) => {
+    await addCampaign(camp);
     setCampaigns(getCampaigns());
   };
 
-  const handleUpdateCampaign = (id: string, updates: Partial<Campaign>) => {
-    updateCampaign(id, updates);
+  const handleUpdateCampaign = async (id: string, updates: Partial<Campaign>) => {
+    await updateCampaign(id, updates);
     setCampaigns(getCampaigns());
   };
 
-  const handleDeleteCampaign = (id: string) => {
-    deleteCampaign(id);
+  const handleDeleteCampaign = async (id: string) => {
+    await deleteCampaign(id);
     setCampaigns(getCampaigns());
   };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef } from 'react';
-import { Product, CartItem, UserProfile, Address, Order, OrderStatus, PaymentMethod, SystemSettings } from '@/types';
+import { Product, CartItem, UserProfile, Address, Order, OrderStatus, PaymentMethod, SystemSettings, Campaign } from '@/types';
 import { audioAlert } from '@/lib/audioAlert';
 import { showLocalNotification, requestNotificationPermission } from '@/lib/pushNotifications';
 import {
@@ -26,6 +26,11 @@ import {
   calculateCampaignDiscount,
   evaluateSingleBestCampaign,
   hasActiveFreeDeliveryCampaign,
+  getCampaigns,
+  fetchCampaignsFromSupabase,
+  subscribeToCampaigns,
+  getActiveCampaigns,
+  getActiveBundleDeals,
   isStoreOpen,
   formatTemplate,
 } from '@/lib/settingsManager';
@@ -67,6 +72,12 @@ interface AppContextType {
   products: Product[];
   refreshProducts: () => void;
   systemSettings: SystemSettings;
+
+  // Campaigns & Promotions (Realtime Supabase Sync)
+  campaigns: Campaign[];
+  activeCampaigns: Campaign[];
+  bundleDeals: Campaign[];
+  refreshCampaigns: () => Promise<void>;
 
   // User & Auth
   user: UserProfile | null;
@@ -158,10 +169,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [storeOpen, setStoreOpen] = useState(true);
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(getSystemSettings);
   const [products, setProducts] = useState<Product[]>(getStoredProducts);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(getCampaigns);
   const lastKnownStatusRef = useRef<Record<string, OrderStatus>>({});
 
   const refreshProducts = () => {
     setProducts(getStoredProducts());
+  };
+
+  const activeCampaigns = useMemo(() => getActiveCampaigns(campaigns), [campaigns]);
+  const bundleDeals = useMemo(() => getActiveBundleDeals(campaigns), [campaigns]);
+
+  const refreshCampaigns = async () => {
+    const live = await fetchCampaignsFromSupabase();
+    if (live && live.length > 0) setCampaigns(live);
   };
 
   const setSelectedAddressId = (id: string) => {
@@ -311,6 +331,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
       setSystemSettings(getSystemSettings());
       setProducts(getStoredProducts());
+      setCampaigns(getCampaigns());
 
       // Fetch live product updates from Supabase
       fetchProducts().then((live) => {
@@ -323,6 +344,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           setSystemSettings(liveSettings);
           setStoreOpen(isStoreOpen(liveSettings));
         }
+      });
+
+      // Fetch live campaigns from Supabase (with auto-migration of local phone campaigns)
+      fetchCampaignsFromSupabase().then((liveCampaigns) => {
+        if (liveCampaigns && liveCampaigns.length > 0) setCampaigns(liveCampaigns);
       });
     } catch {
       // ignore
@@ -342,6 +368,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setProducts(newProducts);
     });
 
+    // Subscribe to dynamic campaigns updates from Supabase Realtime
+    const unsubCampaigns = subscribeToCampaigns((newCampaigns) => {
+      setCampaigns(newCampaigns);
+    });
+
     // Active polling fallback for mobile devices where WebSockets might pause in background
     const interval = setInterval(() => {
       setStoreOpen(isStoreOpen());
@@ -351,12 +382,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           setStoreOpen(isStoreOpen(latest));
         }
       });
+      fetchCampaignsFromSupabase().then((latest) => {
+        if (latest && latest.length > 0) {
+          setCampaigns(latest);
+        }
+      });
     }, 15000);
 
     return () => {
       clearInterval(interval);
       unsubSettings();
       unsubProducts();
+      unsubCampaigns();
     };
   }, []);
 
@@ -599,8 +636,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       hasBundle,
       standardDeliveryFee: zoneCalc.deliveryFee,
       isZoneAlreadyFree: cartTotal >= freeDeliveryThreshold || cartTotal === 0,
+      campaignsList: campaigns,
     });
-  }, [cart, cartTotal, zoneCalc.deliveryFee, freeDeliveryThreshold]);
+  }, [cart, cartTotal, zoneCalc.deliveryFee, freeDeliveryThreshold, campaigns]);
 
   const discountAmount = singleCampaignResult.discountAmount;
   const appliedCampaignTitle = singleCampaignResult.appliedCampaignTitle;
@@ -894,6 +932,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         appliedCampaignDescription, isFreeDeliveryCampaign, isBundleCampaignApplied,
         finalTotal,
         products, refreshProducts, systemSettings,
+        campaigns, activeCampaigns, bundleDeals, refreshCampaigns,
         user, loginUser, logoutUser,
         addresses, selectedAddress, saveNewAddress, deleteAddress, setSelectedAddressId,
         orders, placeOrder, activeTrackingOrder, setActiveTrackingOrder,

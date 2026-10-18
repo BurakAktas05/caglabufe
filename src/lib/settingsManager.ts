@@ -304,9 +304,15 @@ export function getSystemSettings(): SystemSettings {
 
 // Cross-tab broadcast channel for instant zero-latency settings sync
 let settingsBroadcastChannel: BroadcastChannel | null = null;
+let campaignsBroadcastChannel: BroadcastChannel | null = null;
 if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
   try {
     settingsBroadcastChannel = new BroadcastChannel('caglabufe_realtime_settings');
+  } catch {
+    // fallback
+  }
+  try {
+    campaignsBroadcastChannel = new BroadcastChannel('caglabufe_realtime_campaigns');
   } catch {
     // fallback
   }
@@ -744,7 +750,61 @@ const DEFAULT_CAMPAIGNS: Campaign[] = [
   },
 ];
 
-// --- CAMPAIGNS ---
+// --- CAMPAIGNS (PERSISTENCE & REALTIME SUPABASE SYNC) ---
+
+// Row mapper for campaigns table in Supabase
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapRowToCampaign(row: any): Campaign {
+  return {
+    id: row.id,
+    title: row.title || '',
+    description: row.description || '',
+    type: row.type || 'fixed_discount',
+    value: Number(row.value) || 0,
+    bundlePrice: row.bundle_price != null ? Number(row.bundle_price) : undefined,
+    bundleProducts: Array.isArray(row.bundle_products) ? row.bundle_products : undefined,
+    bundleBadge: row.bundle_badge || undefined,
+    minOrderAmount: row.min_order_amount != null ? Number(row.min_order_amount) : undefined,
+    maxDiscount: row.max_discount != null ? Number(row.max_discount) : undefined,
+    isActive: Boolean(row.is_active),
+    startsAt: row.starts_at || new Date().toISOString(),
+    endsAt: row.ends_at || '2030-12-31T23:59:59.000Z',
+    bannerColor: row.banner_color || undefined,
+    createdAt: row.created_at || new Date().toISOString(),
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function mapCampaignToRow(c: Campaign): any {
+  return {
+    id: c.id,
+    title: c.title,
+    description: c.description || '',
+    type: c.type,
+    value: c.value,
+    min_order_amount: c.minOrderAmount ?? null,
+    max_discount: c.maxDiscount ?? null,
+    is_active: c.isActive,
+    starts_at: c.startsAt,
+    ends_at: c.endsAt,
+    banner_color: c.bannerColor ?? null,
+    bundle_products: c.bundleProducts ?? null,
+    bundle_price: c.bundlePrice ?? null,
+    bundle_badge: c.bundleBadge ?? null,
+    created_at: c.createdAt || new Date().toISOString(),
+  };
+}
+
+function saveCampaignsLocally(campaigns: Campaign[]): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
+  window.dispatchEvent(new CustomEvent('caglabufe_campaigns_updated', { detail: campaigns }));
+  if (campaignsBroadcastChannel) {
+    try {
+      campaignsBroadcastChannel.postMessage({ type: 'CAMPAIGNS_UPDATED', campaigns });
+    } catch {}
+  }
+}
 
 export function getCampaigns(): Campaign[] {
   if (typeof window === 'undefined') return DEFAULT_CAMPAIGNS;
@@ -772,36 +832,201 @@ export function getCampaigns(): Campaign[] {
   }
 }
 
-export function saveCampaigns(campaigns: Campaign[]): void {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
+export async function saveCampaigns(campaigns: Campaign[]): Promise<void> {
+  saveCampaignsLocally(campaigns);
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const rows = campaigns.map(mapCampaignToRow);
+      const { error } = await supabase.from('campaigns').upsert(rows);
+      if (error) {
+        console.warn('[Supabase] Failed to upsert campaigns:', error);
+      }
+    } catch (e) {
+      console.warn('[Supabase] saveCampaigns error:', e);
+    }
+  }
 }
 
-export function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>): Campaign {
+/**
+ * Fetches all campaigns from Supabase and automatically migrates any locally created
+ * campaigns (e.g. created on user phone) to Supabase so they are visible globally on all accounts.
+ */
+export async function fetchCampaignsFromSupabase(): Promise<Campaign[]> {
+  const localList = getCampaigns();
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const remoteCampaigns = data.map(mapRowToCampaign);
+
+        // Auto-migration: Check if local storage has campaigns that are NOT yet in Supabase
+        const remoteIds = new Set(remoteCampaigns.map((c) => c.id));
+        const localMissingFromRemote = localList.filter((c) => !remoteIds.has(c.id));
+
+        if (localMissingFromRemote.length > 0) {
+          try {
+            const rowsToInsert = localMissingFromRemote.map(mapCampaignToRow);
+            await supabase.from('campaigns').upsert(rowsToInsert);
+            remoteCampaigns.unshift(...localMissingFromRemote);
+          } catch (migrateErr) {
+            console.warn('[Supabase] Auto-migration error:', migrateErr);
+          }
+        }
+
+        saveCampaignsLocally(remoteCampaigns);
+        return remoteCampaigns;
+      } else if (!error && data && data.length === 0 && localList.length > 0) {
+        // If Supabase table was empty, seed with local list
+        try {
+          const rowsToInsert = localList.map(mapCampaignToRow);
+          await supabase.from('campaigns').upsert(rowsToInsert);
+        } catch (seedErr) {
+          console.warn('[Supabase] Seed error:', seedErr);
+        }
+        return localList;
+      }
+    } catch (e) {
+      console.warn('[Supabase] fetchCampaignsFromSupabase fallback:', e);
+    }
+  }
+
+  return localList;
+}
+
+export async function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>): Promise<Campaign> {
   const newCampaign: Campaign = {
     ...campaign,
     id: 'camp_' + Math.random().toString(36).substring(2, 9),
     createdAt: new Date().toISOString(),
   };
   const current = getCampaigns();
-  saveCampaigns([newCampaign, ...current]);
+  const updated = [newCampaign, ...current.filter((c) => c.id !== newCampaign.id)];
+  saveCampaignsLocally(updated);
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('campaigns').upsert(mapCampaignToRow(newCampaign));
+      if (error) {
+        console.warn('[Supabase] addCampaign error:', error);
+      }
+    } catch (e) {
+      console.warn('[Supabase] addCampaign error:', e);
+    }
+  }
   return newCampaign;
 }
 
-export function updateCampaign(id: string, updates: Partial<Campaign>): void {
+export async function updateCampaign(id: string, updates: Partial<Campaign>): Promise<void> {
   const current = getCampaigns();
-  const updated = current.map((c) => (c.id === id ? { ...c, ...updates } : c));
-  saveCampaigns(updated);
+  const item = current.find((c) => c.id === id);
+  if (!item) return;
+  const updatedItem: Campaign = { ...item, ...updates };
+  const updated = current.map((c) => (c.id === id ? updatedItem : c));
+  saveCampaignsLocally(updated);
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('campaigns').upsert(mapCampaignToRow(updatedItem));
+      if (error) {
+        console.warn('[Supabase] updateCampaign error:', error);
+      }
+    } catch (e) {
+      console.warn('[Supabase] updateCampaign error:', e);
+    }
+  }
 }
 
-export function deleteCampaign(id: string): void {
+export async function deleteCampaign(id: string): Promise<void> {
   const current = getCampaigns();
-  saveCampaigns(current.filter((c) => c.id !== id));
+  const updated = current.filter((c) => c.id !== id);
+  saveCampaignsLocally(updated);
+
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const { error } = await supabase.from('campaigns').delete().eq('id', id);
+      if (error) {
+        console.warn('[Supabase] deleteCampaign error:', error);
+      }
+    } catch (e) {
+      console.warn('[Supabase] deleteCampaign error:', e);
+    }
+  }
 }
 
-export function getActiveCampaigns(): Campaign[] {
+/**
+ * Realtime subscription to campaigns across tabs, windows, and Supabase Postgres changes
+ */
+export function subscribeToCampaigns(callback: (campaigns: Campaign[]) => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+
+  const handleCustom = (e: Event) => {
+    const ce = e as CustomEvent<Campaign[]>;
+    callback(ce.detail || getCampaigns());
+  };
+
+  const handleStorage = (e: StorageEvent) => {
+    if (e.key === CAMPAIGNS_KEY) {
+      callback(getCampaigns());
+    }
+  };
+
+  const handleBroadcast = (event: MessageEvent) => {
+    if (event.data && event.data.type === 'CAMPAIGNS_UPDATED' && event.data.campaigns) {
+      callback(event.data.campaigns);
+    }
+  };
+
+  window.addEventListener('caglabufe_campaigns_updated', handleCustom);
+  window.addEventListener('storage', handleStorage);
+  if (campaignsBroadcastChannel) {
+    campaignsBroadcastChannel.addEventListener('message', handleBroadcast);
+  }
+
+  let supabaseSub: { unsubscribe: () => void } | null = null;
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      const channel = supabase
+        .channel('public:campaigns')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'campaigns' },
+          () => {
+            fetchCampaignsFromSupabase().then((latest) => {
+              callback(latest);
+            });
+          }
+        )
+        .subscribe();
+      supabaseSub = {
+        unsubscribe: () => {
+          supabase?.removeChannel(channel);
+        },
+      };
+    } catch {
+      // ignore
+    }
+  }
+
+  return () => {
+    window.removeEventListener('caglabufe_campaigns_updated', handleCustom);
+    window.removeEventListener('storage', handleStorage);
+    if (campaignsBroadcastChannel) {
+      campaignsBroadcastChannel.removeEventListener('message', handleBroadcast);
+    }
+    supabaseSub?.unsubscribe();
+  };
+}
+
+export function getActiveCampaigns(campaignsList?: Campaign[]): Campaign[] {
   const now = new Date();
-  return getCampaigns().filter((c) => {
+  const list = campaignsList || getCampaigns();
+  return list.filter((c) => {
     if (!c.isActive) return false;
     const start = new Date(c.startsAt);
     const end = new Date(c.endsAt);
@@ -809,8 +1034,8 @@ export function getActiveCampaigns(): Campaign[] {
   });
 }
 
-export function getActiveBundleDeals(): Campaign[] {
-  return getActiveCampaigns().filter(
+export function getActiveBundleDeals(campaignsList?: Campaign[]): Campaign[] {
+  return getActiveCampaigns(campaignsList).filter(
     (c) => c.type === 'bundle_deal' && c.bundleProducts && c.bundleProducts.length > 0
   );
 }
@@ -947,12 +1172,14 @@ export function evaluateSingleBestCampaign({
   hasBundle = false,
   standardDeliveryFee = 0,
   isZoneAlreadyFree = false,
+  campaignsList,
 }: {
   cartTotal: number;
   cartItems: { productId: string; category: string; quantity: number; price: number }[];
   hasBundle?: boolean;
   standardDeliveryFee?: number;
   isZoneAlreadyFree?: boolean;
+  campaignsList?: Campaign[];
 }): SingleCampaignEvaluationResult {
   // If the cart contains a bundle deal (combo menu), that order is already using a campaign.
   if (hasBundle) {
@@ -967,7 +1194,7 @@ export function evaluateSingleBestCampaign({
     };
   }
 
-  const activeCampaigns = getActiveCampaigns();
+  const activeCampaigns = getActiveCampaigns(campaignsList);
   if (activeCampaigns.length === 0 || cartTotal <= 0) {
     return {
       appliedCampaignId: null,
@@ -1059,9 +1286,10 @@ export function evaluateSingleBestCampaign({
 
 export function calculateCampaignDiscount(
   cartTotal: number,
-  cartItems: { productId: string; category: string; quantity: number; price: number }[]
+  cartItems: { productId: string; category: string; quantity: number; price: number }[],
+  campaignsList?: Campaign[]
 ): { discountAmount: number; campaignId: string | null; campaignTitle: string | null } {
-  const res = evaluateSingleBestCampaign({ cartTotal, cartItems });
+  const res = evaluateSingleBestCampaign({ cartTotal, cartItems, campaignsList });
   return {
     discountAmount: res.discountAmount,
     campaignId: res.appliedCampaignId,
@@ -1069,6 +1297,6 @@ export function calculateCampaignDiscount(
   };
 }
 
-export function hasActiveFreeDeliveryCampaign(): boolean {
-  return getActiveCampaigns().some((c) => c.type === 'free_delivery');
+export function hasActiveFreeDeliveryCampaign(campaignsList?: Campaign[]): boolean {
+  return getActiveCampaigns(campaignsList).some((c) => c.type === 'free_delivery');
 }

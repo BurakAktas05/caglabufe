@@ -10,7 +10,6 @@ import { ProductCard } from '@/components/ProductCard';
 import { BundleDealsSection } from '@/components/BundleDealsSection';
 import { useApp } from '@/context/AppContext';
 import { Product } from '@/types';
-import { getActiveCampaigns, getActiveBundleDeals } from '@/lib/settingsManager';
 import { smartSearchProducts, SmartSearchResult } from '@/lib/searchEngine';
 import {
   Search,
@@ -42,12 +41,12 @@ export default function Home() {
     products,
     systemSettings,
     reorderItems,
+    activeCampaigns,
+    bundleDeals,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const activeCampaigns = useMemo(() => getActiveCampaigns(), []);
-  const bundleDeals = useMemo(() => getActiveBundleDeals(), []);
   const storePhone = systemSettings.storePhone || '0542 000 7878';
   const rawWhatsApp = (systemSettings.storeWhatsApp || '905420007878').replace(/\D/g, '');
   const cleanPhone = storePhone.replace(/\s+/g, '');
