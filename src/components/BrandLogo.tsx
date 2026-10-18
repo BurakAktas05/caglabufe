@@ -1,6 +1,4 @@
-'use client';
-
-import React from 'react';
+import Image from 'next/image';
 
 interface BrandLogoProps {
   size?: 'sm' | 'md' | 'lg' | 'hero';
@@ -16,10 +14,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   inverted = false,
 }) => {
   const iconSizes = {
-    sm: { width: 30, height: 30, fontSize: '16px', tagSize: '10px' },
-    md: { width: 38, height: 38, fontSize: '20px', tagSize: '11px' },
-    lg: { width: 48, height: 48, fontSize: '24px', tagSize: '12px' },
-    hero: { width: 62, height: 62, fontSize: '32px', tagSize: '14px' },
+    sm: { width: 32, height: 32, fontSize: '17px', tagSize: '10px' },
+    md: { width: 40, height: 40, fontSize: '21px', tagSize: '11px' },
+    lg: { width: 50, height: 50, fontSize: '26px', tagSize: '13px' },
+    hero: { width: 68, height: 68, fontSize: '34px', tagSize: '15px' },
   };
 
   const current = iconSizes[size];
@@ -30,100 +28,63 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: size === 'hero' ? '14px' : '10px',
+        gap: size === 'hero' ? '12px' : '9px',
         textDecoration: 'none',
         userSelect: 'none',
       }}
     >
-      {/* Dynamic Vector Emblem Badge */}
+      {/* 3D Modern Glowing Emblem */}
       <div
         style={{
           width: `${current.width}px`,
           height: `${current.height}px`,
-          borderRadius: size === 'hero' ? '18px' : '12px',
-          background: 'linear-gradient(135deg, #FFD10D 0%, #F59E0B 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
+          borderRadius: size === 'hero' ? '18px' : '11px',
+          overflow: 'hidden',
+          boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25), 0 0 0 1.5px rgba(255, 209, 13, 0.4)',
           flexShrink: 0,
           position: 'relative',
+          backgroundColor: '#5D3EBC',
         }}
       >
-        <svg
-          viewBox="0 0 40 40"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ width: '70%', height: '70%' }}
-        >
-          {/* Scooter / Fast Delivery + Warm Toast Vector Emblem */}
-          {/* Scooter Body & Wheels */}
-          <circle cx="12" cy="28" r="4" fill="#1F2937" stroke="#FFFFFF" strokeWidth="1.5" />
-          <circle cx="28" cy="28" r="4" fill="#1F2937" stroke="#FFFFFF" strokeWidth="1.5" />
-          <path
-            d="M12 28h16M14 28l4-10h8l2 10"
-            stroke="#1F2937"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {/* Delivery Box / Warm Toast Shape on Back */}
-          <rect
-            x="6"
-            y="14"
-            width="9"
-            height="9"
-            rx="2"
-            fill="#5D3EBC"
-            stroke="#FFFFFF"
-            strokeWidth="1.2"
-          />
-          <path d="M8 18.5h5" stroke="#FFD10D" strokeWidth="1.5" strokeLinecap="round" />
-          {/* Handlebar & Wind Visor */}
-          <path
-            d="M24 14l2-4h3"
-            stroke="#1F2937"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {/* Steam / Heat Waves */}
-          <path
-            d="M21 8c0-1.5 1-2 1-3M25 8c0-1.5 1-2 1-3"
-            stroke="#EF4444"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
+        <Image
+          src="/caglabufe_logo.jpg"
+          alt="Çağla Büfe"
+          fill
+          sizes="68px"
+          style={{ objectFit: 'cover' }}
+          priority
+        />
       </div>
 
-      {/* Typography / Wordmark */}
+      {/* Typography / Wordmark - Bold & Prominent */}
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
           <span
             style={{
               fontSize: current.fontSize,
-              fontWeight: 900,
+              fontWeight: 950,
               color: inverted ? '#1F2937' : '#FFFFFF',
               letterSpacing: '-0.6px',
               fontFamily: 'inherit',
+              textShadow: inverted ? 'none' : '0 2px 8px rgba(0,0,0,0.2)',
             }}
           >
-            çağla
+            Çağla
           </span>
           <span
             style={{
               backgroundColor: '#FFD10D',
               color: '#1F2937',
               fontSize: current.tagSize,
-              fontWeight: 900,
-              padding: '2px 6px',
+              fontWeight: 950,
+              padding: '2.5px 7px',
               borderRadius: '6px',
-              letterSpacing: '0.3px',
+              letterSpacing: '0.4px',
               textTransform: 'uppercase',
+              boxShadow: '0 2px 8px rgba(255, 209, 13, 0.35)',
             }}
           >
-            büfe
+            BÜFE
           </span>
         </div>
 

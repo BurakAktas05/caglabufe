@@ -168,9 +168,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* Store Open / Closed Status Banner */}
+      {/* Store Open / Closed Status Banner (Tıklanınca Tam Sayfa Çalışma Saatleri & Tanıtım Açılır) */}
       {!storeOpen ? (
         <div
+          onClick={() => window.dispatchEvent(new CustomEvent('open-cagla-landing'))}
           style={{
             backgroundColor: '#1E1B4B',
             color: '#A5B4FC',
@@ -181,13 +182,16 @@ export default function Home() {
             borderBottom: '1px solid #312E81',
             width: '100%',
             boxSizing: 'border-box',
+            cursor: 'pointer',
           }}
+          title="Çalışma Saatleri & Büfe Bilgisi"
         >
           <Clock size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} />
-          {systemSettings.closedMessage || `Sipariş saatleri dışındayız. Hizmet saatlerimiz: ${systemSettings.storeOpenTime} - ${systemSettings.storeCloseTime}.`}
+          <span>{systemSettings.closedMessage || `Sipariş saatleri dışındayız. Hizmet saatlerimiz: ${systemSettings.storeOpenTime} - ${systemSettings.storeCloseTime}.`} (Detaylar ➔)</span>
         </div>
       ) : (
         <div
+          onClick={() => window.dispatchEvent(new CustomEvent('open-cagla-landing'))}
           style={{
             backgroundColor: '#ECFDF5',
             color: '#065F46',
@@ -202,10 +206,13 @@ export default function Home() {
             gap: '6px',
             width: '100%',
             boxSizing: 'border-box',
+            cursor: 'pointer',
           }}
+          title="Çalışma Saatleri & Büfe Bilgisi"
         >
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block', flexShrink: 0 }} />
           <span>Şu An Açığız • {systemSettings.storeCloseTime}&apos;e kadar Karabük 100. Yıl &amp; KYK Yurtlarına hızlı teslimat</span>
+          <span style={{ fontSize: '11px', textDecoration: 'underline', opacity: 0.85, marginLeft: '4px' }}>Saatler ➔</span>
         </div>
       )}
 
