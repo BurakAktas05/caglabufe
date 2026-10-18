@@ -412,29 +412,31 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                         </div>
                       </div>
 
-                      <a
-                        href={mapsNavUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          flexShrink: 0,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          fontSize: '11px',
-                          fontWeight: 800,
-                          color: '#047857',
-                          backgroundColor: '#D1FAE5',
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          textDecoration: 'none',
-                          border: '1px solid #A7F3D0',
-                        }}
-                        title="Google Maps'te Yol Tarifi Al"
-                      >
-                        <Navigation size={12} />
-                        <span>Maps</span>
-                      </a>
+                      {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                        <a
+                          href={mapsNavUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            flexShrink: 0,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            color: '#047857',
+                            backgroundColor: '#D1FAE5',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            textDecoration: 'none',
+                            border: '1px solid #A7F3D0',
+                          }}
+                          title="Google Maps'te Yol Tarifi Al"
+                        >
+                          <Navigation size={12} />
+                          <span>Maps</span>
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -573,30 +575,32 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                     </button>
                   )}
 
-                  {/* 1-Click Google Maps Navigation for Courier */}
-                  <a
-                    href={mapsNavUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: '10px',
-                      backgroundColor: '#ECFDF5',
-                      color: '#065F46',
-                      border: '1px solid #A7F3D0',
-                      fontWeight: 800,
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      textDecoration: 'none',
-                    }}
-                    title="Google Maps ile Navigasyon Başlat"
-                  >
-                    <Navigation size={13} color="#059669" />
-                    <span>Yol Tarifi</span>
-                  </a>
+                  {/* 1-Click Google Maps Navigation for Courier (Sadece aktif siparişlerde) */}
+                  {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                    <a
+                      href={mapsNavUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '10px',
+                        backgroundColor: '#ECFDF5',
+                        color: '#065F46',
+                        border: '1px solid #A7F3D0',
+                        fontWeight: 800,
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        textDecoration: 'none',
+                      }}
+                      title="Google Maps ile Navigasyon Başlat"
+                    >
+                      <Navigation size={13} color="#059669" />
+                      <span>Yol Tarifi</span>
+                    </a>
+                  )}
 
                   {/* Digital Receipt */}
                   <button

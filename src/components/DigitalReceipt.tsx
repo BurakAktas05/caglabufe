@@ -270,30 +270,32 @@ export const DigitalReceiptModal = ({ order, onClose }: DigitalReceiptProps) => 
             </div>
           </div>
 
-          {/* 1-Click Navigation button for courier */}
-          <a
-            href={getGoogleMapsNavigationUrl(order.address)}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              backgroundColor: '#059669',
-              color: '#ffffff',
-              padding: '11px 16px',
-              borderRadius: '10px',
-              fontSize: '13px',
-              fontWeight: 800,
-              textDecoration: 'none',
-              marginTop: '12px',
-              boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
-            }}
-          >
-            <Navigation size={15} />
-            <span>Kurye Yol Tarifi (Google Maps)</span>
-          </a>
+          {/* 1-Click Navigation button for courier (Sadece aktif siparişlerde) */}
+          {order.status !== 'delivered' && order.status !== 'cancelled' && (
+            <a
+              href={getGoogleMapsNavigationUrl(order.address)}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                backgroundColor: '#059669',
+                color: '#ffffff',
+                padding: '11px 16px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 800,
+                textDecoration: 'none',
+                marginTop: '12px',
+                boxShadow: '0 2px 8px rgba(5, 150, 105, 0.25)',
+              }}
+            >
+              <Navigation size={15} />
+              <span>Kurye Yol Tarifi (Google Maps)</span>
+            </a>
+          )}
         </div>
       </div>
     </div>
