@@ -26,9 +26,25 @@ import {
 export default function BrosurPage() {
   const [format, setFormat] = useState<'a4' | 'a5'>('a4');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [isClean, setIsClean] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const flyerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('clean') === '1') {
+        setIsClean(true);
+      }
+      if (params.get('theme') === 'light') {
+        setTheme('light');
+      }
+      if (params.get('format') === 'a5') {
+        setFormat('a5');
+      }
+    }
+  }, []);
 
   const websiteUrl = 'https://caglabufe.com';
   const phone = '0542 000 7878';
@@ -68,12 +84,27 @@ export default function BrosurPage() {
   };
 
   return (
-    <div className="brosur-container">
+    <div className={`brosur-container ${isClean ? 'clean-view' : ''}`}>
       {/* ─── PRINT MEDIA CSS STYLES ─── */}
       <style jsx global>{`
         @page {
           size: ${format === 'a4' ? 'A4 portrait' : 'A5 portrait'};
           margin: 0;
+        }
+
+        .clean-view {
+          background: none !important;
+          padding: 0 !important;
+        }
+
+        .clean-view .flyer-viewport {
+          padding: 0 !important;
+        }
+
+        .clean-view .flyer-paper {
+          box-shadow: none !important;
+          border-radius: 0 !important;
+          margin: 0 auto !important;
         }
 
         @media print {
@@ -116,7 +147,8 @@ export default function BrosurPage() {
       `}</style>
 
       {/* ─── CONTROL TOOLBAR (Only visible on screen) ─── */}
-      <header className="no-print flyer-toolbar">
+      {!isClean && (
+        <header className="no-print flyer-toolbar">
         <div className="toolbar-inner">
           <div className="toolbar-left">
             <Link href="/" className="back-btn" title="Ana Sayfaya Dön">
@@ -192,6 +224,7 @@ export default function BrosurPage() {
           </div>
         </div>
       </header>
+      )}
 
       {/* ─── FLYER PREVIEW & PRINT CANVAS ─── */}
       <main className="flyer-viewport">
