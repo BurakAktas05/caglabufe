@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { BannerCarousel } from '@/components/BannerCarousel';
-import { CategoryBar } from '@/components/CategoryBar';
+import { TrendyolCategoryGrid } from '@/components/TrendyolCategoryGrid';
 import { ProductCard } from '@/components/ProductCard';
 import { BundleDealsSection } from '@/components/BundleDealsSection';
 import { useApp } from '@/context/AppContext';
-import { Product, ProductCategory } from '@/types';
+import { Product } from '@/types';
 import { getActiveCampaigns, getActiveBundleDeals } from '@/lib/settingsManager';
 import { smartSearchProducts, SmartSearchResult } from '@/lib/searchEngine';
 import {
@@ -23,21 +25,12 @@ import {
   Store,
   X,
   RotateCcw,
-  Plus,
-  Check,
+  ChevronRight,
+  Layers,
 } from 'lucide-react';
 
-const QUICK_INTENTS = [
-  { label: 'Çikolata & Tatlı', query: 'Çikolata', emoji: '🍫' },
-  { label: 'Cips & Çerez', query: 'Cips', emoji: '🍿' },
-  { label: 'Enerji & Soğuk', query: 'Enerji İçeceği', emoji: '⚡' },
-  { label: 'Soğuk Çay & İçecek', query: 'Soğuk Çay', emoji: '🧊' },
-  { label: 'Noodle & Pratik', query: 'Hazır Noodle', emoji: '🍜' },
-  { label: 'Kahve & Çay', query: 'Tekli Poşet Kahve', emoji: '☕' },
-  { label: 'Kişisel Bakım', query: 'Şampuan', emoji: '🧴' },
-];
-
 export default function Home() {
+  const router = useRouter();
   const {
     cart,
     cartTotal,
@@ -51,7 +44,6 @@ export default function Home() {
     reorderItems,
   } = useApp();
 
-  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const activeCampaigns = useMemo(() => getActiveCampaigns(), []);
@@ -116,46 +108,26 @@ export default function Home() {
     return chosen;
   }, [products]);
 
-  // Smart & Semantic Search Execution
+  // Smart & Semantic Search Execution (if user types on home)
   const searchResult: SmartSearchResult = useMemo(() => {
-    const pool = selectedCategory === 'all'
-      ? products
-      : products.filter((p) => p.category === selectedCategory);
-
     if (!searchQuery.trim()) {
       return {
-        products: pool,
+        products: [],
         relatedProducts: [],
         relatedTitle: undefined,
         matchedIntent: null,
         query: '',
-        totalFound: pool.length,
+        totalFound: 0,
       };
     }
+    return smartSearchProducts(searchQuery, products);
+  }, [products, searchQuery]);
 
-    return smartSearchProducts(searchQuery, pool);
-  }, [products, selectedCategory, searchQuery]);
-
-  // Progressive Pagination for high performance rendering
-  const PAGE_SIZE = 24;
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [selectedCategory, searchQuery]);
-
-  const visibleProducts = useMemo(() => {
-    return searchResult.products.slice(0, visibleCount);
-  }, [searchResult.products, visibleCount]);
-
-  const hasMore = visibleCount < searchResult.products.length;
-
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, searchResult.products.length));
-  };
-
-  const handleShowAll = () => {
-    setVisibleCount(searchResult.products.length);
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/urunler?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   const activeOrders = useMemo(() => {
@@ -333,7 +305,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Hero Banner */}
+      {/* Hero Banner Carousel */}
       <BannerCarousel />
 
       {/* Active Campaign Banners */}
@@ -361,8 +333,22 @@ export default function Home() {
 
       {/* Smart Search Bar */}
       <div className="search-container">
-        <div className="search-input-box">
-          <Search size={18} className="search-icon" />
+        <form onSubmit={handleSearchSubmit} className="search-input-box">
+          <button
+            type="submit"
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              color: '#5D3EBC',
+            }}
+            title="Ara"
+          >
+            <Search size={18} className="search-icon" />
+          </button>
           <input
             type="text"
             className="search-input"
@@ -372,6 +358,7 @@ export default function Home() {
           />
           {searchQuery && (
             <button
+              type="button"
               onClick={() => setSearchQuery('')}
               className="search-clear-btn"
               title="Aramayı Temizle"
@@ -379,19 +366,18 @@ export default function Home() {
               <X size={16} />
             </button>
           )}
-        </div>
+        </form>
 
-        {/* Quick Popular Brand Pills */}
+        {/* Quick Popular Brand Pills -> jumps directly to /urunler?q=... */}
         <div className="search-quick-tags">
           <span className="search-tag-label">Popüler:</span>
           {['Ülker', 'Eti', 'Haribo', 'Red Bull', 'Tadım', 'Uludağ', 'Nescafe', 'Şölen'].map((brandName) => {
-            const isActive = searchQuery.toLowerCase() === brandName.toLowerCase();
             return (
               <button
                 key={brandName}
                 type="button"
-                className={`search-chip ${isActive ? 'active' : ''}`}
-                onClick={() => setSearchQuery(isActive ? '' : brandName)}
+                className="search-chip"
+                onClick={() => router.push(`/urunler?q=${encodeURIComponent(brandName)}`)}
               >
                 <span>🏷️</span>
                 <span>{brandName}</span>
@@ -401,245 +387,300 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Categories Bar */}
-      <CategoryBar selectedCategory={selectedCategory} onSelectCategory={setSelectedCategory} />
-
       {/* Main Content */}
       <main className="main-content" id="katalog-bolumu">
-        {/* Semantic Search Result Card */}
-        {searchResult.matchedIntent && (
-          <div className="semantic-intent-card">
-            <div className="intent-card-left">
-              <span className="intent-card-emoji">{searchResult.matchedIntent.emoji}</span>
-              <div>
-                <div className="intent-card-badge">AKILLI NİYET EŞLEŞMESİ</div>
-                <h3 className="intent-card-title">{searchResult.matchedIntent.label}</h3>
-                <p className="intent-card-desc">{searchResult.matchedIntent.reason}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="intent-clear-btn"
-              onClick={() => setSearchQuery('')}
-            >
-              Filtreyi Temizle
-            </button>
-          </div>
-        )}
-
-        {/* Bundle / Combo Deals Section */}
-        {matchingBundles.length > 0 && selectedCategory === 'all' && (
-          <div id="bundle-deals-section">
-            <BundleDealsSection bundles={matchingBundles} products={products} />
-          </div>
-        )}
-
-        {/* 1. Popular & Bestsellers Section (when on All with no search) */}
-        {selectedCategory === 'all' && searchQuery === '' && popularProducts.length > 0 && (
+        {/* If user is typing in home search bar, show live matching search preview */}
+        {searchQuery.trim() !== '' ? (
           <div style={{ marginBottom: '32px' }}>
+            {/* Semantic Intent Card */}
+            {searchResult.matchedIntent && (
+              <div className="semantic-intent-card">
+                <div className="intent-card-left">
+                  <span className="intent-card-emoji">{searchResult.matchedIntent.emoji}</span>
+                  <div>
+                    <div className="intent-card-badge">AKILLI NİYET EŞLEŞMESİ</div>
+                    <h3 className="intent-card-title">{searchResult.matchedIntent.label}</h3>
+                    <p className="intent-card-desc">{searchResult.matchedIntent.reason}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="intent-clear-btn"
+                  onClick={() => setSearchQuery('')}
+                >
+                  Temizle
+                </button>
+              </div>
+            )}
+
             <div className="section-header">
               <h2 className="section-title">
-                <Flame size={20} color="#EA580C" />
-                <span>Popüler &amp; Çok Satanlar</span>
-              </h2>
-              <span style={{ fontSize: '12px', color: '#EA580C', fontWeight: 800 }}>
-                En Çok Tercih Edilenler
-              </span>
-            </div>
-            <div className="product-grid">
-              {popularProducts.map((product) => (
-                <ProductCard key={`pop-${product.id}`} product={product} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 2. Campaign Products Section */}
-        {selectedCategory === 'all' && campaignProducts.length > 0 && searchQuery === '' && (
-          <div style={{ marginBottom: '28px' }}>
-            <div className="section-header">
-              <h2 className="section-title">
-                <Tag size={18} color="#EA580C" />
-                <span>Günün Fırsatları</span>
-              </h2>
-              <span style={{ fontSize: '13px', color: '#EA580C', fontWeight: 700 }}>
-                {campaignProducts.length} indirimli ürün
-              </span>
-            </div>
-            <div className="product-grid">
-              {campaignProducts.map((product) => (
-                <ProductCard key={`campaign-${product.id}`} product={product} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 3. Filtered or All Products Section */}
-        <div className="section-header">
-          <h2 className="section-title">
-            {searchQuery ? (
-              <>
                 <Search size={18} color="#5D3EBC" />
                 <span>&ldquo;{searchQuery}&rdquo; Arama Sonuçları</span>
-              </>
-            ) : selectedCategory === 'all' ? (
-              <span>Tüm Market Reyonları</span>
-            ) : (
-              <span>{selectedCategory} Reyonu</span>
-            )}
-          </h2>
-          <span style={{ fontSize: '12px', color: '#6B7280', fontWeight: 700 }}>
-            {visibleProducts.length} / {searchResult.products.length} ürün listeleniyor
-          </span>
-        </div>
-
-        {searchResult.products.length === 0 ? (
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '14px',
-              padding: '48px 20px',
-              textAlign: 'center',
-              border: '1px solid #E5E7EB',
-              marginTop: '10px',
-            }}
-          >
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
-                backgroundColor: '#F3F0FE',
-                color: '#5D3EBC',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 14px',
-              }}
-            >
-              <ShoppingBag size={26} color="#5D3EBC" />
-            </div>
-            <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#1F2937', marginBottom: '6px' }}>
-              {products.length === 0
-                ? 'Katalog Güncelleniyor'
-                : 'Aradığınız Ürün Bulunamadı'}
-            </h3>
-            <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '380px', margin: '0 auto 16px', lineHeight: 1.4 }}>
-              {products.length === 0
-                ? 'Ürün kataloğu ve fiyat listesi güncellenmektedir. Lütfen birazdan tekrar kontrol ediniz.'
-                : searchResult.relatedProducts && searchResult.relatedProducts.length > 0
-                ? `"${searchQuery}" ifadesine birebir uyan ürün bulunamadı, ancak aşağıda senin için önerdiğimiz benzer lezzetlere göz atabilirsin:`
-                : `"${searchQuery}" ifadesine uygun ürün bulamadık. Dilerseniz aramayı temizleyebilirsiniz.`}
-            </p>
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="btn-primary"
-                style={{ padding: '10px 20px', fontSize: '13px' }}
+              </h2>
+              <Link
+                href={`/urunler?q=${encodeURIComponent(searchQuery)}`}
+                style={{
+                  fontSize: '12px',
+                  color: '#5D3EBC',
+                  fontWeight: 800,
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
               >
-                Aramayı Temizle
-              </button>
+                <span>Tüm Sonuçları Gör ({searchResult.products.length})</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+
+            {searchResult.products.length === 0 ? (
+              <div
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '14px',
+                  padding: '40px 20px',
+                  textAlign: 'center',
+                  border: '1px solid #E5E7EB',
+                }}
+              >
+                <ShoppingBag size={28} color="#9CA3AF" style={{ margin: '0 auto 10px' }} />
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1F2937', marginBottom: '6px' }}>
+                  &ldquo;{searchQuery}&rdquo; ile eşleşen ürün bulunamadı
+                </h3>
+                <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '14px' }}>
+                  Farklı bir kelime deneyebilir veya tüm reyonları inceleyebilirsiniz.
+                </p>
+                <Link
+                  href="/urunler"
+                  className="btn-primary"
+                  style={{ display: 'inline-flex', width: 'auto', padding: '9px 18px', fontSize: '13px' }}
+                >
+                  Tüm Ürünleri Gör
+                </Link>
+              </div>
+            ) : (
+              <div className="product-grid">
+                {searchResult.products.slice(0, 8).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
+
+            {searchResult.products.length > 8 && (
+              <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                <Link
+                  href={`/urunler?q=${encodeURIComponent(searchQuery)}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '12px 24px',
+                    backgroundColor: '#5D3EBC',
+                    color: '#FFFFFF',
+                    borderRadius: '12px',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 12px rgba(93, 62, 188, 0.25)',
+                  }}
+                >
+                  <span>Kalan {searchResult.products.length - 8} Ürünü İncele</span>
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            )}
+
+            {/* Netflix-Style Related Category Recommendations on search */}
+            {searchResult.relatedProducts && searchResult.relatedProducts.length > 0 && (
+              <div className="netflix-rec-wrapper" style={{ marginTop: '24px' }}>
+                <div className="netflix-rec-header">
+                  <span className="netflix-rec-badge">🎬 NETFLIX TARZI ÖNERİLER</span>
+                  <h3 className="netflix-rec-title">
+                    <Sparkles size={18} color="#8B5CF6" />
+                    <span>{searchResult.relatedTitle || `"${searchQuery}" ile İlgili Popüler Seçenekler`}</span>
+                  </h3>
+                  <p className="netflix-rec-subtitle">
+                    Aradığın lezzete benzer ve birlikte en çok tercih edilen alternatif ürünler
+                  </p>
+                </div>
+                <div className="product-grid">
+                  {searchResult.relatedProducts.slice(0, 4).map((product: Product) => (
+                    <ProductCard key={`rec-${product.id}`} product={product} />
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         ) : (
+          /* Normal Homepage Showcase View */
           <>
-            <div className="product-grid">
-              {visibleProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            {/* Trendyol Go Style Photo Categories Grid */}
+            <TrendyolCategoryGrid />
 
-            {/* Progressive Pagination / Load More Box */}
-            {hasMore ? (
-              <div className="catalog-pagination-box">
-                <div className="pagination-progress-info">
-                  <span>
-                    Toplam {searchResult.products.length} üründen <strong>{visibleProducts.length}</strong> tanesi listeleniyor
-                  </span>
-                  <div className="pagination-progress-track">
-                    <div
-                      className="pagination-progress-bar"
-                      style={{
-                        width: `${Math.round((visibleProducts.length / searchResult.products.length) * 100)}%`,
-                      }}
-                    />
+            {/* Bundle / Combo Deals Section */}
+            {matchingBundles.length > 0 && (
+              <div id="bundle-deals-section" style={{ marginBottom: '32px' }}>
+                <BundleDealsSection bundles={matchingBundles} products={products} />
+              </div>
+            )}
+
+            {/* Popular & Bestsellers Quick Picks (8 items) */}
+            {popularProducts.length > 0 && (
+              <div style={{ marginBottom: '32px' }}>
+                <div className="section-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Flame size={20} color="#EA580C" />
+                    <h2 className="section-title" style={{ margin: 0 }}>
+                      Popüler &amp; Çok Satanlar
+                    </h2>
                   </div>
-                </div>
-
-                <div className="pagination-actions">
-                  <button
-                    type="button"
-                    className="btn-load-more"
-                    onClick={handleLoadMore}
+                  <Link
+                    href="/urunler"
+                    style={{
+                      fontSize: '13px',
+                      color: '#5D3EBC',
+                      fontWeight: 800,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
                   >
-                    <Plus size={16} />
-                    <span>Daha Fazla Göster (+{Math.min(PAGE_SIZE, searchResult.products.length - visibleProducts.length)})</span>
-                  </button>
-
-                  {searchResult.products.length > visibleCount + PAGE_SIZE && (
-                    <button
-                      type="button"
-                      className="btn-show-all"
-                      onClick={handleShowAll}
-                    >
-                      <span>Tümünü Göster ({searchResult.products.length})</span>
-                    </button>
-                  )}
+                    <span>Tümünü Gör</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+                <div className="product-grid">
+                  {popularProducts.map((product) => (
+                    <ProductCard key={`pop-${product.id}`} product={product} />
+                  ))}
                 </div>
               </div>
-            ) : searchResult.products.length > PAGE_SIZE ? (
-              <div className="catalog-end-banner">
-                <Check size={16} color="#059669" />
-                <span>Reyondaki tüm ürünler listelendi ({searchResult.products.length} ürün)</span>
+            )}
+
+            {/* Campaign Products Section */}
+            {campaignProducts.length > 0 && (
+              <div style={{ marginBottom: '32px' }}>
+                <div className="section-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Tag size={18} color="#EA580C" />
+                    <h2 className="section-title" style={{ margin: 0 }}>
+                      Günün İndirimli Fırsatları
+                    </h2>
+                  </div>
+                  <span style={{ fontSize: '13px', color: '#EA580C', fontWeight: 800 }}>
+                    {campaignProducts.length} indirimli ürün
+                  </span>
+                </div>
+                <div className="product-grid">
+                  {campaignProducts.slice(0, 8).map((product) => (
+                    <ProductCard key={`campaign-${product.id}`} product={product} />
+                  ))}
+                </div>
               </div>
-            ) : null}
+            )}
+
+            {/* Big Prominent Full Catalog CTA Card */}
+            <div
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '20px',
+                padding: '28px 24px',
+                border: '1.5px solid #E5E7EB',
+                boxShadow: '0 4px 20px rgba(93, 62, 188, 0.06)',
+                marginBottom: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '20px',
+                background: 'linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%)',
+              }}
+            >
+              <div style={{ maxWidth: '520px' }}>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: '#EDE9FE',
+                    color: '#6D28D9',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    marginBottom: '10px',
+                  }}
+                >
+                  <Layers size={13} />
+                  <span>653 GERÇEK ÜRÜN • 11 MARKET REYONU</span>
+                </div>
+                <h3
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: 900,
+                    color: '#1F2937',
+                    letterSpacing: '-0.4px',
+                    margin: '0 0 8px 0',
+                    lineHeight: 1.25,
+                  }}
+                >
+                  Tüm Market &amp; Kantin Kataloğunu Keşfet
+                </h3>
+                <p style={{ fontSize: '13.5px', color: '#6B7280', margin: 0, lineHeight: 1.5 }}>
+                  Atıştırmalıktan soğuk içeceklere, hazır noodle çeşitlerinden kişisel bakıma kadar aradığın tüm ürünler tek sayfada, alt filtreler ve hızlı arama ile elinin altında.
+                </p>
+              </div>
+
+              <Link
+                href="/urunler"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '14px 28px',
+                  backgroundColor: '#5D3EBC',
+                  color: '#FFFFFF',
+                  borderRadius: '14px',
+                  fontSize: '15px',
+                  fontWeight: 900,
+                  textDecoration: 'none',
+                  boxShadow: '0 6px 18px rgba(93, 62, 188, 0.3)',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+              >
+                <span>Ürünler Sayfasına Git</span>
+                <ChevronRight size={18} />
+              </Link>
+            </div>
           </>
         )}
 
-        {/* Netflix-Style Related Category Recommendations */}
-        {searchQuery.trim() !== '' && searchResult.relatedProducts && searchResult.relatedProducts.length > 0 && (
-          <div className="netflix-rec-wrapper">
-            <div className="netflix-rec-header">
-              <span className="netflix-rec-badge">🎬 NETFLIX TARZI ÖNERİLER</span>
-              <h3 className="netflix-rec-title">
-                <Sparkles size={18} color="#8B5CF6" />
-                <span>{searchResult.relatedTitle || `"${searchQuery}" ile İlgili Popüler Seçenekler`}</span>
-              </h3>
-              <p className="netflix-rec-subtitle">
-                Aradığın lezzete benzer ve birlikte en çok tercih edilen alternatif ürünler
-              </p>
-            </div>
-            <div className="product-grid">
-              {searchResult.relatedProducts.map((product: Product) => (
-                <ProductCard key={`rec-${product.id}`} product={product} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* PWA Install & Quick Support */}
+        {/* Store Info & WhatsApp / Phone Support */}
         <div
           style={{
-            marginTop: '36px',
+            marginTop: '20px',
             marginBottom: '16px',
             backgroundColor: '#FFFFFF',
-            borderRadius: '14px',
-            padding: '18px 20px',
+            borderRadius: '16px',
+            padding: '20px',
             border: '1px solid #E5E7EB',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
-            gap: '14px',
+            gap: '16px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div
               style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '10px',
+                width: '46px',
+                height: '46px',
+                borderRadius: '12px',
                 backgroundColor: '#5D3EBC',
                 color: '#FFD10D',
                 display: 'flex',
@@ -648,13 +689,13 @@ export default function Home() {
                 flexShrink: 0,
               }}
             >
-              <Store size={22} />
+              <Store size={24} />
             </div>
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1F2937' }}>
+              <h4 style={{ fontSize: '15px', fontWeight: 800, color: '#1F2937', margin: 0 }}>
                 {systemSettings.storeName || 'Çağla Büfe & Market'}
               </h4>
-              <p style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+              <p style={{ fontSize: '12px', color: '#6B7280', margin: '3px 0 0 0' }}>
                 {systemSettings.storeAddress || '100. Yıl Mah. 1003. Cad. No:12 Karabük'} • Hizmet Saatleri: {systemSettings.storeOpenTime} - {systemSettings.storeCloseTime}
               </p>
             </div>
@@ -668,7 +709,7 @@ export default function Home() {
                 alignItems: 'center',
                 gap: '6px',
                 padding: '10px 16px',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 fontSize: '13px',
                 fontWeight: 700,
                 backgroundColor: '#F3F4F6',
@@ -689,16 +730,17 @@ export default function Home() {
                 alignItems: 'center',
                 gap: '6px',
                 padding: '10px 16px',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 fontSize: '13px',
                 fontWeight: 700,
                 backgroundColor: '#10B981',
                 color: '#FFFFFF',
                 textDecoration: 'none',
+                boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
               }}
             >
               <MessageCircle size={15} />
-              <span>WhatsApp</span>
+              <span>WhatsApp Destek</span>
             </a>
           </div>
         </div>

@@ -2364,6 +2364,61 @@ input, textarea, select {
   line-height: 1.4;
 }
 
+/* ==========================================================================
+   TRENDYOL GO STYLE PHOTO CATEGORY GRID
+   ========================================================================== */
+.trendyol-category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .trendyol-category-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (min-width: 768px) {
+  .trendyol-category-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .trendyol-category-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+.trendyol-category-card {
+  display: block;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.trendyol-category-card:hover {
+  transform: translateY(-3px);
+}
+
+.trendyol-category-card:hover .trendyol-card-inner {
+  border-color: #5D3EBC !important;
+  box-shadow: 0 6px 16px rgba(93, 62, 188, 0.12) !important;
+}
+
+.trendyol-category-card:hover .category-product-img {
+  transform: scale(1.08);
+}
+
+.trendyol-category-card:active {
+  transform: scale(0.97);
+}
+
+
 
 
 
