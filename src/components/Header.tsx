@@ -24,7 +24,7 @@ export const Header = () => {
       <div className="header-inner">
         {/* Brand / Logo */}
         <Link href="/" style={{ textDecoration: 'none', flexShrink: 0 }} title="Çağla Büfe & Market Karabük">
-          <BrandLogo size="md" />
+          <BrandLogo size="md" showSubtitle={false} />
         </Link>
 
         {/* Right Actions */}

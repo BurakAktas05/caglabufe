@@ -11,7 +11,7 @@ interface BrandLogoProps {
 
 export const BrandLogo: React.FC<BrandLogoProps> = ({
   size = 'md',
-  showSubtitle = true,
+  showSubtitle = false,
   className = '',
   inverted = false,
 }) => {
