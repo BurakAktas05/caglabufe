@@ -1172,7 +1172,8 @@ export default function BrosurPage() {
 
         /* Mobile Adjustments for screen view */
         @media (max-width: 820px) {
-          .flyer-a4 {
+          .flyer-a4,
+          .flyer-a5 {
             width: 100% !important;
             min-height: auto !important;
             padding: 20px 16px !important;

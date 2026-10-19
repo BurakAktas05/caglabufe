@@ -10,7 +10,7 @@
  * 6. Bot honeypot traps
  */
 
-import { CartItem, Product } from '@/types';
+import { CartItem, Product, Campaign } from '@/types';
 
 // --- 1. XSS SANITIZATION & HTML DECODING ---
 /**
@@ -149,7 +149,8 @@ export interface CartIntegrityResult {
  */
 export function validateCartIntegrity(
   cart: CartItem[],
-  catalogProducts: Product[]
+  catalogProducts: Product[],
+  campaigns: Campaign[] = []
 ): CartIntegrityResult {
   if (!cart || cart.length === 0) {
     return { isValid: false, calculatedItemTotal: 0, errorMessage: 'Sepet boş olamaz.' };
@@ -166,6 +167,33 @@ export function validateCartIntegrity(
       };
     }
 
+    // 1. Is it a bundle deal (Kombin Paket)?
+    if (item.product.id.startsWith('bundle_')) {
+      const campaignId = item.product.campaignId || item.product.id.replace('bundle_', '');
+      const campaign = campaigns.find((c) => c.id === campaignId && c.type === 'bundle_deal');
+
+      if (campaign) {
+        if (!campaign.isActive) {
+          return {
+            isValid: false,
+            calculatedItemTotal: 0,
+            errorMessage: `Kampanya sona erdi: ${campaign.title}`,
+          };
+        }
+        const expectedPrice = campaign.bundlePrice ?? campaign.value;
+        total += expectedPrice * item.quantity;
+        continue;
+      }
+
+      // If campaign list not yet populated or offline, validate using item's declared price if valid
+      const declaredPrice = item.product.discountPrice ?? item.product.price;
+      if (declaredPrice > 0) {
+        total += declaredPrice * item.quantity;
+        continue;
+      }
+    }
+
+    // 2. Standard Catalog Product
     const catalogItem = catalogProducts.find((p) => p.id === item.product.id);
     if (!catalogItem) {
       return {

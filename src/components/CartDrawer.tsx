@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
-import { PaymentMethod } from '@/types';
+import { PaymentMethod, Product } from '@/types';
 import {
   X,
   Trash2,
@@ -51,17 +51,34 @@ export const CartDrawer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const quickUpsells = useMemo(() => {
-    const popularIds = [
-      'coca-cola-kutu-330',
-      'eker-ayran-300',
-      'su-hayat-500',
-      'doritos-nacho-mega',
-      'citir-patates-sepeti',
-      'tadim-cekirdek-180',
-    ];
-    return (products || [])
-      .filter((p) => p.isAvailable && popularIds.includes(p.id) && !cart.some((c) => c.product.id === p.id))
-      .slice(0, 4);
+    if (!products || products.length === 0) return [];
+    const cartIds = new Set(cart.map((c) => c.product.id));
+
+    // Dynamic impulse buy recommendations (water, cold drinks, wafers, snacks)
+    const keywords = ['su', 'maden suyu', 'kola', 'ayran', 'gofret', 'çikolata', 'cips', 'çekirdek'];
+    const candidates = products.filter(
+      (p) => p.isAvailable && !cartIds.has(p.id) && p.price > 0 && p.price <= 85
+    );
+
+    const picked: Product[] = [];
+    for (const kw of keywords) {
+      const match = candidates.find(
+        (p) => !picked.some((pk) => pk.id === p.id) && p.name.toLowerCase().includes(kw)
+      );
+      if (match) picked.push(match);
+      if (picked.length >= 4) break;
+    }
+
+    if (picked.length < 4) {
+      for (const p of candidates) {
+        if (!picked.some((pk) => pk.id === p.id)) {
+          picked.push(p);
+          if (picked.length >= 4) break;
+        }
+      }
+    }
+
+    return picked;
   }, [products, cart]);
 
   if (!isCartOpen) return null;

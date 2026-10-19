@@ -504,15 +504,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [cart]);
 
-  // Live Cart Validation: Auto-sync cart items with live database products (price changes, stock availability)
+  // Live Cart Validation: Auto-sync cart items with live database products (price changes, stock availability, removed items)
   useEffect(() => {
     if (products.length === 0 || cart.length === 0) return;
 
     setCart((prevCart) => {
       let changed = false;
-      const updated = prevCart.map((item) => {
+      const validItems: CartItem[] = [];
+      const removedNames: string[] = [];
+
+      for (const item of prevCart) {
+        if (item.product.id.startsWith('bundle_')) {
+          validItems.push(item);
+          continue;
+        }
+
         const live = products.find((p) => p.id === item.product.id);
-        if (!live) return item;
+        if (!live) {
+          changed = true;
+          removedNames.push(item.product.name);
+          continue;
+        }
 
         const priceChanged =
           live.price !== item.product.price ||
@@ -522,15 +534,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         if (priceChanged || availChanged || nameChanged) {
           changed = true;
-          return {
+          validItems.push({
             ...item,
             product: live,
-          };
+          });
+        } else {
+          validItems.push(item);
         }
-        return item;
-      });
+      }
 
-      return changed ? updated : prevCart;
+      if (removedNames.length > 0) {
+        showToast(
+          `Katalogda artık yer almayan ${removedNames.join(', ')} sepetinizden çıkarıldı.`,
+          'warning'
+        );
+      }
+
+      return changed ? validItems : prevCart;
     });
   }, [products]);
 
@@ -788,8 +808,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
 
-    // 1. Anti-Tamper: Verify cart item prices and quantities against catalog
-    const cartCheck = validateCartIntegrity(cart, products);
+    // 1. Anti-Tamper: Verify cart item prices and quantities against catalog and active campaigns
+    let currentCatalog = products;
+    if (currentCatalog.length === 0) {
+      currentCatalog = await fetchProducts();
+    }
+    if (currentCatalog.length === 0 && cart.length > 0) {
+      showToast('Ürün kataloğu yüklenemedi. Lütfen internet bağlantınızı kontrol edip tekrar deneyiniz.', 'error');
+      return null;
+    }
+
+    const cartCheck = validateCartIntegrity(cart, currentCatalog, campaigns);
     if (!cartCheck.isValid) {
       showToast(cartCheck.errorMessage || 'Sepet içeriği doğrulanamadı.', 'error');
       return null;
