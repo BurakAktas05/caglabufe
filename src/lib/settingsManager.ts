@@ -2,46 +2,39 @@ import { SystemSettings, DeliveryZone, DormitoryConfig, Campaign, StoreBranch } 
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 // --- STORAGE KEYS (v4: 100% Real Product Inventory) ---
-const SETTINGS_KEY = 'caglabufe_system_settings_v4';
-const ZONES_KEY = 'caglabufe_delivery_zones_v1';
-const DORMS_KEY = 'caglabufe_dormitories_v1';
-const CAMPAIGNS_KEY = 'caglabufe_campaigns_v4';
-const BRANCHES_KEY = 'caglabufe_store_branches_v1';
+const SETTINGS_KEY = 'caglabufe_system_settings_v5';
+const ZONES_KEY = 'caglabufe_delivery_zones_v5';
+const DORMS_KEY = 'caglabufe_dormitories_v5';
+const CAMPAIGNS_KEY = 'caglabufe_campaigns_v5';
+const BRANCHES_KEY = 'caglabufe_store_branches_v5';
 
 // Cleanup stale mock data keys from older development versions
 if (typeof window !== 'undefined') {
   try {
-    ['caglabufe_campaigns_v1', 'caglabufe_campaigns_v2', 'caglabufe_campaigns_v3', 'caglabufe_system_settings_v1', 'caglabufe_system_settings_v2', 'caglabufe_system_settings_v3'].forEach((k) => {
+    [
+      'caglabufe_campaigns_v1', 'caglabufe_campaigns_v2', 'caglabufe_campaigns_v3', 'caglabufe_campaigns_v4',
+      'caglabufe_system_settings_v1', 'caglabufe_system_settings_v2', 'caglabufe_system_settings_v3', 'caglabufe_system_settings_v4',
+      'caglabufe_delivery_zones_v1', 'caglabufe_delivery_zones_v2', 'caglabufe_delivery_zones_v3', 'caglabufe_delivery_zones_v4',
+      'caglabufe_store_branches_v1', 'caglabufe_store_branches_v2', 'caglabufe_store_branches_v3', 'caglabufe_store_branches_v4'
+    ].forEach((k) => {
       localStorage.removeItem(k);
     });
   } catch {}
 }
 
-// --- 2 ANA MARKET / ŞUBE ODAK NOKTALARI ---
+// --- ANA MARKET / ŞUBE ODAK NOKTASI (GÜNCEL KONUM) ---
 export const DEFAULT_BRANCHES: StoreBranch[] = [
   {
-    id: 'branch-100yil',
-    name: '1. Şube: 100. Yıl Mah. (Merkez Büfe)',
-    shortName: '1. Şube (100. Yıl)',
-    address: '100. Yıl Mah. 1003. Cad. No:12 Karabük',
+    id: 'branch-merkez',
+    name: 'Çağla Büfe & Market (Merkez Dükkan)',
+    shortName: 'Dükkan (Bostanbükü)',
+    address: 'Bostanbükü, Safranbolu / Karabük',
     phone: '0542 000 7878',
-    latitude: 41.2065,
-    longitude: 32.6285,
+    latitude: 41.212095,
+    longitude: 32.6732255,
     color: '#5D3EBC', // Çağla Moru
     isActive: true,
-    description: '100. Yıl, Eflani KYK, Akademi Yurdu ve Üniversite Çevresi',
-  },
-  {
-    id: 'branch-kampus',
-    name: '2. Şube: Demir Çelik Kampüsü & Safranbolu',
-    shortName: '2. Şube (Kampüs)',
-    address: 'Demir Çelik Kampüsü Kılavuzlar Kavşağı Karabük',
-    phone: '0542 000 7879',
-    latitude: 41.2185,
-    longitude: 32.6510,
-    color: '#059669', // Zümrüt Yeşili
-    isActive: true,
-    description: 'Hubbi Hatun KYK, Şeyh Edebali KYK, Prestij Yurdu ve Safranbolu Girişi',
+    description: 'Bostanbükü, 100. Yıl, KYK Yurtları ve Karabük Ana Dağıtım Merkezi',
   },
 ];
 
@@ -53,17 +46,17 @@ const DEFAULT_SETTINGS: SystemSettings = {
   isManuallyOpen: false,
   isManualOverride: false,
   closedMessage: 'Sipariş saatleri dışındayız. Hizmet saatlerimiz her gün 16:00 - 03:00 arasıdır.',
-  announcementText: '🛵 Karabük 100. Yıl & KYK Yurtlarına hızlı teslimat! Soğuk içecek, çikolata, cips ve market ihtiyaçları kapınızda.',
+  announcementText: '🛵 Bostanbükü, 100. Yıl, KYK Yurtları ve Karabük geneline hızlı teslimat! Soğuk içecek, atıştırmalık ve market kapınızda.',
   isAnnouncementActive: true,
-  defaultMinOrder: 60,
-  defaultDeliveryFee: 15,
-  defaultFreeDeliveryThreshold: 150,
+  defaultMinOrder: 50,
+  defaultDeliveryFee: 10,
+  defaultFreeDeliveryThreshold: 120,
   adminPassword: 'cagla2024',
   storePhone: '0542 000 7878',
   storeWhatsApp: '905420007878',
-  storeAddress: '100. Yıl Mah. 1003. Cad. No:12 Karabük',
-  storeLatitude: 41.2065,
-  storeLongitude: 32.6285,
+  storeAddress: 'Bostanbükü, Safranbolu / Karabük',
+  storeLatitude: 41.212095,
+  storeLongitude: 32.6732255,
   soundPreset: 'bell',
   soundVolume: 0.6,
   soundRepeatCount: 2,
@@ -116,82 +109,110 @@ export function getGoogleMapsDormUrl(dorm: DormitoryConfig): string {
  * Generate Google Maps URL for Store Base
  */
 export function getGoogleMapsStoreUrl(settings?: SystemSettings): string {
-  const addr = settings?.storeAddress || '100. Yıl Mah. 1003. Cad. No:12 Karabük';
+  const addr = settings?.storeAddress || 'Bostanbükü, Safranbolu / Karabük';
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
 }
 
 // --- DEFAULT DELIVERY ZONES (TEMİZ POLİGON VE MESAFE ALANLARI) ---
 const DEFAULT_ZONES: DeliveryZone[] = [
   {
-    id: 'zone-100yil',
-    name: '100. Yıl Mah. (Çekirdek Bölge)',
+    id: 'zone-bostanbuku',
+    name: 'Bostanbükü & Çevresi (Çekirdek Bölge)',
     minOrderAmount: 50,
     deliveryFee: 10,
     freeDeliveryThreshold: 120,
-    estimatedMinutes: 20,
+    estimatedMinutes: 15,
     isActive: true,
     radiusKm: 1.5,
     hexRing: 1,
     hexColor: '#10B981', // Zümrüt Yeşili
     polygonCoords: [
-      [41.2135, 32.6210],
-      [41.2140, 32.6375],
-      [41.2015, 32.6385],
-      [41.1990, 32.6235],
+      [41.2220, 32.6610],
+      [41.2220, 32.6950],
+      [41.2030, 32.6950],
+      [41.2030, 32.6610],
     ],
   },
   {
     id: 'zone-kyk-yurtlari',
-    name: 'KYK Yurtları & Kampüs (Hubbi Hatun, Edebali)',
-    minOrderAmount: 60,
+    name: 'KYK Yurtları & Kampüs (Hubbi Hatun, Şeyh Edebali)',
+    minOrderAmount: 70,
     deliveryFee: 15,
     freeDeliveryThreshold: 150,
-    estimatedMinutes: 30,
+    estimatedMinutes: 20,
     isActive: true,
     radiusKm: 3.0,
     hexRing: 2,
-    hexColor: '#8B5CF6', // Mor / Menekşe
+    hexColor: '#8B5CF6', // Menekşe Moru
     polygonCoords: [
-      [41.2260, 32.6380],
-      [41.2255, 32.6620],
-      [41.2085, 32.6590],
-      [41.2075, 32.6385],
+      [41.2320, 32.6375],
+      [41.2320, 32.6610],
+      [41.2220, 32.6610],
+      [41.2030, 32.6610],
+      [41.2030, 32.6375],
+    ],
+  },
+  {
+    id: 'zone-100yil',
+    name: '100. Yıl Mah. & Öğrenci Bölgesi',
+    minOrderAmount: 80,
+    deliveryFee: 15,
+    freeDeliveryThreshold: 175,
+    estimatedMinutes: 25,
+    isActive: true,
+    radiusKm: 4.5,
+    hexRing: 3,
+    hexColor: '#06B6D4', // Turkuaz
+    polygonCoords: [
+      [41.2320, 32.6150],
+      [41.2320, 32.6375],
+      [41.2030, 32.6375],
+      [41.1980, 32.6375],
+      [41.1980, 32.6150],
     ],
   },
   {
     id: 'zone-sirinevler',
-    name: 'Şirinevler & 5000 Evler (Çevre Mahalleler)',
-    minOrderAmount: 80,
-    deliveryFee: 20,
-    freeDeliveryThreshold: 200,
-    estimatedMinutes: 35,
+    name: 'Şirinevler, 5000 Evler & Karabük Merkez',
+    minOrderAmount: 100,
+    deliveryFee: 25,
+    freeDeliveryThreshold: 220,
+    estimatedMinutes: 30,
     isActive: true,
-    radiusKm: 5.0,
-    hexRing: 3,
+    radiusKm: 7.0,
+    hexRing: 4,
     hexColor: '#F59E0B', // Kehribar / Turuncu
     polygonCoords: [
-      [41.2160, 32.5950],
-      [41.2150, 32.6200],
-      [41.1920, 32.6220],
-      [41.1910, 32.5980],
+      [41.1980, 32.5700],
+      [41.1980, 32.6150],
+      [41.1980, 32.6375],
+      [41.2030, 32.6375],
+      [41.2030, 32.6610],
+      [41.2030, 32.6950],
+      [41.1750, 32.6950],
+      [41.1750, 32.5700],
     ],
   },
   {
-    id: 'zone-merkez',
-    name: 'Safranbolu & Genişletilmiş Bölge',
+    id: 'zone-safranbolu',
+    name: 'Safranbolu (Emek, Barış, Kıranköy & Çarşı)',
     minOrderAmount: 120,
     deliveryFee: 30,
     freeDeliveryThreshold: 250,
-    estimatedMinutes: 45,
+    estimatedMinutes: 35,
     isActive: true,
-    radiusKm: 7.5,
+    radiusKm: 8.5,
     hexRing: 4,
     hexColor: '#EF4444', // Kırmızı
     polygonCoords: [
-      [41.2700, 32.6500],
-      [41.2720, 32.7100],
-      [41.2300, 32.7050],
-      [41.2280, 32.6550],
+      [41.2780, 32.6150],
+      [41.2780, 32.7200],
+      [41.2220, 32.7200],
+      [41.2220, 32.6950],
+      [41.2220, 32.6610],
+      [41.2320, 32.6610],
+      [41.2320, 32.6375],
+      [41.2320, 32.6150],
     ],
   },
 ];
@@ -269,9 +290,9 @@ const DEFAULT_DORMS: DormitoryConfig[] = [
     district: 'Safranbolu',
     gender: 'karma',
     blocks: ['A Blok', 'B Blok', 'C Blok'],
-    zoneId: 'zone-merkez',
-    isActive: false,
-    distanceKm: 7.2,
+    zoneId: 'zone-safranbolu',
+    isActive: true,
+    distanceKm: 3.8,
     mapsQuery: 'KYK Safranbolu Öğrenci Yurdu, Safranbolu',
     latitude: 41.2450,
     longitude: 32.6850,
@@ -721,34 +742,7 @@ export function deleteDeliveryZone(id: string): void {
 }
 
 // --- DEFAULT CAMPAIGNS ---
-const DEFAULT_CAMPAIGNS: Campaign[] = [
-  {
-    id: 'camp_free_delivery',
-    title: 'KYK Yurtlarına Ücretsiz Teslimat',
-    description: '120 TL ve üzeri KYK yurtları siparişlerinde teslimat ücreti sıfırlanır.',
-    type: 'free_delivery',
-    value: 0,
-    minOrderAmount: 120,
-    isActive: true,
-    startsAt: '2024-01-01T00:00:00.000Z',
-    endsAt: '2030-12-31T23:59:59.000Z',
-    bannerColor: '#5D3EBC',
-    createdAt: '2024-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'camp_ogrenci_indirim',
-    title: '200 TL Üzerine 25 TL İndirim',
-    description: 'Sepetiniz 200 TL ve üzeri olduğunda anında 25 TL indirim uygulanır.',
-    type: 'fixed_discount',
-    value: 25,
-    minOrderAmount: 200,
-    isActive: true,
-    startsAt: '2024-01-01T00:00:00.000Z',
-    endsAt: '2030-12-31T23:59:59.000Z',
-    bannerColor: '#059669',
-    createdAt: '2024-01-01T00:00:00.000Z',
-  },
-];
+const DEFAULT_CAMPAIGNS: Campaign[] = [];
 
 // --- CAMPAIGNS (PERSISTENCE & REALTIME SUPABASE SYNC) ---
 
@@ -881,15 +875,9 @@ export async function fetchCampaignsFromSupabase(): Promise<Campaign[]> {
 
         saveCampaignsLocally(remoteCampaigns);
         return remoteCampaigns;
-      } else if (!error && data && data.length === 0 && localList.length > 0) {
-        // If Supabase table was empty, seed with local list
-        try {
-          const rowsToInsert = localList.map(mapCampaignToRow);
-          await supabase.from('campaigns').upsert(rowsToInsert);
-        } catch (seedErr) {
-          console.warn('[Supabase] Seed error:', seedErr);
-        }
-        return localList;
+      } else if (!error && data && data.length === 0) {
+        saveCampaignsLocally([]);
+        return [];
       }
     } catch (e) {
       console.warn('[Supabase] fetchCampaignsFromSupabase fallback:', e);

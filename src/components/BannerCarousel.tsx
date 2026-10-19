@@ -14,7 +14,7 @@ export const BannerCarousel = () => {
       <div className="promo-banner">
         <div className="promo-content">
           <div className="promo-badge">
-            <span style={{ fontWeight: 800 }}>KARABÜK • 100. YIL • KYK YURTLARI • {hours} AÇIK</span>
+            <span style={{ fontWeight: 800 }}>BOSTANBÜKÜ • SAFRANBOLU • KARABÜK • {hours} AÇIK</span>
           </div>
           <h1 className="promo-title">
             {storeName} Kapında

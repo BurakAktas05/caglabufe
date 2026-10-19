@@ -50,8 +50,8 @@ interface DeliveryMapProps {
 
 export const DeliveryMap: React.FC<DeliveryMapProps> = ({
   interactive = true,
-  initialLat = 41.2120,
-  initialLng = 32.6390,
+  initialLat = 41.212095,
+  initialLng = 32.6732255,
   height = '380px',
   onLocationSelect,
   selectedLocation: externalSelectedLoc,
@@ -204,39 +204,37 @@ export const DeliveryMap: React.FC<DeliveryMapProps> = ({
     const map = mapRef.current;
     if (!L || !map) return;
 
-    // 1. RENDER CLEAN POLYGONS (Only for Admin visualization & management; customers see a pure clean map)
+    // 1. RENDER CLEAN POLYGONS (Delimited contiguous delivery zones)
     if (polygonLayersGroupRef.current) {
       polygonLayersGroupRef.current.clearLayers();
 
-      if (isAdminView) {
-        activeZones.forEach((zone) => {
-          const color = zone.hexColor || '#5D3EBC';
+      activeZones.forEach((zone) => {
+        const color = zone.hexColor || '#5D3EBC';
 
-          if (zone.polygonCoords && zone.polygonCoords.length >= 3) {
-            const poly = L.polygon(zone.polygonCoords, {
-              color: color,
-              weight: 2,
-              opacity: 0.85,
-              fillColor: color,
-              fillOpacity: 0.14,
-            }).addTo(polygonLayersGroupRef.current!);
+        if (zone.polygonCoords && zone.polygonCoords.length >= 3) {
+          const poly = L.polygon(zone.polygonCoords, {
+            color: color,
+            weight: 2,
+            opacity: 0.85,
+            fillColor: color,
+            fillOpacity: 0.16,
+          }).addTo(polygonLayersGroupRef.current!);
 
-            poly.bindTooltip(
-              `<div style="font-weight: 800; font-size: 11px; padding: 2px;">
-                <span style="color: ${color};">●</span> ${zone.name}<br/>
-                <span style="color: #059669; font-weight: 900;">Min. Sepet: ${zone.minOrderAmount} ₺</span>
-              </div>`,
-              { sticky: true, direction: 'center' }
-            );
+          poly.bindTooltip(
+            `<div style="font-weight: 800; font-size: 11px; padding: 3px; font-family: inherit;">
+              <span style="color: ${color};">●</span> ${zone.name}<br/>
+              <span style="color: #059669; font-weight: 900;">Min. Sepet: ${zone.minOrderAmount} ₺</span> · <span style="color: #64748B;">Teslimat: ${zone.deliveryFee} ₺</span>
+            </div>`,
+            { sticky: true, direction: 'center' }
+          );
 
-            if (interactive && drawingMode === 'none') {
-              poly.on('click', (e) => {
-                handlePointPicked(e.latlng.lat, e.latlng.lng, zone.name);
-              });
-            }
+          if (interactive && drawingMode === 'none') {
+            poly.on('click', (e) => {
+              handlePointPicked(e.latlng.lat, e.latlng.lng, zone.name);
+            });
           }
-        });
-      }
+        }
+      });
     }
 
     // 2. RENDER STORE BRANCHES
