@@ -53,7 +53,8 @@ const getCategoryIcon = (categoryName: string, iconKey?: string): React.ReactNod
   if (key.includes('kedi') || key === 'heart') return <Heart size={16} />;
   if (key.includes('çakmak') || key === 'flame') return <Flame size={16} />;
   if (key.includes('kamp') || key === 'tent') return <Tent size={16} />;
-  if (key.includes('sos') || key.includes('ketçap') || key === 'utensils') return <Utensils size={16} />;
+  if (key.includes('sos') || key.includes('ketçap') || key.includes('peynir') || key.includes('sucuk') || key.includes('salam') || key.includes('füme') || key.includes('zeytin') || key.includes('bal') || key.includes('helva') || key.includes('salça') || key.includes('ton balığı') || key.includes('turşu') || key === 'utensils') return <Utensils size={16} />;
+  if (key.includes('sabun') || key.includes('diş') || key.includes('tıraş') || key.includes('kolonya') || key.includes('deterjan') || key.includes('yumuşatıcı') || key.includes('çamaşır')) return <Sparkles size={16} />;
 
   return <Package size={16} />;
 };
@@ -73,20 +74,26 @@ export const CategoryBar = ({ selectedCategory, onSelectCategory }: CategoryBarP
   }, [products]);
 
   const activeCategories: CategoryInfo[] = useMemo(() => {
-    if (CATEGORIES && CATEGORIES.length > 0) {
-      // Filter or sort by categories present in active products
-      return CATEGORIES.filter((c) => categoryCounts.has(c.id)).sort(
-        (a, b) => (categoryCounts.get(b.id) || 0) - (categoryCounts.get(a.id) || 0)
-      );
-    }
-    // Fallback: derive categories directly from products
-    const unique = Array.from(categoryCounts.keys());
-    return unique.map((catKey) => ({
-      id: catKey,
-      name: catKey,
-      icon: 'package',
-      description: '',
-    }));
+    const knownMap = new Map<string, CategoryInfo>();
+    (CATEGORIES || []).forEach((c) => knownMap.set(c.id, c));
+
+    const result: CategoryInfo[] = [];
+    categoryCounts.forEach((count, catId) => {
+      if (knownMap.has(catId)) {
+        result.push(knownMap.get(catId)!);
+      } else {
+        result.push({
+          id: catId,
+          name: catId,
+          icon: 'Package',
+          description: `${catId} çeşitleri`,
+        });
+      }
+    });
+
+    return result.sort(
+      (a, b) => (categoryCounts.get(b.id) || 0) - (categoryCounts.get(a.id) || 0)
+    );
   }, [categoryCounts]);
 
   if (activeCategories.length === 0 && (products || []).length === 0) {

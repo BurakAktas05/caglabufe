@@ -13,22 +13,24 @@ export const DEPARTMENTS: Department[] = [
   {
     id: 'kantin-atistirmalik',
     name: 'Kantin & Atıştırmalık',
-    badge: 'Çikolata, Gofret & Kek',
+    badge: 'Çikolata, Gofret & Bisküvi',
     emoji: '🍫',
-    count: 308,
+    count: 354,
     imageUrl: '/categories/kantin-atistirmalik.jpg',
     accentBg: '#FFF7ED',
     categories: [
       'Çikolata',
-      'Gofret',
       'Bisküvi',
       'Kek',
-      'Sakız',
+      'Gofret',
       'Şekerleme',
+      'Sakız',
       'Çubuk Kraker',
       'Kraker',
       'Atıştırmalık Bar',
       'Sağlıklı Atıştırmalık',
+      'Bebek Bisküvisi',
+      'Mısır ve Pirinç Patlağı'
     ],
   },
   {
@@ -36,32 +38,32 @@ export const DEPARTMENTS: Department[] = [
     name: 'Soğuk İçecek & Su',
     badge: 'Kola, Gazoz & Soğuk Çay',
     emoji: '🧊',
-    count: 162,
+    count: 145,
     imageUrl: '/categories/soguk-icecek.jpg',
     accentBg: '#EFF6FF',
     categories: [
       'Meyve Suyu',
       'Soğuk Çay',
-      'Gazoz',
-      'Soda',
-      'Kola',
       'Soğuk Kahve',
+      'Kola',
+      'Soda',
+      'Gazoz',
       'Diğer Gazlı İçecek',
-      'Diğer Gazsız İçecek',
-      'Limonata',
       'Aromalı Süt',
+      'Diğer Gazsız İçecek',
       'Ayran',
+      'Limonata',
       'Su',
-      'Ramazan Şerbeti',
       'Malt İçecek',
+      'Ramazan Şerbeti'
     ],
   },
   {
     id: 'enerji-icecek',
     name: 'Enerji İçecekleri',
-    badge: 'Enerji & Canlandırıcı İçecekler',
+    badge: 'Canlandırıcı İçecekler',
     emoji: '⚡',
-    count: 32,
+    count: 23,
     imageUrl: '/categories/enerji-icecek.jpg',
     accentBg: '#FEF3C7',
     categories: ['Enerji İçeceği'],
@@ -71,35 +73,42 @@ export const DEPARTMENTS: Department[] = [
     name: 'Cips & Kuruyemiş',
     badge: 'Patates Cipsi & Çekirdek',
     emoji: '🍿',
-    count: 61,
+    count: 57,
     imageUrl: '/categories/cips-cerez.jpg',
     accentBg: '#FEF2F2',
     categories: [
       'Cips',
       'Yer Fıstığı',
       'Ay Çekirdeği',
-      'Patlayan Mısır',
+      'Badem',
       'Fındık',
       'Leblebi',
+      'Antep Fıstığı',
+      'Patlayan Mısır',
       'Kaju',
       'Karışık Kuruyemiş',
       'Kabak Çekirdeği',
-      'Diğer Kuruyemiş',
+      'Diğer Kuruyemiş'
     ],
   },
   {
     id: 'hazir-yiyecek',
-    name: 'Hazır Yiyecek & Tost',
-    badge: 'Tost, Noodle & Sıcaklar',
+    name: 'Hazır Yiyecek, Tost & Soslar',
+    badge: 'Noodle, Makarna & Soslar',
     emoji: '🥪',
-    count: 20,
+    count: 24,
     imageUrl: '/categories/hazir-yiyecek.jpg',
     accentBg: '#FFFBEB',
     categories: [
       'Hazır Noodle',
-      'Hazır Çorba',
-      'Makarna',
+      'Diğer Sos',
       'Ketçap',
+      'Mayonez',
+      'Acı Sos',
+      'Kahvaltılık Sos',
+      'Makarna',
+      'Hazır Yemek',
+      'Hazır Çorba',
       'Tost & Sıcak Lezzetler',
       'Tost',
       'Sandviç',
@@ -111,79 +120,137 @@ export const DEPARTMENTS: Department[] = [
   {
     id: 'kahve-cay',
     name: 'Kahve & Sıcak Çay',
-    badge: 'Kahve, Demleme Çay & Sıcaklar',
+    badge: 'Kahve, Demleme & Bitki Çayı',
     emoji: '☕',
-    count: 30,
+    count: 44,
     imageUrl: '/categories/kahve-cay.jpg',
     accentBg: '#FAF5FF',
     categories: [
       'Tekli Poşet Kahve',
       'Granül Kahve',
-      'Sıcak Çikolata',
-      'Diğer Toz İçecek',
+      'Diğer Bitki Çayı',
       'Dökme Çay',
-      'Sahlep',
+      'Bardak Poşet Çay',
+      'Kahve Kreması',
+      'Filtre Kahve',
       'Türk Kahvesi',
+      'Sıcak Çikolata',
+      'Bitki Çayı',
+      'Adaçayı',
+      'Kuşburnu',
+      'Rezene',
+      'Sahlep',
+      'Diğer Toz İçecek'
+    ],
+  },
+  {
+    id: 'temel-market',
+    name: 'Temel Gıda & Kahvaltılık',
+    badge: 'Peynir, Şarküteri & Süt',
+    emoji: '🛒',
+    count: 53,
+    imageUrl: '/categories/temel-market.jpg',
+    accentBg: '#F8FAFC',
+    categories: [
+      'Peynir',
+      'Sürülebilir Çikolata',
+      'Normal Süt',
+      'Ton Balığı',
+      'Sucuk',
+      'Turşu',
+      'Salam',
+      'Kahvaltılık Gevrek',
+      'Hindi Füme',
+      'Domates Salçası',
+      'Meyveli Yoğurt',
+      'Siyah Zeytin',
+      'Sıvı Yağ',
+      'Toz Şeker',
+      'Helva',
+      'Konserve Mısır',
+      'Yoğurt',
+      'Bal',
+      'Tuz',
+      'Yulaf Ezmesi'
     ],
   },
   {
     id: 'kisisel-bakim',
     name: 'Kişisel Bakım & Hijyen',
-    badge: 'Şampuan, Duş Jeli & Diş',
+    badge: 'Şampuan, Sabun & Diş',
     emoji: '🧴',
-    count: 21,
+    count: 35,
     imageUrl: '/categories/kisisel-bakim.jpg',
     accentBg: '#ECFDF5',
     categories: [
-      'Duş Jeli',
-      'Hijyenik Ped',
       'Şampuan',
       'Islak Mendil',
+      'Diş Macunu',
+      'Diğer Gıda Takviyesi',
+      'Banyo Sabunu',
+      'Kolonya',
+      'El Sabunu',
+      'Tıraş Bıçağı',
+      'Yarabandı',
+      'Duş Jeli',
+      'Hijyenik Ped',
       'Manuel Diş Fırçası',
       'Günlük Ped',
-      'Bebek Temizleme Pamuğu',
-      'Diğer Gıda Takviyesi',
+      'Bebek Temizleme Pamuğu'
     ],
   },
   {
     id: 'kagit-temizlik',
-    name: 'Kağıt Ürünleri',
-    badge: 'Tuvalet Kağıdı & Havlu',
+    name: 'Kağıt & Ev Temizlik',
+    badge: 'Deterjan, Kağıt & Temizlik',
     emoji: '🧻',
-    count: 5,
+    count: 22,
     imageUrl: '/categories/kagit-temizlik.jpg',
     accentBg: '#F0FDF4',
-    categories: ['Kağıt Mendil', 'Tuvalet Kağıdı', 'Kağıt Havlu'],
-  },
-  {
-    id: 'temel-market',
-    name: 'Temel Gıda & Bakkal',
-    badge: 'Yulaf, Şeker & Mutfak',
-    emoji: '🛒',
-    count: 3,
-    imageUrl: '/categories/temel-market.jpg',
-    accentBg: '#F8FAFC',
-    categories: ['Yulaf Ezmesi', 'Toz Şeker', 'Meyveli Yoğurt'],
+    categories: [
+      'Tuvalet Kağıdı',
+      'Çamaşır Yumuşatıcısı',
+      'Toz Deterjanı',
+      'Sıvı Deterjanı',
+      'Kağıt Havlu',
+      'Kağıt Peçete',
+      'Çöp Torbası',
+      'Sinek İlacı',
+      'Koku Giderici',
+      'Bulaşık Makinesi Deterjanı',
+      'Kağıt Mendil',
+      'Yüzey Temizleyici',
+      'Elde Bulaşık Deterjanı',
+      'Çamaşır Suyu'
+    ],
   },
   {
     id: 'pet-shop',
     name: 'Evcil Hayvan (Pet)',
     badge: 'Kedi Konserve & Ödül Maması',
     emoji: '🐱',
-    count: 7,
+    count: 1,
     imageUrl: '/categories/pet-shop.jpg',
     accentBg: '#FFF1F2',
     categories: ['Kedi Konserve Maması', 'Kedi Ödülü'],
   },
   {
     id: 'elektronik-diger',
-    name: 'Çakmak & Elektronik',
+    name: 'Çakmak, Pil & Yaşam',
     badge: 'Çakmak, Pil & Kamp',
     emoji: '🔋',
-    count: 4,
+    count: 8,
     imageUrl: '/categories/elektronik-diger.jpg',
     accentBg: '#F1F5F9',
-    categories: ['Çakmak', 'Piller Şarj Cihazı', 'Oyuncak', 'Kamp Ekipmanı'],
+    categories: [
+      'Çakmak',
+      'Kamp Ekipmanı',
+      'Piller Şarj Cihazı',
+      'Kibrit',
+      'Ev Dekorasyon',
+      'Plastik Tabak',
+      'Oyuncak'
+    ],
   },
 ];
 
@@ -207,7 +274,9 @@ export function findDepartmentForCategory(category: string): Department | undefi
     catLower.includes('sicak') ||
     catLower.includes('sıcak') ||
     catLower.includes('patates') ||
-    catLower.includes('yemek')
+    catLower.includes('yemek') ||
+    catLower.includes('sos') ||
+    catLower.includes('noodle')
   ) {
     return getDepartmentById('hazir-yiyecek');
   }
@@ -219,7 +288,8 @@ export function findDepartmentForCategory(category: string): Department | undefi
     catLower.includes('kek') ||
     catLower.includes('gofret') ||
     catLower.includes('sakiz') ||
-    catLower.includes('sakız')
+    catLower.includes('sakız') ||
+    catLower.includes('bisküvi')
   ) {
     return getDepartmentById('kantin-atistirmalik');
   }
@@ -232,6 +302,31 @@ export function findDepartmentForCategory(category: string): Department | undefi
     catLower.includes('ayran')
   ) {
     return getDepartmentById('soguk-icecek');
+  }
+  if (
+    catLower.includes('kahve') ||
+    catLower.includes('cay') ||
+    catLower.includes('çay')
+  ) {
+    return getDepartmentById('kahve-cay');
+  }
+  if (
+    catLower.includes('peynir') ||
+    catLower.includes('sucuk') ||
+    catLower.includes('salam') ||
+    catLower.includes('süt') ||
+    catLower.includes('zeytin') ||
+    catLower.includes('bal') ||
+    catLower.includes('gıda')
+  ) {
+    return getDepartmentById('temel-market');
+  }
+  if (
+    catLower.includes('temiz') ||
+    catLower.includes('deterjan') ||
+    catLower.includes('kağıt')
+  ) {
+    return getDepartmentById('kagit-temizlik');
   }
 
   return undefined;

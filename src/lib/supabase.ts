@@ -37,7 +37,7 @@ if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
 
 // Local storage keys
 const STORAGE_ORDERS_KEY = 'caglabufe_orders_v1';
-const STORAGE_PRODUCTS_KEY = 'caglabufe_products_v4';
+const STORAGE_PRODUCTS_KEY = 'caglabufe_products_v5';
 const STORAGE_BANNED_KEY = 'caglabufe_banned_users_v1';
 
 // --- DATA ACCESS LAYER ---
