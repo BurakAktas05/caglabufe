@@ -190,7 +190,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshCampaigns = async () => {
     const live = await fetchCampaignsFromSupabase();
-    if (live && live.length > 0) setCampaigns(live);
+    if (Array.isArray(live)) setCampaigns(live);
   };
 
   const setSelectedAddressId = (id: string) => {
@@ -359,9 +359,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
       });
 
-      // Fetch live campaigns from Supabase (with auto-migration of local phone campaigns)
+      // Fetch live campaigns from Supabase
       fetchCampaignsFromSupabase().then((liveCampaigns) => {
-        if (liveCampaigns && liveCampaigns.length > 0) setCampaigns(liveCampaigns);
+        if (Array.isArray(liveCampaigns)) setCampaigns(liveCampaigns);
       });
     } catch {
       // ignore
@@ -396,7 +396,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
       });
       fetchCampaignsFromSupabase().then((latest) => {
-        if (latest && latest.length > 0) {
+        if (Array.isArray(latest)) {
           setCampaigns(latest);
         }
       });

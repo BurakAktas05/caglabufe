@@ -1,21 +1,21 @@
 import { SystemSettings, DeliveryZone, DormitoryConfig, Campaign, StoreBranch } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
-// --- STORAGE KEYS (v4: 100% Real Product Inventory) ---
-const SETTINGS_KEY = 'caglabufe_system_settings_v5';
-const ZONES_KEY = 'caglabufe_delivery_zones_v5';
-const DORMS_KEY = 'caglabufe_dormitories_v5';
-const CAMPAIGNS_KEY = 'caglabufe_campaigns_v5';
-const BRANCHES_KEY = 'caglabufe_store_branches_v5';
+// --- STORAGE KEYS ---
+const SETTINGS_KEY = 'caglabufe_system_settings_v6';
+const ZONES_KEY = 'caglabufe_delivery_zones_v6';
+const DORMS_KEY = 'caglabufe_dormitories_v6';
+const CAMPAIGNS_KEY = 'caglabufe_campaigns_v7';
+const BRANCHES_KEY = 'caglabufe_store_branches_v6';
 
 // Cleanup stale mock data keys from older development versions
 if (typeof window !== 'undefined') {
   try {
     [
-      'caglabufe_campaigns_v1', 'caglabufe_campaigns_v2', 'caglabufe_campaigns_v3', 'caglabufe_campaigns_v4',
-      'caglabufe_system_settings_v1', 'caglabufe_system_settings_v2', 'caglabufe_system_settings_v3', 'caglabufe_system_settings_v4',
-      'caglabufe_delivery_zones_v1', 'caglabufe_delivery_zones_v2', 'caglabufe_delivery_zones_v3', 'caglabufe_delivery_zones_v4',
-      'caglabufe_store_branches_v1', 'caglabufe_store_branches_v2', 'caglabufe_store_branches_v3', 'caglabufe_store_branches_v4'
+      'caglabufe_campaigns_v1', 'caglabufe_campaigns_v2', 'caglabufe_campaigns_v3', 'caglabufe_campaigns_v4', 'caglabufe_campaigns_v5', 'caglabufe_campaigns_v6',
+      'caglabufe_system_settings_v1', 'caglabufe_system_settings_v2', 'caglabufe_system_settings_v3', 'caglabufe_system_settings_v4', 'caglabufe_system_settings_v5',
+      'caglabufe_delivery_zones_v1', 'caglabufe_delivery_zones_v2', 'caglabufe_delivery_zones_v3', 'caglabufe_delivery_zones_v4', 'caglabufe_delivery_zones_v5',
+      'caglabufe_store_branches_v1', 'caglabufe_store_branches_v2', 'caglabufe_store_branches_v3', 'caglabufe_store_branches_v4', 'caglabufe_store_branches_v5'
     ].forEach((k) => {
       localStorage.removeItem(k);
     });
@@ -805,24 +805,12 @@ export function getCampaigns(): Campaign[] {
   try {
     const raw = localStorage.getItem(CAMPAIGNS_KEY);
     if (!raw) {
-      localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(DEFAULT_CAMPAIGNS));
-      return DEFAULT_CAMPAIGNS;
+      return [];
     }
-    const parsed: Campaign[] = JSON.parse(raw);
-    // Sanitize any phantom / mock campaigns from older storage
-    const clean = parsed.filter(
-      (c) =>
-        !c.title.toLowerCase().includes('tost') &&
-        !c.description.toLowerCase().includes('tost') &&
-        c.id !== 'camp_bundle_bufe_menusu' &&
-        c.id !== 'camp_bundle_kola_cekirdek'
-    );
-    if (clean.length !== parsed.length) {
-      localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(clean));
-    }
-    return clean.length > 0 ? clean : DEFAULT_CAMPAIGNS;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return DEFAULT_CAMPAIGNS;
+    return [];
   }
 }
 
@@ -842,13 +830,20 @@ export async function saveCampaigns(campaigns: Campaign[]): Promise<void> {
   }
 }
 
+const PURGED_CAMPAIGN_IDS = new Set([
+  'camp_2ttv7s2',
+  'camp_lk6ax2a',
+  'camp_free_delivery',
+  'camp_ogrenci_indirim',
+  'camp_bundle_bufe_menusu',
+  'camp_bundle_kola_cekirdek',
+]);
+
 /**
- * Fetches all campaigns from Supabase and automatically migrates any locally created
- * campaigns (e.g. created on user phone) to Supabase so they are visible globally on all accounts.
+ * Fetches all campaigns from Supabase.
+ * Supabase is the single source of truth.
  */
 export async function fetchCampaignsFromSupabase(): Promise<Campaign[]> {
-  const localList = getCampaigns();
-
   if (isSupabaseConfigured() && supabase) {
     try {
       const { data, error } = await supabase
@@ -856,36 +851,28 @@ export async function fetchCampaignsFromSupabase(): Promise<Campaign[]> {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        const remoteCampaigns = data.map(mapRowToCampaign);
-
-        // Auto-migration: Check if local storage has campaigns that are NOT yet in Supabase
-        const remoteIds = new Set(remoteCampaigns.map((c) => c.id));
-        const localMissingFromRemote = localList.filter((c) => !remoteIds.has(c.id));
-
-        if (localMissingFromRemote.length > 0) {
-          try {
-            const rowsToInsert = localMissingFromRemote.map(mapCampaignToRow);
-            await supabase.from('campaigns').upsert(rowsToInsert);
-            remoteCampaigns.unshift(...localMissingFromRemote);
-          } catch (migrateErr) {
-            console.warn('[Supabase] Auto-migration error:', migrateErr);
-          }
+      if (!error && Array.isArray(data)) {
+        // If any purged campaigns still appear, wipe them from Supabase in background
+        const staleItems = data.filter((row) => PURGED_CAMPAIGN_IDS.has(row.id));
+        if (staleItems.length > 0) {
+          const staleIds = staleItems.map((r) => r.id);
+          supabase.from('campaigns').delete().in('id', staleIds).then(() => {});
         }
 
+        const validRows = data.filter((row) => !PURGED_CAMPAIGN_IDS.has(row.id));
+        const remoteCampaigns = validRows.map(mapRowToCampaign);
         saveCampaignsLocally(remoteCampaigns);
         return remoteCampaigns;
-      } else if (!error && data && data.length === 0) {
-        saveCampaignsLocally([]);
-        return [];
       }
     } catch (e) {
       console.warn('[Supabase] fetchCampaignsFromSupabase fallback:', e);
     }
   }
 
-  return localList;
+  return getCampaigns();
 }
+
+
 
 export async function addCampaign(campaign: Omit<Campaign, 'id' | 'createdAt'>): Promise<Campaign> {
   const newCampaign: Campaign = {
