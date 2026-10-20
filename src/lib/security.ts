@@ -254,7 +254,7 @@ export function recordAdminLoginAttempt(isSuccess: boolean): { canLogin: boolean
 
   try {
     const raw = sessionStorage.getItem(ADMIN_LOCK_KEY);
-    let data: { attempts: number; lockedUntil: number } = raw
+    const data: { attempts: number; lockedUntil: number } = raw
       ? JSON.parse(raw)
       : { attempts: 0, lockedUntil: 0 };
 

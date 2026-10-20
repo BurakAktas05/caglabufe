@@ -19,6 +19,7 @@ import {
   RotateCcw,
   Sparkles,
   ShoppingBag,
+  Headphones,
 } from 'lucide-react';
 import { getSystemSettings, formatTemplate } from '@/lib/settingsManager';
 import { DigitalReceiptModal } from '@/components/DigitalReceipt';
@@ -31,9 +32,11 @@ export const OrderTrackingModal = () => {
     setActiveTrackingOrder,
     orders,
     setIsProfileModalOpen,
+    setIsSupportModalOpen,
     systemSettings,
     showToast,
     reorderItems,
+    t,
   } = useApp();
   const [copied, setCopied] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -614,6 +617,31 @@ export const OrderTrackingModal = () => {
                 </a>
               </div>
 
+              {/* Support & Help Channel */}
+              <button
+                type="button"
+                onClick={() => setIsSupportModalOpen(true)}
+                style={{
+                  width: '100%',
+                  marginTop: '10px',
+                  padding: '9px 12px',
+                  backgroundColor: '#F3F0FE',
+                  border: '1px solid #DDD6FE',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: '#5D3EBC',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Headphones size={14} color="#5D3EBC" />
+                <span>{t('supportTitle', 'Canlı Destek & İletişim (Büfe / Teknik)')}</span>
+              </button>
+
               {/* View All Orders Shortcut */}
               <button
                 type="button"
@@ -623,7 +651,7 @@ export const OrderTrackingModal = () => {
                 }}
                 style={{
                   width: '100%',
-                  marginTop: '10px',
+                  marginTop: '6px',
                   padding: '9px 12px',
                   backgroundColor: '#F9FAFB',
                   border: '1px solid #E5E7EB',

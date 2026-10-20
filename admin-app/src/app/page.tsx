@@ -546,6 +546,7 @@ export default function AdminPage() {
             <AdminCampaigns
               campaigns={campaigns}
               products={products}
+              orders={orders}
               onAddCampaign={handleAddCampaign}
               onUpdateCampaign={handleUpdateCampaign}
               onDeleteCampaign={handleDeleteCampaign}

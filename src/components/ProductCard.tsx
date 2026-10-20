@@ -11,7 +11,7 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
-  const { cart, addToCart, removeFromCart } = useApp();
+  const { cart, addToCart, removeFromCart, t } = useApp();
   const [imageError, setImageError] = useState(false);
 
   const cartItem = cart.find((item) => item.product.id === product.id);
@@ -43,12 +43,12 @@ export const ProductCard = ({ product }: ProductCardProps) => {
 
         {/* Hot / Kitchen Badge */}
         {product.isKitchenItem && (
-          <span className="badge-kitchen">Sıcak Mutfak</span>
+          <span className="badge-kitchen">{t('hotKitchenBadge', 'Sıcak Mutfak')}</span>
         )}
 
         {/* Discount Badge */}
         {hasDiscount && (
-          <span className="badge-discount">İndirim</span>
+          <span className="badge-discount">{t('discount', 'İndirim')}</span>
         )}
       </div>
 
@@ -80,10 +80,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
               className="card-add-btn"
               onClick={() => addToCart(product)}
               disabled={!product.isAvailable}
-              aria-label={`${product.name} sepete ekle`}
+              aria-label={`${product.name} ${t('add', 'Ekle')}`}
             >
               <Plus size={16} />
-              <span>{product.isAvailable ? 'Ekle' : 'Tükendi'}</span>
+              <span>{product.isAvailable ? t('add', 'Ekle') : t('outOfStock', 'Tükendi')}</span>
             </button>
           ) : (
             <div className="card-stepper">

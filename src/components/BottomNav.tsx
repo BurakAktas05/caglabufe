@@ -4,7 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
-import { Home, ShoppingBag, Clock, User } from 'lucide-react';
+import { Home, ShoppingBag, Clock, User, Award } from 'lucide-react';
+import { getVipTierInfo } from '@/lib/settingsManager';
 
 export const BottomNav = () => {
   const pathname = usePathname();
@@ -18,7 +19,15 @@ export const BottomNav = () => {
     setIsProfileModalOpen,
     setIsAuthModalOpen,
     showToast,
+    t,
   } = useApp();
+
+  const vipTier = React.useMemo(() => {
+    if (!user) return null;
+    const count = orders.length;
+    const total = orders.reduce((sum, o) => sum + (o.finalAmount || 0), 0);
+    return getVipTierInfo(count, total);
+  }, [user, orders]);
 
   const latestActiveOrder = orders.find(
     (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'on_the_way'
@@ -37,7 +46,7 @@ export const BottomNav = () => {
           className={`dock-item ${pathname === '/' ? 'active' : ''}`}
         >
           <Home size={20} />
-          <span>Ana Sayfa</span>
+          <span>{t('home', 'Ana Sayfa')}</span>
         </Link>
 
         <button
@@ -57,7 +66,7 @@ export const BottomNav = () => {
             <Clock size={20} />
             {latestActiveOrder && <span className="dock-dot" />}
           </div>
-          <span>Siparişim</span>
+          <span>{t('myOrder', 'Siparişim')}</span>
         </button>
 
         <button
@@ -69,7 +78,7 @@ export const BottomNav = () => {
             <ShoppingBag size={20} />
             {itemCount > 0 && <span className="dock-badge">{itemCount}</span>}
           </div>
-          <span>{itemCount > 0 ? `₺${cartTotal.toFixed(0)}` : 'Sepetim'}</span>
+          <span>{itemCount > 0 ? `₺${cartTotal.toFixed(0)}` : t('cart', 'Sepetim')}</span>
         </button>
 
         <button
@@ -82,12 +91,30 @@ export const BottomNav = () => {
               setIsAuthModalOpen(true);
             }
           }}
-          title="Hesabım & Profilim"
+          title={user ? `Hesabım & Profilim (${vipTier?.badge || 'VIP'})` : 'Giriş Yap'}
         >
-          <div className="dock-icon-wrapper">
+          <div className="dock-icon-wrapper" style={{ position: 'relative' }}>
             <User size={20} />
+            {vipTier && vipTier.level !== 'new' && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-6px',
+                  fontSize: '11px',
+                  lineHeight: 1,
+                }}
+                title={vipTier.label}
+              >
+                {vipTier.iconEmoji}
+              </span>
+            )}
           </div>
-          <span>{user ? user.fullName.split(' ')[0] : 'Profilim'}</span>
+          <span>
+            {user
+              ? `${user.fullName.split(' ')[0]}`
+              : t('profile', 'Profilim')}
+          </span>
         </button>
       </div>
     </nav>

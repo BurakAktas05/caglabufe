@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Sparkles, Phone, MessageCircle, ArrowRight, ShieldCheck, Bike, Zap, ShoppingBag, X } from 'lucide-react';
@@ -64,6 +64,22 @@ export const StoreLandingPage: React.FC<StoreLandingPageProps> = ({
     return () => unsub();
   }, []);
 
+  const triggerExit = useCallback(() => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    setIsExiting(true);
+
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cagla_device_splash_seen', 'true');
+        sessionStorage.setItem('cagla_pwa_splash_seen', 'true');
+        sessionStorage.setItem('cagla_seen_landing', 'true');
+      }
+      if (onEnterStore) onEnterStore();
+      if (onClose) onClose();
+    }, 320);
+  }, [onEnterStore, onClose]);
+
   // Automatic progress & exit (only when NOT manually opened)
   useEffect(() => {
     if (forceShow) return;
@@ -84,23 +100,7 @@ export const StoreLandingPage: React.FC<StoreLandingPageProps> = ({
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [forceShow, autoCloseDuration]);
-
-  const triggerExit = () => {
-    if (isClosingRef.current) return;
-    isClosingRef.current = true;
-    setIsExiting(true);
-
-    setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('cagla_device_splash_seen', 'true');
-        sessionStorage.setItem('cagla_pwa_splash_seen', 'true');
-        sessionStorage.setItem('cagla_seen_landing', 'true');
-      }
-      if (onEnterStore) onEnterStore();
-      if (onClose) onClose();
-    }, 320);
-  };
+  }, [forceShow, autoCloseDuration, triggerExit]);
 
   const handleInstantExit = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();

@@ -26,6 +26,7 @@ import {
   RotateCcw,
   ChevronRight,
   Layers,
+  Headphones,
 } from 'lucide-react';
 
 export default function Home() {
@@ -43,6 +44,7 @@ export default function Home() {
     reorderItems,
     activeCampaigns,
     bundleDeals,
+    setIsSupportModalOpen,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -745,8 +747,29 @@ export default function Home() {
               }}
             >
               <MessageCircle size={15} />
-              <span>WhatsApp Destek</span>
+              <span>Büfe WhatsApp</span>
             </a>
+            <button
+              type="button"
+              onClick={() => setIsSupportModalOpen(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 800,
+                backgroundColor: '#0F172A',
+                color: '#FFFFFF',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(15, 23, 42, 0.2)',
+              }}
+            >
+              <Headphones size={15} color="#A78BFA" />
+              <span>Teknik Destek</span>
+            </button>
           </div>
         </div>
       </main>

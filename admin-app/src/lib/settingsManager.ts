@@ -1,4 +1,5 @@
-import { SystemSettings, DeliveryZone, DormitoryConfig, Campaign } from '@/types';
+import { SystemSettings, DeliveryZone, DormitoryConfig, Campaign, Coupon, VipNotification, VipTierInfo, CustomerLoyaltyProfile, Order } from '@/types';
+import { normalizePhoneNumber, formatPhoneNumber } from '@/lib/security';
 
 // --- STORAGE KEYS ---
 const SETTINGS_KEY = 'caglabufe_system_settings_v1';
@@ -645,4 +646,330 @@ export function calculateCampaignDiscount(
 
 export function hasActiveFreeDeliveryCampaign(): boolean {
   return getActiveCampaigns().some((c) => c.type === 'free_delivery');
+}
+
+// --- COUPON & VIP LOYALTY SYSTEM ---
+const COUPONS_KEY = 'caglabufe_coupons_v1';
+export const VIP_NOTIFICATIONS_KEY = 'caglabufe_vip_notifications_v1';
+export const DISMISSED_VIP_NOTIFS_KEY = 'caglabufe_dismissed_vip_notifs_v1';
+
+const DEFAULT_COUPONS: Coupon[] = [
+  {
+    id: 'coupon-vip20',
+    code: 'VIP20',
+    title: '👑 VIP & Sadık Müdavim İndirimi',
+    description: 'En çok sipariş veren müşterilerimize özel sepet tutarında %20 indirim!',
+    discountType: 'percentage',
+    discountValue: 20,
+    minOrderAmount: 75,
+    maxDiscount: 60,
+    expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'coupon-favori15',
+    code: 'FAVORI15',
+    title: '🥇 Favori Müşteri İndirimi',
+    description: 'Çağla Büfe müdavimlerine özel %15 sepet indirimi!',
+    discountType: 'percentage',
+    discountValue: 15,
+    minOrderAmount: 60,
+    maxDiscount: 45,
+    expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'coupon-cagla10',
+    code: 'CAGLA10',
+    title: '⚡ Çağla Hoş Geldin İndirimi',
+    description: 'Tüm siparişlerde geçerli anında 15 TL indirim!',
+    discountType: 'fixed',
+    discountValue: 15,
+    minOrderAmount: 80,
+    expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+export function getCoupons(): Coupon[] {
+  if (typeof window === 'undefined') return DEFAULT_COUPONS;
+  try {
+    const raw = localStorage.getItem(COUPONS_KEY);
+    if (!raw) {
+      localStorage.setItem(COUPONS_KEY, JSON.stringify(DEFAULT_COUPONS));
+      return DEFAULT_COUPONS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return DEFAULT_COUPONS;
+  }
+}
+
+export function saveCoupons(coupons: Coupon[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
+  } catch {}
+}
+
+export function addCoupon(coupon: Omit<Coupon, 'id' | 'createdAt'>): Coupon {
+  const coupons = getCoupons();
+  const newCoupon: Coupon = {
+    ...coupon,
+    id: 'coupon_' + Math.random().toString(36).substring(2, 9),
+    createdAt: new Date().toISOString(),
+    code: coupon.code.trim().toUpperCase(),
+  };
+  saveCoupons([newCoupon, ...coupons]);
+  return newCoupon;
+}
+
+export function deleteCoupon(id: string): void {
+  const coupons = getCoupons();
+  saveCoupons(coupons.filter((c) => c.id !== id));
+}
+
+export function validateCoupon(
+  code: string,
+  cartTotal: number,
+  userPhone?: string
+): {
+  valid: boolean;
+  message: string;
+  coupon?: Coupon;
+  discountAmount: number;
+} {
+  const cleanCode = (code || '').trim().toUpperCase();
+  if (!cleanCode) {
+    return { valid: false, message: 'Lütfen bir kupon kodu giriniz.', discountAmount: 0 };
+  }
+
+  const coupons = getCoupons();
+  const coupon = coupons.find((c) => c.code.toUpperCase() === cleanCode && c.isActive);
+
+  if (!coupon) {
+    return { valid: false, message: 'Geçersiz veya süresi dolmuş kupon kodu.', discountAmount: 0 };
+  }
+
+  if (coupon.expiresAt && new Date(coupon.expiresAt).getTime() < Date.now()) {
+    return { valid: false, message: 'Bu kupon kodunun kullanım süresi dolmuştur.', discountAmount: 0 };
+  }
+
+  if (coupon.targetPhone && userPhone) {
+    const cleanUser = userPhone.replace(/\D/g, '');
+    const cleanTarget = coupon.targetPhone.replace(/\D/g, '');
+    if (cleanUser && cleanTarget && cleanUser !== cleanTarget) {
+      return { valid: false, message: 'Bu özel kupon yalnızca tanımlanan hesaba aittir.', discountAmount: 0 };
+    }
+  }
+
+  if (coupon.minOrderAmount && cartTotal < coupon.minOrderAmount) {
+    return {
+      valid: false,
+      message: `Bu kuponu kullanmak için minimum sepet tutarı ${coupon.minOrderAmount} TL olmalıdır.`,
+      discountAmount: 0,
+    };
+  }
+
+  let discount = 0;
+  if (coupon.discountType === 'percentage') {
+    discount = (cartTotal * coupon.discountValue) / 100;
+  } else {
+    discount = coupon.discountValue;
+  }
+
+  if (coupon.maxDiscount && discount > coupon.maxDiscount) {
+    discount = coupon.maxDiscount;
+  }
+
+  discount = Math.min(discount, cartTotal);
+  discount = Math.round(discount * 100) / 100;
+
+  return {
+    valid: true,
+    message: `${coupon.title} başarıyla uygulandı! (-${discount.toFixed(2)} TL)`,
+    coupon,
+    discountAmount: discount,
+  };
+}
+
+export function getVipTierInfo(orderCount: number, totalSpent: number = 0): VipTierInfo {
+  if (orderCount >= 10 || totalSpent >= 2000) {
+    return {
+      level: 'platinum',
+      label: 'Platin Müdavim',
+      badge: '👑 Platin',
+      iconEmoji: '👑',
+      discountPercentage: 20,
+      minOrders: 10,
+      minSpend: 2000,
+      color: '#7C3AED',
+      bg: '#EDE9FE',
+      border: '#DDD6FE',
+      perk: '%20 VIP İndirimi & Öncelikli Hazırlık',
+    };
+  }
+  if (orderCount >= 5 || totalSpent >= 1000) {
+    return {
+      level: 'gold',
+      label: 'Altın Müdavim',
+      badge: '🥇 Altın',
+      iconEmoji: '🥇',
+      discountPercentage: 15,
+      minOrders: 5,
+      minSpend: 1000,
+      color: '#D97706',
+      bg: '#FEF3C7',
+      border: '#FDE68A',
+      perk: '%15 Müdavim İndirimi & Özel İkramlar',
+    };
+  }
+  if (orderCount >= 3 || totalSpent >= 500) {
+    return {
+      level: 'silver',
+      label: 'Gümüş Müdavim',
+      badge: '🥈 Gümüş',
+      iconEmoji: '🥈',
+      discountPercentage: 10,
+      minOrders: 3,
+      minSpend: 500,
+      color: '#4B5563',
+      bg: '#F1F5F9',
+      border: '#CBD5E1',
+      perk: '%10 İndirim & Hızlı Teslimat',
+    };
+  }
+  if (orderCount >= 1 || totalSpent >= 100) {
+    return {
+      level: 'bronze',
+      label: 'Bronz Müdavim',
+      badge: '🥉 Bronz',
+      iconEmoji: '🥉',
+      discountPercentage: 5,
+      minOrders: 1,
+      minSpend: 100,
+      color: '#92400E',
+      bg: '#FFFBEB',
+      border: '#FCD34D',
+      perk: 'Müdavim Hoş Geldin Avantajları',
+    };
+  }
+  return {
+    level: 'new',
+    label: 'Yeni Müdavim',
+    badge: '🌟 Yeni',
+    iconEmoji: '🌟',
+    discountPercentage: 0,
+    minOrders: 0,
+    minSpend: 0,
+    color: '#2563EB',
+    bg: '#EFF6FF',
+    border: '#BFDBFE',
+    perk: 'İlk siparişinizle VIP seviyelerine adım atın',
+  };
+}
+
+export function calculateCustomerLoyalty(orders: Order[] = []): CustomerLoyaltyProfile[] {
+  if (!orders || orders.length === 0) return [];
+  const map = new Map<string, {
+    cleanPhone: string;
+    formattedPhone: string;
+    name: string;
+    orderCount: number;
+    totalSpent: number;
+    lastOrderDate?: string;
+  }>();
+
+  orders.forEach((o) => {
+    const clean = normalizePhoneNumber(o.customerPhone);
+    if (!clean) return;
+    const existing = map.get(clean);
+    if (existing) {
+      existing.orderCount += 1;
+      existing.totalSpent += (o.finalAmount || 0);
+      if (!existing.lastOrderDate || new Date(o.createdAt) > new Date(existing.lastOrderDate)) {
+        existing.lastOrderDate = o.createdAt;
+        if (o.customerName && o.customerName !== 'Müşteri') {
+          existing.name = o.customerName;
+        }
+      }
+    } else {
+      map.set(clean, {
+        cleanPhone: clean,
+        formattedPhone: formatPhoneNumber(clean),
+        name: o.customerName || 'Müşteri',
+        orderCount: 1,
+        totalSpent: (o.finalAmount || 0),
+        lastOrderDate: o.createdAt,
+      });
+    }
+  });
+
+  return Array.from(map.values())
+    .map((c) => ({
+      ...c,
+      tier: getVipTierInfo(c.orderCount, c.totalSpent),
+    }))
+    .sort((a, b) => b.orderCount - a.orderCount || b.totalSpent - a.totalSpent);
+}
+
+export function getVipNotifications(): VipNotification[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(VIP_NOTIFICATIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveVipNotifications(notifs: VipNotification[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(VIP_NOTIFICATIONS_KEY, JSON.stringify(notifs));
+    try {
+      if ('BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('caglabufe_vip_channel');
+        bc.postMessage({ type: 'VIP_NOTIFS_UPDATED', count: notifs.length });
+        bc.close();
+      }
+    } catch {}
+    window.dispatchEvent(new CustomEvent('caglabufe_vip_notif_event', { detail: notifs }));
+  } catch {}
+}
+
+export function sendVipNotification(notif: Omit<VipNotification, 'id' | 'createdAt'>): VipNotification {
+  const existing = getVipNotifications();
+  const newNotif: VipNotification = {
+    ...notif,
+    id: 'vip_notif_' + Math.random().toString(36).substring(2, 9),
+    createdAt: new Date().toISOString(),
+    read: false,
+  };
+  saveVipNotifications([newNotif, ...existing]);
+  return newNotif;
+}
+
+export function getDismissedVipNotificationIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(DISMISSED_VIP_NOTIFS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function dismissVipNotification(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const dismissed = getDismissedVipNotificationIds();
+    if (!dismissed.includes(id)) {
+      localStorage.setItem(DISMISSED_VIP_NOTIFS_KEY, JSON.stringify([...dismissed, id]));
+    }
+    window.dispatchEvent(new CustomEvent('caglabufe_vip_notif_dismissed', { detail: id }));
+  } catch {}
 }

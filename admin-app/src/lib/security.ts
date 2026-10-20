@@ -39,6 +39,14 @@ export function normalizePhoneNumber(phone: string): string {
   return digits;
 }
 
+export function formatPhoneNumber(phone: string): string {
+  const clean = normalizePhoneNumber(phone);
+  if (clean.length === 10) {
+    return `0 (${clean.slice(0, 3)}) ${clean.slice(3, 6)} ${clean.slice(6, 8)} ${clean.slice(8, 10)}`;
+  }
+  return phone;
+}
+
 // --- 3. RATE LIMITING ---
 const RATE_LIMIT_PREFIX = 'caglabufe_ratelimit_';
 

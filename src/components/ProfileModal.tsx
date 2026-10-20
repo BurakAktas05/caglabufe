@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, Coupon } from '@/types';
 import {
   X,
   User as UserIcon,
@@ -21,9 +21,15 @@ import {
   Trash2,
   ArrowRight,
   Bell,
+  Headphones,
+  Ticket,
+  Award,
+  Sparkles,
+  Gift,
 } from 'lucide-react';
 import { DigitalReceiptModal } from '@/components/DigitalReceipt';
 import { isPushSupported, getNotificationPermission, requestNotificationPermission } from '@/lib/pushNotifications';
+import { getVipTierInfo } from '@/lib/settingsManager';
 
 export const ProfileModal = () => {
   const {
@@ -39,14 +45,84 @@ export const ProfileModal = () => {
     setIsAddressModalOpen,
     setIsAuthModalOpen,
     setIsCartOpen,
+    setIsSupportModalOpen,
+    coupons,
+    applyCouponCode,
+    appliedCoupon,
     showToast,
+    t,
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'orders' | 'addresses'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'coupons'>('orders');
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState<Order | null>(null);
   const [notifPerm, setNotifPerm] = useState<string>(() =>
     typeof window !== 'undefined' ? getNotificationPermission() : 'default'
   );
+  const [mountTime] = useState(() => Date.now());
+
+  const orderCount = orders.length;
+  const totalSpent = useMemo(() => {
+    return orders.reduce((sum, o) => sum + (o.finalAmount || 0), 0);
+  }, [orders]);
+
+  const vipTierBase = useMemo(() => {
+    return getVipTierInfo(orderCount, totalSpent);
+  }, [orderCount, totalSpent]);
+
+  const vipTier = useMemo(() => {
+    const nextTier =
+      vipTierBase.level === 'platinum'
+        ? null
+        : vipTierBase.level === 'gold'
+        ? 'Platin'
+        : vipTierBase.level === 'silver'
+        ? 'Altın'
+        : vipTierBase.level === 'bronze'
+        ? 'Gümüş'
+        : 'Bronz';
+
+    const needed =
+      vipTierBase.level === 'platinum'
+        ? 0
+        : vipTierBase.level === 'gold'
+        ? Math.max(1, 10 - orderCount)
+        : vipTierBase.level === 'silver'
+        ? Math.max(1, 5 - orderCount)
+        : vipTierBase.level === 'bronze'
+        ? Math.max(1, 3 - orderCount)
+        : 1;
+
+    const progress =
+      vipTierBase.level === 'platinum'
+        ? 100
+        : vipTierBase.level === 'gold'
+        ? Math.min(100, Math.round((orderCount / 10) * 100))
+        : vipTierBase.level === 'silver'
+        ? Math.min(100, Math.round((orderCount / 5) * 100))
+        : vipTierBase.level === 'bronze'
+        ? Math.min(100, Math.round((orderCount / 3) * 100))
+        : 0;
+
+    return {
+      ...vipTierBase,
+      progress,
+      nextTier,
+      needed,
+    };
+  }, [vipTierBase, orderCount]);
+
+  const userCleanPhone = (user?.phone || '').replace(/\D/g, '');
+  const availableCoupons: Coupon[] = useMemo(() => {
+    return (coupons || []).filter((c: Coupon) => {
+      if (!c.isActive) return false;
+      if (c.expiresAt && new Date(c.expiresAt).getTime() < mountTime) return false;
+      if (c.targetPhone) {
+        const cleanTarget = c.targetPhone.replace(/\D/g, '');
+        return cleanTarget === userCleanPhone;
+      }
+      return true;
+    });
+  }, [coupons, userCleanPhone, mountTime]);
 
   if (!isProfileModalOpen) return null;
 
@@ -56,7 +132,7 @@ export const ProfileModal = () => {
       <div className="modal-overlay" onClick={() => setIsProfileModalOpen(false)}>
         <div className="bottom-sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
           <div className="sheet-header">
-            <h3 className="sheet-title">Giriş Yapmanız Gerekiyor</h3>
+            <h3 className="sheet-title">{t('needLoginTitle', 'Giriş Yapmanız Gerekiyor')}</h3>
             <button
               type="button"
               className="sheet-close-btn"
@@ -83,10 +159,10 @@ export const ProfileModal = () => {
               <UserIcon size={32} />
             </div>
             <h4 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>
-              Profilinizi ve Siparişlerinizi Görün
+              {t('seeProfileAndOrders', 'Profilinizi ve Siparişlerinizi Görün')}
             </h4>
             <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '20px', lineHeight: 1.5 }}>
-              Telefon numaranız ile tek seferlik SMS şifresi alarak giriş yapabilir, geçmiş ve aktif siparişlerinizi anlık takip edebilirsiniz.
+              {t('needLoginDesc', 'Telefon numaranız ile tek seferlik SMS şifresi alarak giriş yapabilir, geçmiş ve aktif siparişlerinizi anlık takip edebilirsiniz.')}
             </p>
             <button
               type="button"
@@ -97,7 +173,7 @@ export const ProfileModal = () => {
                 setIsAuthModalOpen(true);
               }}
             >
-              Giriş Yap / Kayıt Ol
+              {t('loginRegister', 'Giriş Yap / Kayıt Ol')}
             </button>
           </div>
         </div>
@@ -180,7 +256,7 @@ export const ProfileModal = () => {
   };
 
   const handleLogout = () => {
-    if (confirm('Oturumunuzu kapatmak istediğinize emin misiniz?')) {
+    if (confirm(t('confirmLogout', 'Oturumunuzu kapatmak istediğinize emin misiniz?'))) {
       logoutUser();
       setIsProfileModalOpen(false);
     }
@@ -197,7 +273,7 @@ export const ProfileModal = () => {
           {/* Header */}
           <div className="sheet-header" style={{ padding: '16px 20px', borderBottom: '1px solid #E5E7EB' }}>
             <h3 className="sheet-title" style={{ fontSize: '18px', fontWeight: 800 }}>
-              Hesabım &amp; Profilim
+              {t('profile', 'Hesabım & Profilim')}
             </h3>
             <button
               type="button"
@@ -273,10 +349,10 @@ export const ProfileModal = () => {
                   cursor: 'pointer',
                   transition: 'background-color 0.2s',
                 }}
-                title="Oturumu Kapat"
+                title={t('logout', 'Çıkış Yap')}
               >
                 <LogOut size={13} />
-                <span>Çıkış Yap</span>
+                <span>{t('logout', 'Çıkış Yap')}</span>
               </button>
             </div>
 
@@ -306,7 +382,7 @@ export const ProfileModal = () => {
                     {orders.length}
                   </div>
                   <div style={{ fontSize: '11px', fontWeight: 700, color: '#6B7280', marginTop: '3px' }}>
-                    Kayıtlı Sipariş
+                    {t('registeredOrdersCount', 'Kayıtlı Sipariş')}
                   </div>
                 </div>
               </div>
@@ -387,6 +463,65 @@ export const ProfileModal = () => {
               </div>
             )}
 
+            {/* Canlı Destek & İletişim Kartı */}
+            <div
+              style={{
+                backgroundColor: '#F8FAFC',
+                borderRadius: '12px',
+                border: '1px solid #E2E8F0',
+                padding: '12px 14px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    backgroundColor: '#F3F0FE',
+                    color: '#5D3EBC',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Headphones size={18} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#1F2937' }}>
+                    Canlı Destek &amp; İletişim
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748B' }}>
+                    Sipariş teslimatı veya teknik sorunlar için
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSupportModalOpen(true)}
+                style={{
+                  padding: '7px 12px',
+                  backgroundColor: '#5D3EBC',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                }}
+              >
+                Destek Al
+              </button>
+            </div>
+
             {/* Tabs */}
             <div
               style={{
@@ -395,6 +530,7 @@ export const ProfileModal = () => {
                 borderRadius: '10px',
                 padding: '3px',
                 marginBottom: '16px',
+                gap: '2px',
               }}
             >
               <button
@@ -402,9 +538,9 @@ export const ProfileModal = () => {
                 onClick={() => setActiveTab('orders')}
                 style={{
                   flex: 1,
-                  padding: '8px 12px',
+                  padding: '8px 6px',
                   borderRadius: '8px',
-                  fontSize: '13px',
+                  fontSize: '12px',
                   fontWeight: 800,
                   cursor: 'pointer',
                   backgroundColor: activeTab === 'orders' ? '#FFFFFF' : 'transparent',
@@ -414,11 +550,11 @@ export const ProfileModal = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
+                  gap: '4px',
                 }}
               >
-                <ShoppingBag size={14} />
-                <span>Sipariş Geçmişim ({orders.length})</span>
+                <ShoppingBag size={13} />
+                <span>{t('myOrder', 'Siparişlerim')} ({orders.length})</span>
               </button>
 
               <button
@@ -426,9 +562,9 @@ export const ProfileModal = () => {
                 onClick={() => setActiveTab('addresses')}
                 style={{
                   flex: 1,
-                  padding: '8px 12px',
+                  padding: '8px 6px',
                   borderRadius: '8px',
-                  fontSize: '13px',
+                  fontSize: '12px',
                   fontWeight: 800,
                   cursor: 'pointer',
                   backgroundColor: activeTab === 'addresses' ? '#FFFFFF' : 'transparent',
@@ -438,11 +574,47 @@ export const ProfileModal = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
+                  gap: '4px',
                 }}
               >
-                <MapPin size={14} />
-                <span>Adreslerim ({addresses.length})</span>
+                <MapPin size={13} />
+                <span>{t('selectAddress', 'Adreslerim')} ({addresses.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('coupons')}
+                style={{
+                  flex: 1,
+                  padding: '8px 6px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  backgroundColor: activeTab === 'coupons' ? '#FFFFFF' : 'transparent',
+                  color: activeTab === 'coupons' ? '#5D3EBC' : '#6B7280',
+                  boxShadow: activeTab === 'coupons' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  position: 'relative',
+                }}
+              >
+                <Ticket size={13} />
+                <span>{t('myCoupons', 'Kuponlar & VIP')} ({availableCoupons.length})</span>
+                {availableCoupons.length > 0 && (
+                  <span
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: '#10B981',
+                      display: 'inline-block',
+                    }}
+                  />
+                )}
               </button>
             </div>
 
@@ -807,6 +979,259 @@ export const ProfileModal = () => {
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB CONTENT 3: KUPONLAR & VIP MÜDAVİM DURUMU */}
+            {activeTab === 'coupons' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* VIP Status Hero Banner */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)',
+                    borderRadius: '16px',
+                    padding: '16px',
+                    color: '#FFFFFF',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 14px rgba(49, 46, 129, 0.25)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Award size={20} color="#FBBF24" />
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#C7D2FE', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Müşteri Sadakat Programı
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 900,
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        backdropFilter: 'blur(8px)',
+                        padding: '3px 9px',
+                        borderRadius: '20px',
+                        color: '#FDE68A',
+                        border: '1px solid rgba(253, 230, 138, 0.3)',
+                      }}
+                    >
+                      {vipTier.badge}
+                    </span>
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <h4 style={{ fontSize: '18px', fontWeight: 900, margin: '0 0 4px', color: '#FFFFFF' }}>
+                      {user.fullName}
+                    </h4>
+                    <p style={{ fontSize: '12px', color: '#E0E7FF', margin: 0 }}>
+                      Toplam <strong style={{ color: '#FCD34D' }}>{orderCount} adet</strong> tamamlanmış siparişiniz bulunuyor.
+                    </p>
+                  </div>
+
+                  {/* Level Benefit */}
+                  <div
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      borderRadius: '10px',
+                      padding: '8px 12px',
+                      fontSize: '11px',
+                      color: '#F8FAFC',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginBottom: '12px',
+                    }}
+                  >
+                    <Sparkles size={14} color="#FDE047" style={{ flexShrink: 0 }} />
+                    <span>Mevcut Seviye Ayrıcalığı: <strong>{vipTier.perk}</strong></span>
+                  </div>
+
+                  {/* Progress to next tier */}
+                  {vipTier.nextTier ? (
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#C7D2FE', marginBottom: '4px' }}>
+                        <span>Sonraki Seviye: <strong>{vipTier.nextTier}</strong></span>
+                        <span>{vipTier.needed} sipariş kaldı</span>
+                      </div>
+                      <div style={{ height: '6px', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${vipTier.progress}%`,
+                            background: 'linear-gradient(90deg, #F59E0B, #10B981)',
+                            borderRadius: '3px',
+                            transition: 'width 0.4s ease',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '11px', color: '#FDE68A', fontWeight: 700 }}>
+                      🎉 Tebrikler! En üst Platin Müdavim seviyesindesiniz!
+                    </div>
+                  )}
+                </div>
+
+                {/* Coupons Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1F2937', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Ticket size={16} color="#5D3EBC" />
+                    <span>Kullanılabilir Kuponlarım &amp; Avantajlar</span>
+                  </h4>
+                  <span style={{ fontSize: '11px', color: '#6B7280', fontWeight: 600 }}>
+                    {availableCoupons.length} Kupon
+                  </span>
+                </div>
+
+                {/* Coupons List */}
+                {availableCoupons.length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '24px 16px',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '14px',
+                      border: '1px solid #E5E7EB',
+                    }}
+                  >
+                    <Gift size={32} color="#9CA3AF" style={{ margin: '0 auto 8px' }} />
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#374151' }}>
+                      Henüz Tanımlı Kuponunuz Yok
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0', lineHeight: 1.4 }}>
+                      Çağla Büfe&apos;den sipariş verdikçe müdavim kuponları ve size özel indirim kodları buraya eklenecektir.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {availableCoupons.map((coupon: Coupon) => {
+                      const isApplied = appliedCoupon?.id === coupon.id;
+                      const isTargetedToMe = Boolean(coupon.targetPhone);
+
+                      return (
+                        <div
+                          key={coupon.id}
+                          style={{
+                            backgroundColor: isApplied ? '#F0FDF4' : '#FFFFFF',
+                            border: `1.5px ${isApplied ? 'solid #86EFAC' : isTargetedToMe ? 'dashed #7C3AED' : 'solid #E2E8F0'}`,
+                            borderRadius: '14px',
+                            padding: '12px 14px',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                <span
+                                  style={{
+                                    fontSize: '13px',
+                                    fontWeight: 900,
+                                    color: '#5D3EBC',
+                                    backgroundColor: '#F3F0FE',
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    letterSpacing: '0.5px',
+                                  }}
+                                >
+                                  {coupon.code}
+                                </span>
+                                {isTargetedToMe && (
+                                  <span
+                                    style={{
+                                      fontSize: '10px',
+                                      fontWeight: 800,
+                                      backgroundColor: '#EDE9FE',
+                                      color: '#7C3AED',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                    }}
+                                  >
+                                    🎁 Size Özel
+                                  </span>
+                                )}
+                                {isApplied && (
+                                  <span
+                                    style={{
+                                      fontSize: '10px',
+                                      fontWeight: 800,
+                                      backgroundColor: '#DCFCE7',
+                                      color: '#15803D',
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                    }}
+                                  >
+                                    ✓ Sepette Aktif
+                                  </span>
+                                )}
+                              </div>
+                              <h5 style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B', margin: '4px 0 2px' }}>
+                                {coupon.title}
+                              </h5>
+                              <p style={{ fontSize: '11px', color: '#64748B', margin: 0, lineHeight: 1.4 }}>
+                                {coupon.description}
+                              </p>
+                            </div>
+
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{ fontSize: '15px', fontWeight: 900, color: '#10B981' }}>
+                                {coupon.discountType === 'percentage'
+                                  ? `%${coupon.discountValue}`
+                                  : `₺${coupon.discountValue}`}
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#64748B', fontWeight: 700 }}>
+                                {coupon.discountType === 'percentage' ? 'İndirim' : 'İndirim'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              paddingTop: '6px',
+                              borderTop: '1px solid #F1F5F9',
+                              fontSize: '11px',
+                              color: '#94A3B8',
+                            }}
+                          >
+                            <span>
+                              {coupon.minOrderAmount
+                                ? `Min. ${coupon.minOrderAmount} TL sepet`
+                                : 'Alt limit yok'}
+                            </span>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                applyCouponCode(coupon.code);
+                                setIsProfileModalOpen(false);
+                                setIsCartOpen(true);
+                              }}
+                              style={{
+                                padding: '5px 12px',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                border: 'none',
+                                cursor: 'pointer',
+                                backgroundColor: isApplied ? '#10B981' : '#5D3EBC',
+                                color: '#FFFFFF',
+                                boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+                              }}
+                            >
+                              {isApplied ? 'Sepeti Gör' : 'Sepete Uygula'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

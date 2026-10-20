@@ -469,6 +469,18 @@ export const banUser = async (phone: string, name: string, reason: string): Prom
 
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_BANNED_KEY, JSON.stringify(updated));
+    try {
+      window.dispatchEvent(
+        new CustomEvent('caglabufe_banned_event', { detail: { type: 'BAN', ban: newBan } })
+      );
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('caglabufe_security_channel');
+        bc.postMessage({ type: 'BAN', ban: newBan });
+        bc.close();
+      }
+    } catch {
+      // ignore broadcast error
+    }
   }
 
   return newBan;
@@ -494,6 +506,18 @@ export const unbanUser = async (phone: string): Promise<void> => {
 
   if (typeof window !== 'undefined') {
     localStorage.setItem(STORAGE_BANNED_KEY, JSON.stringify(updated));
+    try {
+      window.dispatchEvent(
+        new CustomEvent('caglabufe_banned_event', { detail: { type: 'UNBAN', phone: cleanPhone } })
+      );
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('caglabufe_security_channel');
+        bc.postMessage({ type: 'UNBAN', phone: cleanPhone });
+        bc.close();
+      }
+    } catch {
+      // ignore broadcast error
+    }
   }
 };
 

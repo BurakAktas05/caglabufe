@@ -12,6 +12,10 @@ import { BottomNav } from '@/components/BottomNav';
 import { PWAInstallBanner } from '@/components/PWAInstallBanner';
 import { NotificationPromptBanner } from '@/components/NotificationPromptBanner';
 import { StoreClosedOverlay } from '@/components/StoreClosedOverlay';
+import { BannedUserModal } from '@/components/BannedUserModal';
+import { SupportModal } from '@/components/SupportModal';
+import { VipNotificationBanner } from '@/components/VipNotificationBanner';
+import { useApp } from '@/context/AppContext';
 
 /**
  * Isolates all customer-facing modals, overlays, and floating elements.
@@ -20,6 +24,14 @@ import { StoreClosedOverlay } from '@/components/StoreClosedOverlay';
  */
 export const CustomerShell = () => {
   const pathname = usePathname();
+  const {
+    bannedModalInfo,
+    setBannedModalInfo,
+    logoutUser,
+    systemSettings,
+    isSupportModalOpen,
+    setIsSupportModalOpen,
+  } = useApp();
 
   const isExcluded =
     Boolean(pathname && (pathname.startsWith('/admin') || pathname === '/brosur')) ||
@@ -42,6 +54,22 @@ export const CustomerShell = () => {
       <NotificationPromptBanner />
       <PWAInstallBanner />
       <StoreClosedOverlay />
+      <BannedUserModal
+        bannedInfo={bannedModalInfo}
+        isOpen={Boolean(bannedModalInfo)}
+        onClose={() => setBannedModalInfo(null)}
+        onLogout={() => {
+          logoutUser();
+          setBannedModalInfo(null);
+        }}
+        storePhone={systemSettings.storePhone}
+        storeWhatsApp={systemSettings.storeWhatsApp}
+      />
+      <SupportModal
+        isOpen={isSupportModalOpen}
+        onClose={() => setIsSupportModalOpen(false)}
+      />
+      <VipNotificationBanner />
     </>
   );
 };

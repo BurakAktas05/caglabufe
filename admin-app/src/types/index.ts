@@ -39,16 +39,7 @@ export interface BannedUser {
   bannedAt: string;
 }
 
-export type ProductCategory =
-  | 'temel-gida'
-  | 'soguk-icecek'
-  | 'cay-kahve'
-  | 'cips-cerez'
-  | 'cikolata-tatli'
-  | 'biskuvi-kek'
-  | 'pratik-yemek'
-  | 'kisisel-bakim'
-  | 'sicak-lezzetler';
+export type ProductCategory = string;
 
 export interface CategoryInfo {
   id: ProductCategory;
@@ -163,6 +154,61 @@ export interface Campaign {
   createdAt: string;
 }
 
+export interface Coupon {
+  id: string;
+  code: string;            // Örn: 'VIP20', 'FAVORI15', 'CAGLA10'
+  title: string;           // 'Favori Müşteri İndirimi'
+  description: string;     // 'En çok sipariş veren müşterimize özel %20 indirim'
+  discountType: 'percentage' | 'fixed'; // % veya TL
+  discountValue: number;   // 20 veya 50
+  minOrderAmount?: number; // Minimum sepet tutarı
+  maxDiscount?: number;    // Maksimum indirim tutarı
+  targetPhone?: string;    // Belirli bir numaraya mı özel? (Boşsa herkese)
+  targetTier?: 'bronze' | 'silver' | 'gold' | 'platinum'; // VIP seviyesine mi özel?
+  expiresAt?: string;      // Son kullanma tarihi (Opsiyonel)
+  isActive: boolean;
+  createdAt: string;
+  usageCount?: number;
+}
+
+export type VipTierLevel = 'platinum' | 'gold' | 'silver' | 'bronze' | 'new';
+
+export interface VipTierInfo {
+  level: VipTierLevel;
+  label: string;
+  badge: string;
+  iconEmoji: string;
+  discountPercentage: number;
+  minOrders: number;
+  minSpend: number;
+  color: string;
+  bg: string;
+  border: string;
+  perk: string;
+}
+
+export interface VipNotification {
+  id: string;
+  title: string;
+  message: string;
+  couponCode?: string;
+  targetPhone?: string; // Boşsa tüm müdavimlere broadcast
+  targetTier?: VipTierLevel | 'all';
+  createdAt: string;
+  expiresAt?: string;
+  read?: boolean;
+}
+
+export interface CustomerLoyaltyProfile {
+  cleanPhone: string;
+  formattedPhone: string;
+  name: string;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderDate?: string;
+  tier: VipTierInfo;
+}
+
 // --- DİNAMİK SİSTEM AYARLARI ---
 
 export interface DeliveryZone {
@@ -205,6 +251,7 @@ export interface SystemSettings {
   adminPassword: string;      // Admin giriş şifresi
   storePhone?: string;        // Büfe telefon numarası
   storeWhatsApp?: string;     // Büfe WhatsApp numarası
+  techSupportWhatsApp?: string; // Yazılım / Teknik Destek WhatsApp numarası
   storeAddress?: string;      // Büfe açık adresi
   storeLatitude?: number;     // Büfe enlem (41.2065)
   storeLongitude?: number;    // Büfe boylam (32.6285)

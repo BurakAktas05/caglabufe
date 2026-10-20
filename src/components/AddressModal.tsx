@@ -65,6 +65,8 @@ export const AddressModal = () => {
     saveNewAddress,
     deleteAddress,
     setSelectedAddressId,
+    t,
+    dir,
   } = useApp();
 
   // Adres modalı açıldığında otomatik harita gelmesin; doğrudan kayıtlı adresler listesi gelsin
@@ -117,6 +119,7 @@ export const AddressModal = () => {
   if (!isAddressModalOpen) return null;
 
   const currentDorm = dorms.find((d) => d.id === selectedDormId) || dorms[0];
+  const isRtl = dir === 'rtl';
 
   // Reverse Geocoding via OpenStreetMap Nominatim when location is picked on map
   const handleLocationPickedOnMap = (data: SelectedLocationData) => {
@@ -315,7 +318,7 @@ export const AddressModal = () => {
 
   const handleDelete = (e: React.MouseEvent, addressId: string, addressTitle: string) => {
     e.stopPropagation();
-    if (confirm(`"${addressTitle}" adresini kayıtlı adreslerinizden silmek istediğinize emin misiniz?`)) {
+    if (confirm(t('confirmDeleteAddress', '"{title}" adresini kayıtlı adreslerinizden silmek istediğinize emin misiniz?', { title: addressTitle }))) {
       deleteAddress(addressId);
     }
   };
@@ -341,15 +344,16 @@ export const AddressModal = () => {
                   fontWeight: 700,
                   fontSize: '14px',
                   padding: 0,
-                  marginRight: '6px',
+                  marginRight: isRtl ? 0 : '6px',
+                  marginLeft: isRtl ? '6px' : 0,
                 }}
               >
-                <ArrowLeft size={18} />
+                <ArrowLeft size={18} style={{ transform: isRtl ? 'scaleX(-1)' : 'none' }} />
               </button>
             ) : (
               <MapPin size={20} color="#5D3EBC" />
             )}
-            <span>{isAddingNew ? 'Yeni Teslimat Adresi Ekle' : 'Kayıtlı Adreslerim'}</span>
+            <span>{isAddingNew ? t('addNewAddressTitle', 'Yeni Teslimat Adresi Ekle') : t('savedAddressesTitle', 'Kayıtlı Adreslerim')}</span>
           </div>
           <button
             className="close-btn"
@@ -367,10 +371,10 @@ export const AddressModal = () => {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <span style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B' }}>
-                  Kayıtlı Teslimat Adreslerim ({addresses.length})
+                  {t('savedAddressesCount', 'Kayıtlı Teslimat Adreslerim ({count})', { count: addresses.length })}
                 </span>
                 <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600 }}>
-                  Seçmek için dokununuz
+                  {t('tapToSelect', 'Seçmek için dokununuz')}
                 </span>
               </div>
 
@@ -378,10 +382,10 @@ export const AddressModal = () => {
                 <div style={{ textAlign: 'center', padding: '36px 16px', backgroundColor: '#F8F9FC', borderRadius: '16px', border: '1.5px dashed #E2E8F0', marginBottom: '16px' }}>
                   <Building2 size={36} color="#94A3B8" style={{ margin: '0 auto 8px' }} />
                   <p style={{ fontSize: '14px', fontWeight: 800, color: '#1E293B', margin: 0 }}>
-                    Henüz kayıtlı bir adresiniz yok
+                    {t('noAddressesYet', 'Henüz kayıtlı bir adresiniz yok')}
                   </p>
                   <p style={{ fontSize: '12px', color: '#64748B', marginTop: '4px', marginBottom: '14px' }}>
-                    Sipariş verebilmek için aşağıdaki butona dokunarak yurt veya ev adresinizi ekleyiniz.
+                    {t('noAddressesDesc', 'Sipariş verebilmek için aşağıdaki butona dokunarak yurt veya ev adresinizi ekleyiniz.')}
                   </p>
                 </div>
               ) : (
@@ -442,7 +446,7 @@ export const AddressModal = () => {
                                     borderRadius: '6px',
                                   }}
                                 >
-                                  ✓ Seçili
+                                  {t('selectedBadge', '✓ Seçili')}
                                 </span>
                               )}
                             </div>
@@ -489,7 +493,7 @@ export const AddressModal = () => {
                                 cursor: 'pointer',
                               }}
                             >
-                              Seç
+                              {t('selectBtn', 'Seç')}
                             </button>
                           )}
 
@@ -533,7 +537,7 @@ export const AddressModal = () => {
                 }}
               >
                 <Plus size={18} />
-                <span>Yeni Adres Ekle (Harita, Yurt veya Ev)</span>
+                <span>{t('addNewAddressBtn', 'Yeni Adres Ekle (Harita, Yurt veya Ev)')}</span>
               </button>
             </div>
           ) : (
@@ -547,7 +551,7 @@ export const AddressModal = () => {
                   onClick={() => setActiveTab('dormitory')}
                 >
                   <GraduationCap size={15} />
-                  <span>🎓 KYK Yurdu</span>
+                  <span>{t('tabDormitory', '🎓 KYK Yurdu')}</span>
                 </button>
                 <button
                   type="button"
@@ -555,7 +559,7 @@ export const AddressModal = () => {
                   onClick={() => setActiveTab('home')}
                 >
                   <Home size={15} />
-                  <span>🏠 Ev / İşyeri</span>
+                  <span>{t('tabHome', '🏠 Ev / İşyeri')}</span>
                 </button>
                 <button
                   type="button"
@@ -563,7 +567,7 @@ export const AddressModal = () => {
                   onClick={() => setActiveTab('map')}
                 >
                   <Compass size={15} />
-                  <span>🗺️ Haritadan</span>
+                  <span>{t('tabMap', '🗺️ Haritadan')}</span>
                 </button>
               </div>
 
@@ -584,7 +588,7 @@ export const AddressModal = () => {
                   >
                     <Compass size={20} color="#5D3EBC" style={{ flexShrink: 0 }} />
                     <div style={{ fontSize: '12px', color: '#334155', lineHeight: 1.45 }}>
-                      <strong>1. Adım:</strong> Haritada evinizin / binanızın üzerine dokununuz veya <strong>&quot;Konumumu Bul&quot;</strong> butonuna basınız. Ardından sokak, bina ve daire bilgilerinizi doldurunuz.
+                      {t('mapPinStep1', '1. Adım: Haritada evinizin / binanızın üzerine dokununuz veya "Konumumu Bul" butonuna basınız. Ardından sokak, bina ve daire bilgilerinizi doldurunuz.')}
                     </div>
                   </div>
 
@@ -619,10 +623,10 @@ export const AddressModal = () => {
                           </div>
                           <div>
                             <strong style={{ fontSize: '13px', color: '#166534' }}>
-                              📍 Harita Konumunuz Alındı
+                              {t('mapLocationPicked', '📍 Harita Konumunuz Alındı')}
                             </strong>
                             <div style={{ fontSize: '11px', color: '#4B5563', marginTop: '1px' }}>
-                              {isGeocoding ? 'Sokak ve mahalle bilgisi çözümleniyor...' : 'Şimdi kuryemizin kapınızı bulabilmesi için sokak, bina ve daire bilgilerinizi giriniz:'}
+                              {isGeocoding ? 'Sokak ve mahalle bilgisi çözümleniyor...' : t('mapLocationPickedDesc', 'Şimdi kuryemizin kapınızı bulabilmesi için sokak, bina ve daire bilgilerinizi giriniz:')}
                             </div>
                           </div>
                         </div>
@@ -637,24 +641,24 @@ export const AddressModal = () => {
                             borderRadius: '8px',
                           }}
                         >
-                          Konum Seçildi ✓
+                          {t('mapLocationPickedBadge', 'Konum Seçildi ✓')}
                         </span>
                       </div>
 
                       {/* Required Notice */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#DC2626', fontWeight: 700 }}>
                         <AlertCircle size={14} />
-                        <span>Kırmızı (*) işaretli kısımlar kurye teslimatı için ZORUNLUDUR.</span>
+                        <span>{t('mapRequiredFieldsNotice', 'Kırmızı (*) işaretli kısımlar kurye teslimatı için ZORUNLUDUR.')}</span>
                       </div>
 
                       {/* Address Title & District */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div className="form-group" style={{ margin: 0 }}>
-                          <label className="form-label">Adres Başlığı *</label>
+                          <label className="form-label">{t('addressTitleLabel', 'Adres Başlığı *')}</label>
                           <input
                             type="text"
                             className="form-input"
-                            placeholder="Örn: 100. Yıl Evim, Ofisim"
+                            placeholder={t('addressTitlePlaceholder', 'Örn: 100. Yıl Evim, Ofisim')}
                             value={mapAddressTitle}
                             onChange={(e) => setMapAddressTitle(e.target.value)}
                             required
@@ -662,7 +666,7 @@ export const AddressModal = () => {
                         </div>
 
                         <div className="form-group" style={{ margin: 0 }}>
-                          <label className="form-label">Mahalle / Semt *</label>
+                          <label className="form-label">{t('districtLabel', 'Mahalle / Semt *')}</label>
                           <select
                             className="form-input"
                             value={mapDistrict}
@@ -682,12 +686,12 @@ export const AddressModal = () => {
                       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '10px' }}>
                         <div className="form-group" style={{ margin: 0 }}>
                           <label className="form-label" style={{ color: '#9F1239', fontWeight: 800 }}>
-                            Cadde / Sokak İsmi * (Zorunlu)
+                            {t('streetLabel', 'Cadde / Sokak İsmi * (Zorunlu)')}
                           </label>
                           <input
                             type="text"
                             className="form-input"
-                            placeholder="Örn: 1002. Cadde veya Şafak Sokak"
+                            placeholder={t('streetPlaceholder', 'Örn: 1002. Cadde veya Şafak Sokak')}
                             value={mapStreetName}
                             onChange={(e) => setMapStreetName(e.target.value)}
                             required
@@ -697,12 +701,12 @@ export const AddressModal = () => {
 
                         <div className="form-group" style={{ margin: 0 }}>
                           <label className="form-label" style={{ color: '#9F1239', fontWeight: 800 }}>
-                            Bina / Apartman No * (Zorunlu)
+                            {t('buildingLabel', 'Bina / Apartman No * (Zorunlu)')}
                           </label>
                           <input
                             type="text"
                             className="form-input"
-                            placeholder="Örn: No: 14 veya Güneş Apt."
+                            placeholder={t('buildingPlaceholder', 'Örn: No: 14 veya Güneş Apt.')}
                             value={mapBuildingNumber}
                             onChange={(e) => setMapBuildingNumber(e.target.value)}
                             required
@@ -714,11 +718,11 @@ export const AddressModal = () => {
                       {/* Floor & Apartment Number (Zorunlu) */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                         <div className="form-group" style={{ margin: 0 }}>
-                          <label className="form-label">Kat (İsteğe Bağlı)</label>
+                          <label className="form-label">{t('floorLabel', 'Kat (İsteğe Bağlı)')}</label>
                           <input
                             type="text"
                             className="form-input"
-                            placeholder="Örn: Kat: 2 veya 3. Kat"
+                            placeholder={t('floorPlaceholder', 'Örn: Kat: 2 veya 3. Kat')}
                             value={mapFloorNumber}
                             onChange={(e) => setMapFloorNumber(e.target.value)}
                           />
@@ -726,12 +730,12 @@ export const AddressModal = () => {
 
                         <div className="form-group" style={{ margin: 0 }}>
                           <label className="form-label" style={{ color: '#9F1239', fontWeight: 800 }}>
-                            Daire / Kapı No * (Zorunlu)
+                            {t('apartmentLabel', 'Daire / Kapı No * (Zorunlu)')}
                           </label>
                           <input
                             type="text"
                             className="form-input"
-                            placeholder="Örn: Daire: 6 veya No: 8"
+                            placeholder={t('apartmentPlaceholder', 'Örn: Daire: 6 veya No: 8')}
                             value={mapApartmentNumber}
                             onChange={(e) => setMapApartmentNumber(e.target.value)}
                             required
@@ -742,11 +746,11 @@ export const AddressModal = () => {
 
                       {/* Address Description / Landmark */}
                       <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label">Adres Tarifi / Bina Özelliği (İsteğe Bağlı)</label>
+                        <label className="form-label">{t('addressDetailLabel', 'Adres Tarifi / Bina Özelliği (İsteğe Bağlı)')}</label>
                         <input
                           type="text"
                           className="form-input"
-                          placeholder="Örn: Şok marketin karşısındaki sarı bina, A Blok"
+                          placeholder={t('addressDetailPlaceholder', 'Örn: Şok marketin karşısındaki sarı bina, A Blok')}
                           value={mapAddressDetail}
                           onChange={(e) => setMapAddressDetail(e.target.value)}
                         />
@@ -754,11 +758,11 @@ export const AddressModal = () => {
 
                       {/* Courier Delivery Note */}
                       <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label">Kuryeye Not (İsteğe Bağlı)</label>
+                        <label className="form-label">{t('courierNoteLabel', 'Kuryeye Not')}</label>
                         <input
                           type="text"
                           className="form-input"
-                          placeholder="Zile basmayın bebek uyuyor, gelince arayın vb."
+                          placeholder={t('courierNotePlaceholder', 'Zile basmayın, gelince arayın vb.')}
                           value={mapCourierNote}
                           onChange={(e) => setMapCourierNote(e.target.value)}
                         />
@@ -772,12 +776,12 @@ export const AddressModal = () => {
                             onClick={() => setIsAddingNew(false)}
                             style={{ flex: 1 }}
                           >
-                            Vazgeç
+                            {t('cancelBtn', 'Vazgeç')}
                           </button>
                         )}
                         <button type="submit" className="btn-primary" style={{ flex: 2 }}>
                           <Check size={16} />
-                          <span>✓ Adresimi Kaydet ve Seç</span>
+                          <span>{t('saveMapAddressBtn', '✓ Adresimi Kaydet ve Seç')}</span>
                         </button>
                       </div>
                     </form>
@@ -800,7 +804,7 @@ export const AddressModal = () => {
                     >
                       <MapPin size={24} color="#5D3EBC" />
                       <div>
-                        👆 Devam etmek için lütfen yukarıdaki haritada teslimat adresinize dokununuz ya da <strong>&quot;Konumumu Bul&quot;</strong> butonuna basınız.
+                        {t('mapTapPrompt', '👆 Devam etmek için lütfen yukarıdaki haritada teslimat adresinize dokununuz ya da "Konumumu Bul" butonuna basınız.')}
                       </div>
                     </div>
                   )}
@@ -823,13 +827,13 @@ export const AddressModal = () => {
                   >
                     <ShieldAlert size={18} color="#5D3EBC" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', lineHeight: 1.45 }}>
-                      <strong>Karabük KYK Teslimatı:</strong> Teslimatlar kuryemiz tarafından <u>Yurt Önünde / Ana Giriş Kapısında</u> elden yapılır.
+                      {t('dormDeliveryNotice', 'Karabük KYK Teslimatı: Teslimatlar kuryemiz tarafından Yurt Önünde / Ana Giriş Kapısında elden yapılır.')}
                     </span>
                   </div>
 
                   {/* Dormitory Dropdown Selection */}
                   <div className="form-group">
-                    <label className="form-label">Yurdunuzu Seçiniz *</label>
+                    <label className="form-label">{t('selectDormLabel', 'Yurdunuzu Seçiniz *')}</label>
                     <select
                       className="form-input"
                       value={selectedDormId}
@@ -859,13 +863,13 @@ export const AddressModal = () => {
                   >
                     <CheckCircle2 size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
                     <div style={{ fontSize: '12px', color: '#166534', lineHeight: 1.45 }}>
-                      <strong>Yurtta blok ve oda bilgisine gerek yoktur!</strong> Kuryemiz siparişinizi yurdun önüne getirdiğinde sizi doğrudan telefonla arayacaktır.
+                      {t('dormPhoneNotice', 'Yurtta blok ve oda bilgisine gerek yoktur! Kuryemiz siparişinizi yurdun önüne getirdiğinde sizi doğrudan telefonla arayacaktır.')}
                     </div>
                   </div>
 
                   {/* Delivery Note Presets */}
                   <div className="form-group">
-                    <label className="form-label">Kurye Notu</label>
+                    <label className="form-label">{t('courierNoteLabel', 'Kurye Notu')}</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
                       {DELIVERY_PRESET_NOTES.map((note) => (
                         <label
@@ -904,12 +908,12 @@ export const AddressModal = () => {
                         onClick={() => setIsAddingNew(false)}
                         style={{ flex: 1 }}
                       >
-                        Vazgeç
+                        {t('cancelBtn', 'Vazgeç')}
                       </button>
                     )}
                     <button type="submit" className="btn-primary" style={{ flex: 2 }}>
                       <Check size={16} />
-                      <span>Bu Yurdu Kaydet &amp; Seç</span>
+                      <span>{t('saveDormBtn', 'Bu Yurdu Kaydet & Seç')}</span>
                     </button>
                   </div>
                 </form>
@@ -918,16 +922,16 @@ export const AddressModal = () => {
                 <form onSubmit={handleSaveHomeAddress}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#DC2626', fontWeight: 700, marginBottom: '10px' }}>
                     <AlertCircle size={14} />
-                    <span>Kırmızı (*) işaretli sokak, bina ve daire bilgileri ZORUNLUDUR.</span>
+                    <span>{t('mapRequiredFieldsNotice', 'Kırmızı (*) işaretli kısımlar kurye teslimatı için ZORUNLUDUR.')}</span>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div className="form-group">
-                      <label className="form-label">Adres Başlığı *</label>
+                      <label className="form-label">{t('addressTitleLabel', 'Adres Başlığı *')}</label>
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Örn: 100. Yıl Evim, Ofisim"
+                        placeholder={t('addressTitlePlaceholder', 'Örn: 100. Yıl Evim, Ofisim')}
                         value={homeTitle}
                         onChange={(e) => setHomeTitle(e.target.value)}
                         required
@@ -935,7 +939,7 @@ export const AddressModal = () => {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Mahalle / Semt *</label>
+                      <label className="form-label">{t('districtLabel', 'Mahalle / Semt *')}</label>
                       <select
                         className="form-input"
                         value={homeDistrict}
@@ -955,12 +959,12 @@ export const AddressModal = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '10px' }}>
                     <div className="form-group">
                       <label className="form-label" style={{ color: '#9F1239', fontWeight: 800 }}>
-                        Cadde / Sokak İsmi * (Zorunlu)
+                        {t('streetLabel', 'Cadde / Sokak İsmi * (Zorunlu)')}
                       </label>
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Örn: 1002. Cadde veya Şafak Sokak"
+                        placeholder={t('streetPlaceholder', 'Örn: 1002. Cadde veya Şafak Sokak')}
                         value={homeStreetName}
                         onChange={(e) => setHomeStreetName(e.target.value)}
                         required
@@ -970,12 +974,12 @@ export const AddressModal = () => {
 
                     <div className="form-group">
                       <label className="form-label" style={{ color: '#9F1239', fontWeight: 800 }}>
-                        Bina / Apartman No * (Zorunlu)
+                        {t('buildingLabel', 'Bina / Apartman No * (Zorunlu)')}
                       </label>
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Örn: No: 14 veya Kardelen Apt."
+                        placeholder={t('buildingPlaceholder', 'Örn: No: 14 veya Güneş Apt.')}
                         value={homeBuildingNumber}
                         onChange={(e) => setHomeBuildingNumber(e.target.value)}
                         required
@@ -987,11 +991,11 @@ export const AddressModal = () => {
                   {/* Floor & Apartment Number (Zorunlu) */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div className="form-group">
-                      <label className="form-label">Kat (İsteğe Bağlı)</label>
+                      <label className="form-label">{t('floorLabel', 'Kat (İsteğe Bağlı)')}</label>
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Örn: Kat: 2 veya 3. Kat"
+                        placeholder={t('floorPlaceholder', 'Örn: Kat: 2 veya 3. Kat')}
                         value={homeFloorNumber}
                         onChange={(e) => setHomeFloorNumber(e.target.value)}
                       />
@@ -999,12 +1003,12 @@ export const AddressModal = () => {
 
                     <div className="form-group">
                       <label className="form-label" style={{ color: '#9F1239', fontWeight: 800 }}>
-                        Daire / Kapı No * (Zorunlu)
+                        {t('apartmentLabel', 'Daire / Kapı No * (Zorunlu)')}
                       </label>
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Örn: Daire: 6 veya No: 8"
+                        placeholder={t('apartmentPlaceholder', 'Örn: Daire: 6 veya No: 8')}
                         value={homeApartmentNumber}
                         onChange={(e) => setHomeApartmentNumber(e.target.value)}
                         required
@@ -1014,22 +1018,22 @@ export const AddressModal = () => {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Adres Tarifi / Ek Detay (İsteğe Bağlı)</label>
+                    <label className="form-label">{t('addressDetailLabel', 'Adres Tarifi / Bina Özelliği (İsteğe Bağlı)')}</label>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Örn: Şok marketin karşısındaki sarı bina, A Blok"
+                      placeholder={t('addressDetailPlaceholder', 'Örn: Şok marketin karşısındaki sarı bina, A Blok')}
                       value={homeAddressDetail}
                       onChange={(e) => setHomeAddressDetail(e.target.value)}
                     />
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Kuryeye Not (İsteğe Bağlı)</label>
+                    <label className="form-label">{t('courierNoteLabel', 'Kuryeye Not')}</label>
                     <input
                       type="text"
                       className="form-input"
-                      placeholder="Zile basmayın, gelince arayın vb."
+                      placeholder={t('courierNotePlaceholder', 'Zile basmayın, gelince arayın vb.')}
                       value={courierNote}
                       onChange={(e) => setCourierNote(e.target.value)}
                     />
@@ -1043,12 +1047,12 @@ export const AddressModal = () => {
                         onClick={() => setIsAddingNew(false)}
                         style={{ flex: 1 }}
                       >
-                        Vazgeç
+                        {t('cancelBtn', 'Vazgeç')}
                       </button>
                     )}
                     <button type="submit" className="btn-primary" style={{ flex: 2 }}>
                       <Check size={16} />
-                      <span>Adresi Kaydet &amp; Seç</span>
+                      <span>{t('saveAddressBtn', 'Adresi Kaydet & Seç')}</span>
                     </button>
                   </div>
                 </form>

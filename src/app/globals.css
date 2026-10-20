@@ -2483,6 +2483,181 @@ input, textarea, select {
   transform: scale(0.97);
 }
 
+/* ==========================================================================
+   BENTO CATEGORY & HOT TOST HERO SHOWCASE
+   ========================================================================== */
+.bento-showcase-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .bento-showcase-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bento-showcase-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+.bento-card-hero {
+  grid-column: 1 / -1;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 45%, #FED7AA 100%);
+  border: 2px solid #FDBA74;
+  box-shadow: 0 10px 30px -6px rgba(234, 88, 12, 0.18);
+  padding: 18px 22px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1024px) {
+  .bento-card-hero {
+    grid-column: span 2;
+    padding: 22px 26px;
+  }
+}
+
+.bento-card-hero:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 36px -6px rgba(234, 88, 12, 0.25);
+}
+
+.bento-sub-card {
+  border-radius: 18px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  box-sizing: border-box;
+  text-decoration: none;
+  color: inherit;
+  min-height: 160px;
+}
+
+.bento-sub-card:hover {
+  transform: translateY(-3px);
+}
+
+@keyframes flamePulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(234, 88, 12, 0.4));
+  }
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 6px rgba(234, 88, 12, 0.8));
+  }
+}
+
+.flame-anim {
+  display: inline-block;
+  animation: flamePulse 2s ease-in-out infinite;
+}
+
+.bento-pill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.bento-pill:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.97);
+}
+
+/* ==========================================================================
+   RTL (RIGHT-TO-LEFT) SUPPORT FOR ARABIC (AR)
+   ========================================================================== */
+html[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir="rtl"] body {
+  direction: rtl;
+  text-align: right;
+}
+
+html[dir="rtl"] .header-inner,
+html[dir="rtl"] .header-actions,
+html[dir="rtl"] .sheet-header,
+html[dir="rtl"] .sheet-footer,
+html[dir="rtl"] .dock-container,
+html[dir="rtl"] .trendyol-card-inner,
+html[dir="rtl"] .floating-cart-bar {
+  direction: rtl;
+}
+
+/* Invert directional arrows and chevrons in RTL */
+html[dir="rtl"] .rtl-flip,
+html[dir="rtl"] svg.lucide-arrow-right,
+html[dir="rtl"] svg.lucide-chevron-right {
+  transform: scaleX(-1);
+}
+
+html[dir="rtl"] svg.lucide-arrow-left,
+html[dir="rtl"] svg.lucide-chevron-left {
+  transform: scaleX(-1);
+}
+
+/* Modal and bottom-sheet alignments */
+html[dir="rtl"] .sheet-title {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Form inputs in RTL */
+html[dir="rtl"] input:not([type="tel"]):not([type="number"]):not(.ltr-force),
+html[dir="rtl"] select,
+html[dir="rtl"] textarea {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Phone and numbers keep LTR readability */
+html[dir="rtl"] input[type="tel"],
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] .ltr-force {
+  direction: ltr !important;
+  text-align: left;
+}
+
+/* Language selector dropdown positioning in RTL */
+html[dir="rtl"] .lang-selector-menu {
+  right: auto !important;
+  left: 0 !important;
+}
+
+/* App Toast in RTL */
+html[dir="rtl"] .app-toast {
+  direction: rtl;
+  text-align: right;
+}
+
+
 
 
 

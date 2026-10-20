@@ -366,6 +366,22 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             </div>
 
             <div>
+              <label style={{ fontSize: '12px', fontWeight: 700, color: '#4338CA', display: 'block', marginBottom: '4px' }}>
+                🛠️ Yazılım &amp; Teknik Destek WhatsApp Numarası (Geliştirici Hattı: 905...)
+              </label>
+              <input
+                type="text"
+                placeholder="905550000000"
+                value={settings.techSupportWhatsApp || ''}
+                onChange={(e) => setSettings({ ...settings, techSupportWhatsApp: e.target.value })}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1.5px solid #C7D2FE', fontSize: '13px', backgroundColor: '#F5F3FF' }}
+              />
+              <span style={{ fontSize: '11px', color: '#6366F1', marginTop: '3px', display: 'block' }}>
+                Uygulama arızası, hata veya donma yaşayan müşteriler &ldquo;Teknik Destek&rdquo; ile doğrudan bu numaraya WhatsApp mesajı atar.
+              </span>
+            </div>
+
+            <div>
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
                 Büfe Açık Adresi
               </label>

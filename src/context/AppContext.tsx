@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef } from 'react';
-import { Product, CartItem, UserProfile, Address, Order, OrderStatus, PaymentMethod, SystemSettings, Campaign } from '@/types';
+import { Product, CartItem, UserProfile, Address, Order, OrderStatus, PaymentMethod, SystemSettings, Campaign, BannedUser, Coupon } from '@/types';
+import { Locale, DEFAULT_LOCALE, getTranslation } from '@/lib/i18n';
 import { audioAlert } from '@/lib/audioAlert';
 import { showLocalNotification, requestNotificationPermission } from '@/lib/pushNotifications';
 import {
@@ -9,6 +10,8 @@ import {
   saveOrder,
   subscribeToOrders,
   isPhoneBanned,
+  getBannedUserInfo,
+  fetchBannedUsers,
   getStoredProducts,
   fetchProducts,
   fetchOrders,
@@ -33,6 +36,8 @@ import {
   getActiveBundleDeals,
   isStoreOpen,
   formatTemplate,
+  getCoupons,
+  validateCoupon,
 } from '@/lib/settingsManager';
 import confetti from 'canvas-confetti';
 import {
@@ -67,6 +72,12 @@ interface AppContextType {
   isFreeDeliveryCampaign?: boolean;
   isBundleCampaignApplied?: boolean;
   finalTotal: number;
+
+  // Coupons & VIP Rewards
+  appliedCoupon: Coupon | null;
+  applyCouponCode: (code: string) => { success: boolean; message: string; discount: number };
+  removeCoupon: () => void;
+  coupons: Coupon[];
 
   // Products & Dynamic Settings
   products: Product[];
@@ -106,6 +117,20 @@ interface AppContextType {
   setIsAuthModalOpen: (open: boolean) => void;
   isProfileModalOpen: boolean;
   setIsProfileModalOpen: (open: boolean) => void;
+  isSupportModalOpen: boolean;
+  setIsSupportModalOpen: (open: boolean) => void;
+  bannedModalInfo: BannedUser | null;
+  setBannedModalInfo: (info: BannedUser | null) => void;
+
+  // i18n Multi-Language
+  locale: Locale;
+  setLocale: (loc: Locale) => void;
+  t: (
+    key: string,
+    fallbackOrParams?: string | Record<string, string | number>,
+    params?: Record<string, string | number>
+  ) => string;
+  dir: 'ltr' | 'rtl';
 
   // Store status
   storeOpen: boolean;
@@ -160,16 +185,55 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [bannedModalInfo, setBannedModalInfo] = useState<BannedUser | null>(null);
+  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('caglabufe_locale') as Locale;
+      if (saved && ['tr', 'en', 'ru', 'ar', 'fr'].includes(saved)) {
+        setLocaleState(saved);
+        document.documentElement.lang = saved;
+        document.documentElement.dir = saved === 'ar' ? 'rtl' : 'ltr';
+      }
+    }
+  }, []);
+
+  const setLocale = (newLocale: Locale) => {
+    setLocaleState(newLocale);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('caglabufe_locale', newLocale);
+      document.documentElement.lang = newLocale;
+      document.documentElement.dir = newLocale === 'ar' ? 'rtl' : 'ltr';
+    }
+  };
+
+  const dir: 'ltr' | 'rtl' = locale === 'ar' ? 'rtl' : 'ltr';
+  const t = (
+    key: string,
+    fallbackOrParams?: string | Record<string, string | number>,
+    params?: Record<string, string | number>
+  ) => getTranslation(locale, key, fallbackOrParams, params);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressIdState] = useState<string>('');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const showToast = (message: string, type: Toast['type'] = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 3500);
+  };
   const [storeOpen, setStoreOpen] = useState(true);
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(getSystemSettings);
   const [products, setProducts] = useState<Product[]>(getStoredProducts);
   const [campaigns, setCampaigns] = useState<Campaign[]>(getCampaigns);
+  const [coupons, setCoupons] = useState<Coupon[]>(getCoupons);
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
   const lastKnownStatusRef = useRef<Record<string, OrderStatus>>({});
 
   const userRef = useRef(user);
@@ -429,6 +493,93 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Oturumu açık kullanıcının kara listede olup olmadığını kontrol et (Giriş, açılış, Supabase çekimi & anlık yayınlar)
+  useEffect(() => {
+    const checkBanForUser = (targetPhone?: string) => {
+      const phoneToCheck = targetPhone || user?.phone;
+      if (!phoneToCheck) return;
+      const clean = normalizePhoneNumber(phoneToCheck);
+      if (isPhoneBanned(clean)) {
+        const info = getBannedUserInfo(clean);
+        setBannedModalInfo(
+          info || {
+            id: 'ban_' + clean,
+            phone: clean,
+            name: user?.fullName || 'Müşteri',
+            reason: 'Kötü niyetli sipariş / Güvenlik ihlali',
+            bannedAt: new Date().toISOString(),
+          }
+        );
+      }
+    };
+
+    // 1. Yerel veriden anlık kontrol et
+    checkBanForUser();
+
+    // 2. Uzak Supabase kara listesini arka planda senkronize et
+    fetchBannedUsers().then((list) => {
+      if (!user?.phone) return;
+      const clean = normalizePhoneNumber(user.phone);
+      const match = list.find((b) => normalizePhoneNumber(b.phone) === clean);
+      if (match) {
+        setBannedModalInfo(match);
+      }
+    }).catch(() => {});
+
+    // 3. Sekmeler & pencereler arası anlık senkronizasyon dinleyicileri
+    const handleCustomBanned = (event: Event) => {
+      const customEvent = event as CustomEvent<{ type: 'BAN' | 'UNBAN'; ban?: BannedUser; phone?: string }>;
+      if (!customEvent.detail) return;
+      if (customEvent.detail.type === 'BAN' && customEvent.detail.ban) {
+        if (user?.phone && normalizePhoneNumber(customEvent.detail.ban.phone) === normalizePhoneNumber(user.phone)) {
+          setBannedModalInfo(customEvent.detail.ban);
+        }
+      } else if (customEvent.detail.type === 'UNBAN' && customEvent.detail.phone) {
+        if (user?.phone && normalizePhoneNumber(customEvent.detail.phone) === normalizePhoneNumber(user.phone)) {
+          setBannedModalInfo(null);
+        }
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'caglabufe_banned_users_v1') {
+        checkBanForUser();
+      }
+    };
+
+    window.addEventListener('caglabufe_banned_event', handleCustomBanned);
+    window.addEventListener('storage', handleStorageChange);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('caglabufe_security_channel');
+        bc.onmessage = (msgEvent) => {
+          const data = msgEvent.data;
+          if (data?.type === 'BAN' && data.ban) {
+            if (user?.phone && normalizePhoneNumber(data.ban.phone) === normalizePhoneNumber(user.phone)) {
+              setBannedModalInfo(data.ban);
+            }
+          } else if (data?.type === 'UNBAN' && data.phone) {
+            if (user?.phone && normalizePhoneNumber(data.phone) === normalizePhoneNumber(user.phone)) {
+              setBannedModalInfo(null);
+            }
+          }
+        };
+      }
+    } catch {}
+
+    return () => {
+      window.removeEventListener('caglabufe_banned_event', handleCustomBanned);
+      window.removeEventListener('storage', handleStorageChange);
+      if (bc) {
+        try {
+          bc.close();
+        } catch {}
+      }
+    };
+  }, [user]);
+
   // Realtime order updates & status notifications (single stable subscription)
   useEffect(() => {
     const unsubscribe = subscribeToOrders((updatedOrder) => {
@@ -553,14 +704,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return changed ? validItems : prevCart;
     });
   }, [products]);
-
-  const showToast = (message: string, type: Toast['type'] = 'info') => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3500);
-  };
 
   // --- CART ---
   const addToCart = (product: Product, options?: Record<string, string>, note?: string) => {
@@ -693,11 +836,48 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [cart, cartTotal, zoneCalc.deliveryFee, freeDeliveryThreshold, campaigns]);
 
-  const discountAmount = singleCampaignResult.discountAmount;
-  const appliedCampaignTitle = singleCampaignResult.appliedCampaignTitle;
-  const appliedCampaignDescription = singleCampaignResult.campaignDescription;
+  // Coupon Discount
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon || cartTotal <= 0) return 0;
+    if (appliedCoupon.minOrderAmount && cartTotal < appliedCoupon.minOrderAmount) return 0;
+    let disc = 0;
+    if (appliedCoupon.discountType === 'percentage') {
+      disc = (cartTotal * appliedCoupon.discountValue) / 100;
+    } else {
+      disc = appliedCoupon.discountValue;
+    }
+    if (appliedCoupon.maxDiscount && disc > appliedCoupon.maxDiscount) {
+      disc = appliedCoupon.maxDiscount;
+    }
+    return Math.min(cartTotal, Math.round(disc * 100) / 100);
+  }, [appliedCoupon, cartTotal]);
+
+  const discountAmount = Math.max(singleCampaignResult.discountAmount, couponDiscount);
+  const appliedCampaignTitle = appliedCoupon
+    ? appliedCoupon.title
+    : singleCampaignResult.appliedCampaignTitle;
+  const appliedCampaignDescription = appliedCoupon
+    ? appliedCoupon.description
+    : singleCampaignResult.campaignDescription;
   const isFreeDeliveryCampaign = singleCampaignResult.isFreeDeliveryCampaign;
   const isBundleCampaignApplied = singleCampaignResult.isBundleApplied;
+
+  const applyCouponCode = (code: string) => {
+    const res = validateCoupon(code, cartTotal, user?.phone);
+    if (res.valid && res.coupon) {
+      setAppliedCoupon(res.coupon);
+      showToast(res.message, 'success');
+      return { success: true, message: res.message, discount: res.discountAmount };
+    } else {
+      showToast(res.message, 'error');
+      return { success: false, message: res.message, discount: 0 };
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    showToast('Kupon kaldırıldı.', 'info');
+  };
 
   // Delivery fee: Free if standard zone threshold is reached OR if winning campaign is free_delivery!
   const deliveryFee =
@@ -712,7 +892,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const loginUser = (fullName: string, phone: string, initialAddresses?: Address[]) => {
     const cleanPhone = normalizePhoneNumber(phone);
     if (isPhoneBanned(cleanPhone)) {
-      showToast('Bu telefon numarası askıya alınmıştır.', 'error');
+      const info = getBannedUserInfo(cleanPhone);
+      setBannedModalInfo(
+        info || {
+          id: 'ban_' + cleanPhone,
+          phone: cleanPhone,
+          name: fullName.trim() || 'Müşteri',
+          reason: t('bannedDefaultReason', 'Kötü niyetli sipariş / Güvenlik ihlali'),
+          bannedAt: new Date().toISOString(),
+        }
+      );
+      setIsAuthModalOpen(false);
       return;
     }
     const safeName = sanitizeInput(fullName.trim() || 'Müşteri');
@@ -836,7 +1026,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const cleanUserPhone = normalizePhoneNumber(user.phone);
     if (isPhoneBanned(cleanUserPhone)) {
-      showToast('Hesabınız askıya alınmıştır.', 'error');
+      const info = getBannedUserInfo(cleanUserPhone);
+      setBannedModalInfo(
+        info || {
+          id: 'ban_' + cleanUserPhone,
+          phone: cleanUserPhone,
+          name: user.fullName || 'Müşteri',
+          reason: t('bannedDefaultReason', 'Kötü niyetli sipariş / Güvenlik ihlali'),
+          bannedAt: new Date().toISOString(),
+        }
+      );
       return null;
     }
 
@@ -993,6 +1192,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         deliveryFee, discountAmount, appliedCampaignTitle,
         appliedCampaignDescription, isFreeDeliveryCampaign, isBundleCampaignApplied,
         finalTotal,
+        appliedCoupon, applyCouponCode, removeCoupon, coupons,
         products, refreshProducts, systemSettings,
         campaigns, activeCampaigns, bundleDeals, refreshCampaigns,
         user, loginUser, logoutUser,
@@ -1002,6 +1202,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         isAddressModalOpen, setIsAddressModalOpen,
         isAuthModalOpen, setIsAuthModalOpen,
         isProfileModalOpen, setIsProfileModalOpen,
+        isSupportModalOpen, setIsSupportModalOpen,
+        bannedModalInfo, setBannedModalInfo,
+        locale, setLocale, t, dir,
         storeOpen,
         toasts, showToast,
       }}

@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useApp } from '@/context/AppContext';
 import { sendSmsOtp, verifySmsOtp } from '@/lib/smsService';
-import { findProfileByPhone } from '@/lib/supabase';
+import { findProfileByPhone, isPhoneBanned, getBannedUserInfo } from '@/lib/supabase';
+import { normalizePhoneNumber } from '@/lib/security';
 import { Address } from '@/types';
 import {
   X,
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export const AuthModal = () => {
-  const { isAuthModalOpen, setIsAuthModalOpen, loginUser, showToast } = useApp();
+  const { isAuthModalOpen, setIsAuthModalOpen, loginUser, showToast, setBannedModalInfo, t, dir } = useApp();
 
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [fullName, setFullName] = useState('');
@@ -72,14 +73,30 @@ export const AuthModal = () => {
 
     const cleanPhone = phone.replace(/\D/g, '');
     if (cleanPhone.length < 10) {
-      showToast('Lütfen geçerli bir telefon numarası giriniz (05XX XXX XX XX).', 'warning');
+      showToast(t('validPhoneWarning', 'Lütfen geçerli bir telefon numarası giriniz (05XX XXX XX XX).'), 'warning');
       return;
     }
 
     // Eğer ad soyad girilmemişse uyar
     const effectiveName = fullName.trim();
     if (!effectiveName) {
-      showToast('Lütfen siparişleriniz için adınızı ve soyadınızı giriniz.', 'warning');
+      showToast(t('nameRequiredWarning', 'Lütfen siparişleriniz için adınızı ve soyadınızı giriniz.'), 'warning');
+      return;
+    }
+
+    const clean = normalizePhoneNumber(phone);
+    if (isPhoneBanned(clean)) {
+      const info = getBannedUserInfo(clean);
+      setBannedModalInfo(
+        info || {
+          id: 'ban_' + clean,
+          phone: clean,
+          name: effectiveName,
+          reason: t('bannedDefaultReason', 'Kötü niyetli sipariş / Güvenlik ihlali'),
+          bannedAt: new Date().toISOString(),
+        }
+      );
+      setIsAuthModalOpen(false);
       return;
     }
 
@@ -90,20 +107,20 @@ export const AuthModal = () => {
         setDebugOtp(res.debugCode || '1234');
         setStep('otp');
         setResendCooldown(30);
-        showToast('Yeni tek kullanımlık SMS şifreniz iletildi!', 'success');
+        showToast(t('otpSentSuccess', 'Yeni tek kullanımlık SMS şifreniz iletildi!'), 'success');
       } else {
         showToast(res.message, 'error');
       }
     } finally {
       setIsLoading(false);
     }
-  }, [phone, fullName, showToast]);
+  }, [phone, fullName, showToast, t, setBannedModalInfo, setIsAuthModalOpen]);
 
   // SMS ile gelen tek kullanımlık şifreyi doğrula
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otpCode.length < 4) {
-      showToast('Lütfen 4 haneli SMS şifresini giriniz.', 'warning');
+      showToast(t('enter4DigitsWarning', 'Lütfen 4 haneli SMS şifresini giriniz.'), 'warning');
       return;
     }
 
@@ -124,11 +141,13 @@ export const AuthModal = () => {
         setIsLoading(false);
       }
     } else {
-      showToast('Hatalı veya süresi dolmuş SMS şifresi! Tekrar deneyiniz.', 'error');
+      showToast(t('invalidOtpError', 'Hatalı veya süresi dolmuş SMS şifresi! Tekrar deneyiniz.'), 'error');
     }
   };
 
   if (!isAuthModalOpen) return null;
+
+  const isRtl = dir === 'rtl';
 
   return (
     <div className="modal-overlay" onClick={() => setIsAuthModalOpen(false)}>
@@ -150,13 +169,14 @@ export const AuthModal = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#5D3EBC',
+                flexShrink: 0,
               }}
             >
               <Lock size={18} />
             </div>
             <div>
               <span style={{ fontSize: '16px', fontWeight: 800, color: '#1f2937' }}>
-                Hızlı SMS Girişi
+                {t('authTitle', 'Hızlı SMS Girişi')}
               </span>
               <span
                 style={{
@@ -167,7 +187,7 @@ export const AuthModal = () => {
                   marginTop: '1px',
                 }}
               >
-                ✨ Sabit şifre yok • Her seferinde tek kullanımlık SMS
+                {t('authSubtitle', '✨ Sabit şifre yok • Her seferinde tek kullanımlık SMS')}
               </span>
             </div>
           </div>
@@ -195,14 +215,14 @@ export const AuthModal = () => {
               >
                 <Sparkles size={20} color="#5D3EBC" style={{ flexShrink: 0, marginTop: '2px' }} />
                 <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
-                  <strong>Kullanımı çok kolay!</strong> Şifre ezberlemenize gerek yok. Telefon numaranızı girin, her seferinde cebinize gelen tek kullanımlık SMS şifresi ile anında bağlanın.
+                  {t('authEasyHelp', 'Kullanımı çok kolay! Şifre ezberlemenize gerek yok. Telefon numaranızı girin, her seferinde cebinize gelen tek kullanımlık SMS şifresi ile anında bağlanın.')}
                 </div>
               </div>
 
               {/* Telefon Numarası */}
               <div className="form-group" style={{ marginBottom: '14px' }}>
                 <label className="form-label" style={{ fontWeight: 700, fontSize: '13px' }}>
-                  Telefon Numaranız <span style={{ color: '#ef4444' }}>*</span>
+                  {t('phoneLabel', 'Telefon Numaranız')} <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
@@ -216,7 +236,10 @@ export const AuthModal = () => {
                       fontSize: '16px',
                       fontWeight: 700,
                       letterSpacing: '1px',
-                      paddingLeft: '40px',
+                      paddingLeft: isRtl ? '14px' : '40px',
+                      paddingRight: isRtl ? '40px' : '14px',
+                      direction: 'ltr',
+                      textAlign: isRtl ? 'right' : 'left',
                     }}
                     autoFocus
                     required
@@ -224,11 +247,16 @@ export const AuthModal = () => {
                   <Smartphone
                     size={18}
                     color="#94a3b8"
-                    style={{ position: 'absolute', left: '12px', top: '14px' }}
+                    style={{
+                      position: 'absolute',
+                      left: isRtl ? 'auto' : '12px',
+                      right: isRtl ? '12px' : 'auto',
+                      top: '14px',
+                    }}
                   />
                 </div>
                 <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                  Turkcell, Vodafone ve Türk Telekom hatlarına anında SMS ulaşır.
+                  {t('phoneHint', 'Turkcell, Vodafone ve Türk Telekom hatlarına anında SMS ulaşır.')}
                 </span>
               </div>
 
@@ -249,10 +277,10 @@ export const AuthModal = () => {
                   <CheckCircle2 size={20} color="#059669" style={{ flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: '12px', color: '#065f46', fontWeight: 800 }}>
-                      Kayıtlı Müşteri Tanındı
+                      {t('registeredCustomerFound', 'Kayıtlı Müşteri Tanındı')}
                     </div>
                     <div style={{ fontSize: '14px', color: '#047857', fontWeight: 700 }}>
-                      Hoş geldiniz, {recognizedName}!
+                      {t('welcomeUser', 'Hoş geldiniz, {name}!', { name: recognizedName })}
                     </div>
                   </div>
                 </div>
@@ -260,18 +288,18 @@ export const AuthModal = () => {
                 /* Yeni Müşteri için İsim Alanı */
                 <div className="form-group" style={{ marginBottom: '16px' }}>
                   <label className="form-label" style={{ fontWeight: 700, fontSize: '13px' }}>
-                    Adınız ve Soyadınız <span style={{ color: '#ef4444' }}>*</span>
+                    {t('fullNameLabel', 'Adınız ve Soyadınız')} <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Örn: Ahmet Yılmaz"
+                    placeholder={t('fullNamePlaceholder', 'Örn: Ahmet Yılmaz')}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     required
                   />
                   <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
-                    Kuryemizin ve sipariş fişinin size ait olduğunu belirtmesi için gereklidir.
+                    {t('fullNameHint', 'Kuryemizin ve sipariş fişinin size ait olduğunu belirtmesi için gereklidir.')}
                   </span>
                 </div>
               )}
@@ -293,11 +321,11 @@ export const AuthModal = () => {
                 }}
               >
                 {isLoading ? (
-                  <span>Şifre Gönderiliyor...</span>
+                  <span>{t('sendingOtp', 'Şifre Gönderiliyor...')}</span>
                 ) : (
                   <>
-                    <span>Tek Kullanımlık Şifre Gönder</span>
-                    <ArrowRight size={18} />
+                    <span>{t('sendOtpBtn', 'Tek Kullanımlık Şifre Gönder')}</span>
+                    <ArrowRight size={18} style={{ transform: isRtl ? 'scaleX(-1)' : 'none' }} />
                   </>
                 )}
               </button>
@@ -322,14 +350,14 @@ export const AuthModal = () => {
                   <ShieldCheck size={32} />
                 </div>
                 <h4 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '6px', color: '#111827' }}>
-                  SMS Şifrenizi Giriniz
+                  {t('enterOtpTitle', 'SMS Şifrenizi Giriniz')}
                 </h4>
                 <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.4 }}>
-                  <strong>{phone}</strong> numarasına gönderilen 4 haneli tek kullanımlık giriş şifrenizi giriniz.
+                  {t('enterOtpDesc', '{phone} numarasına gönderilen 4 haneli tek kullanımlık giriş şifrenizi giriniz.', { phone })}
                 </p>
               </div>
 
-              {/* Demo / Test Modu Şifre Bilgisi (SMS Gateway yoksa kullanıcıyı tıkamaz) */}
+              {/* Demo / Test Modu Şifre Bilgisi */}
               {debugOtp && (
                 <div
                   onClick={() => setOtpCode(debugOtp)}
@@ -345,13 +373,13 @@ export const AuthModal = () => {
                   title="Tek tıkla doldurmak için tıklayınız"
                 >
                   <div style={{ fontSize: '11px', color: '#6D28D9', fontWeight: 700 }}>
-                    🧪 Test &amp; Doğrulama Şifreniz (Tıkla Doldur):
+                    {t('testOtpBannerTitle', '🧪 Test & Doğrulama Şifreniz (Tıkla Doldur):')}
                   </div>
                   <div style={{ fontSize: '22px', fontWeight: 900, color: '#5D3EBC', letterSpacing: '6px', marginTop: '3px' }}>
                     {debugOtp}
                   </div>
                   <div style={{ fontSize: '10px', color: '#7C3AED', marginTop: '2px' }}>
-                    (SMS gelmediyse bu kodu veya <strong>1234</strong> yazıp giriş yapabilirsiniz)
+                    {t('testOtpBannerSub', '(SMS gelmediyse bu kodu veya 1234 yazıp giriş yapabilirsiniz)')}
                   </div>
                 </div>
               )}
@@ -371,6 +399,7 @@ export const AuthModal = () => {
                     borderRadius: '14px',
                     border: '2px solid #5D3EBC',
                     backgroundColor: '#faf5ff',
+                    direction: 'ltr',
                   }}
                   placeholder="----"
                   value={otpCode}
@@ -397,7 +426,7 @@ export const AuthModal = () => {
                 }}
               >
                 <CheckCircle2 size={18} />
-                <span>Onayla ve Giriş Yap</span>
+                <span>{t('verifyOtpBtn', 'Onayla ve Giriş Yap')}</span>
               </button>
 
               {/* Yeniden Gönder & Numara Değiştir */}
@@ -426,12 +455,12 @@ export const AuthModal = () => {
                     gap: '4px',
                   }}
                 >
-                  ← Numara Değiştir
+                  {t('changePhoneBtn', '← Numara Değiştir')}
                 </button>
 
                 {resendCooldown > 0 ? (
                   <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>
-                    Yeni şifre: {resendCooldown}s
+                    {t('resendCooldown', 'Yeni şifre: {seconds}s', { seconds: resendCooldown })}
                   </span>
                 ) : (
                   <button
@@ -450,7 +479,7 @@ export const AuthModal = () => {
                     }}
                   >
                     <RotateCcw size={12} />
-                    <span>Tekrar Yeni Şifre Gönder</span>
+                    <span>{t('resendOtpBtn', 'Tekrar Yeni Şifre Gönder')}</span>
                   </button>
                 )}
               </div>

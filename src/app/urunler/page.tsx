@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { ProductCard } from '@/components/ProductCard';
 import { useApp } from '@/context/AppContext';
-import { Product } from '@/types';
+import { Product, ProductCategory } from '@/types';
 import { DEPARTMENTS, getDepartmentById, findDepartmentForCategory } from '@/data/departments';
 import { CATEGORIES } from '@/data/categories';
 import { smartSearchProducts, SmartSearchResult } from '@/lib/searchEngine';
@@ -70,7 +70,7 @@ function ProductsPageContent() {
       }
     });
     const extraCats = Array.from(dynamicCats).map((cat) => ({
-      id: cat as any,
+      id: cat as ProductCategory,
       name: cat,
       description: `${cat} çeşitleri`,
     }));

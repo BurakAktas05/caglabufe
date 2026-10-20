@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const alt = 'Çağla Büfe & Market | Karabük & KYK Hızlı Sipariş';
 export const size = {
   width: 1200,
@@ -64,7 +64,10 @@ export default async function Image() {
         >
           <div
             style={{
-              fontSize: '64px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              fontSize: '60px',
               fontWeight: 900,
               lineHeight: 1.15,
               color: '#ffffff',
@@ -72,8 +75,8 @@ export default async function Image() {
               letterSpacing: '-1px',
             }}
           >
-            Karabük 100. Yıl & KYK Yurtlarına
-            <span style={{ color: '#FFD10D', marginLeft: '16px' }}>20-30 Dakikada</span>
+            <span>Karabük 100. Yıl &amp; KYK Yurtlarına</span>
+            <span style={{ color: '#FFD10D', marginTop: '8px' }}>20-30 Dakikada</span>
           </div>
 
           <div
@@ -143,9 +146,10 @@ export default async function Image() {
             fontSize: '20px',
             color: '#94a3b8',
             letterSpacing: '0.5px',
+            display: 'flex',
           }}
         >
-          caglabufe.com • Karabük Üniversitesi & 100. Yıl Mahallesi
+          <span>caglabufe.com • Karabük Üniversitesi &amp; 100. Yıl Mahallesi</span>
         </div>
       </div>
     ),
