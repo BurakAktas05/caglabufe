@@ -623,7 +623,7 @@ export default function AdminPage() {
         </main>
       </div>
 
-      {/* Railway Tarzı Otonom Operasyon Yapay Zeka Ajanı */}
+      {/* Operasyon Asistanı */}
       <AdminAIAssistant
         orders={orders}
         products={products}

@@ -64,7 +64,7 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
     {
       id: 'welcome',
       sender: 'assistant',
-      text: 'Selam! Ben Çağla AI Operasyon Ajanınız. Kuryeyken veya dükkandayken sesli ya da yazılı komut verebilirsiniz. Örneğin:\n• "Hubbi Hatun\'a giden son siparişi teslim edildi yap"\n• "500g yoğurt fiyatını 200 TL yap"\n• "KYK Yurtları min sepeti 80 TL yap"\n• "Dükkanı hemen aç"',
+      text: 'Selam! Ben Çağla Operasyon Asistanınız. Kuryeyken veya dükkandayken sesli ya da yazılı komut verebilirsiniz. Örneğin:\n• "Hubbi Hatun\'a giden son siparişi teslim edildi yap"\n• "500g yoğurt fiyatını 200 TL yap"\n• "Yurdun min tutarını artır"\n• "Dükkanı hemen aç"',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -208,14 +208,25 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
 
     if (tool === 'update_zone_min_order') {
       const zName = (args.zoneName || '').toLowerCase();
-      const matchedZone = zones.find((z) => z.name.toLowerCase().includes(zName));
+      const isDormZone = zName.includes('yurt') || zName.includes('kyk') || zName === '';
+      const matchedZone = zones.find((z) => {
+        const zn = z.name.toLowerCase();
+        if (isDormZone) return zn.includes('kyk') || zn.includes('yurt') || z.id === 'zone-kyk-yurtlari';
+        return zn.includes(zName);
+      }) || (isDormZone ? zones.find((z) => z.id === 'zone-kyk-yurtlari') : undefined);
 
       if (matchedZone) {
+        const currentMin = matchedZone.minOrderAmount || 60;
+        let targetMin = Number(args.minOrderAmount);
+        if (!targetMin || isNaN(targetMin) || targetMin <= currentMin) {
+          targetMin = currentMin + 10;
+        }
+
         onUpdateZone(matchedZone.id, {
-          minOrderAmount: Number(args.minOrderAmount) || matchedZone.minOrderAmount,
+          minOrderAmount: targetMin,
           deliveryFee: args.deliveryFee ? Number(args.deliveryFee) : matchedZone.deliveryFee,
         });
-        return `✅ "${matchedZone.name}" bölgesi min sepet tutarı ₺${args.minOrderAmount} olarak güncellendi.`;
+        return `✅ "${matchedZone.name}" bölgesi min sepet tutarı ₺${targetMin} olarak güncellendi.`;
       } else {
         return `⚠️ "${args.zoneName}" isimli teslimat bölgesi bulunamadı.`;
       }
@@ -223,15 +234,63 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
 
     if (tool === 'update_dorm_override') {
       const dName = (args.dormName || '').toLowerCase();
-      const matchedDorm = dorms.find((d) => d.name.toLowerCase().includes(dName));
+      const isGenericDorm =
+        dName.includes('yurt') ||
+        dName.includes('kyk') ||
+        dName === '' ||
+        dName.includes('tüm') ||
+        dName.includes('heps') ||
+        dName.includes('bölge');
+
+      if (isGenericDorm) {
+        const kykZone = zones.find(
+          (z) => z.id === 'zone-kyk-yurtlari' || z.name.toLowerCase().includes('kyk') || z.name.toLowerCase().includes('yurt')
+        );
+        const currentZoneMin = kykZone?.minOrderAmount || 60;
+        let targetMin = Number(args.minOrderAmount);
+        if (!targetMin || isNaN(targetMin) || targetMin <= currentZoneMin) {
+          targetMin = currentZoneMin + 10;
+        }
+
+        if (kykZone) {
+          onUpdateZone(kykZone.id, { minOrderAmount: targetMin });
+        }
+
+        dorms.forEach((d) => {
+          if (d.zoneId === 'zone-kyk-yurtlari' && d.minOrderAmount) {
+            onUpdateDorm(d.id, { minOrderAmount: targetMin });
+          }
+        });
+
+        return `✅ KYK Yurtları teslimat bölgesi ve yurtların minimum sepet tutarı ₺${targetMin} olarak güncellendi.`;
+      }
+
+      const matchedDorm = dorms.find((d) => {
+        const dn = d.name.toLowerCase();
+        return dn.includes(dName) || dName.includes(d.id);
+      });
 
       if (matchedDorm) {
+        const currentMin =
+          matchedDorm.minOrderAmount ||
+          zones.find((z) => z.id === matchedDorm.zoneId)?.minOrderAmount ||
+          60;
+        let targetMin = Number(args.minOrderAmount);
+        if (!targetMin || isNaN(targetMin) || targetMin <= currentMin) {
+          targetMin = currentMin + 10;
+        }
+
         onUpdateDorm(matchedDorm.id, {
-          minOrderAmount: args.minOrderAmount ? Number(args.minOrderAmount) : matchedDorm.minOrderAmount,
-          discountPercentage: args.discountPercentage !== undefined ? Number(args.discountPercentage) : matchedDorm.discountPercentage,
+          minOrderAmount: targetMin,
+          discountPercentage:
+            args.discountPercentage !== undefined
+              ? Number(args.discountPercentage)
+              : matchedDorm.discountPercentage,
           specialNote: args.specialNote || matchedDorm.specialNote,
         });
-        return `✅ "${matchedDorm.name}" yurduna özel min sepet: ₺${args.minOrderAmount || 'varsayılan'}, indirim: %${args.discountPercentage || 0} tanımlandı.`;
+        return `✅ "${matchedDorm.name}" yurduna özel min sepet: ₺${targetMin}${
+          args.discountPercentage ? `, indirim: %${args.discountPercentage}` : ''
+        } olarak tanımlandı.`;
       } else {
         return `⚠️ "${args.dormName}" isimli yurt bulunamadı.`;
       }
@@ -281,6 +340,18 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
       let actionLog = '';
       if (data.actionTaken) {
         actionLog = executeActionLocally(data.actionTaken);
+      } else {
+        // Fallback for direct Turkish operational phrases if tool call was omitted by LLM
+        const lowerPrompt = textToSend.toLowerCase();
+        if (
+          (lowerPrompt.includes('yurt') || lowerPrompt.includes('kyk')) &&
+          (lowerPrompt.includes('artır') || lowerPrompt.includes('yükselt') || lowerPrompt.includes('zam') || lowerPrompt.includes('min') || lowerPrompt.includes('sepet'))
+        ) {
+          actionLog = executeActionLocally({
+            tool: 'update_dorm_override',
+            arguments: { dormName: 'yurt' },
+          });
+        }
       }
 
       const assistantMsg: ChatMessage = {
@@ -308,99 +379,55 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
   };
 
   const quickPrompts = [
-    { label: '🚀 Hubbi Hatun son siparişi teslim edildi yap', text: 'Hubbi Hatun yurduna giden son siparişi teslim edildi yap' },
+    { label: '🚀 Hubbi Hatun son siparişi teslim et', text: 'Hubbi Hatun yurduna giden son siparişi teslim edildi yap' },
+    { label: '📈 Yurdun min tutarını artır (+10₺)', text: 'Yurdun min tutarını artır' },
     { label: '🥛 Yoğurt fiyatını 200 TL yap', text: 'Yoğurt fiyatını 200 TL yap' },
-    { label: '🏢 KYK Yurtları min sepeti 80 TL yap', text: 'KYK Yurtları bölgesinin min sepet tutarını 80 TL yap' },
     { label: '🏪 Dükkanı hemen aç', text: 'Çağla Büfe dükkanını hemen aç' },
   ];
 
   return (
     <>
-      {/* Floating Railway-Style Trigger Button */}
+      {/* Floating Trigger Button */}
       {!isOpen && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '12px 18px',
-            borderRadius: '24px',
-            backgroundColor: '#0F172A',
-            color: '#FFFFFF',
-            border: '1.5px solid #334155',
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.4), 0 0 20px rgba(93, 62, 188, 0.4)',
-            cursor: 'pointer',
-            transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-            backdropFilter: 'blur(8px)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px) scale(1.03)';
-            e.currentTarget.style.boxShadow = '0 15px 30px rgba(93, 62, 188, 0.5)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0,0,0,0.4), 0 0 20px rgba(93, 62, 188, 0.4)';
-          }}
-          title="Çağla Railway AI Asistanını Aç (Sesli & Yazılı Operasyon Komutları)"
+          className="admin-ai-fab-btn"
+          title="Çağla Asistan (Sesli & Yazılı Operasyon Komutları)"
         >
           <div
             style={{
-              width: '28px',
-              height: '28px',
+              width: '30px',
+              height: '30px',
               borderRadius: '50%',
               background: 'linear-gradient(135deg, #7C3AED, #10B981)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              animation: 'pulse 2s infinite',
+              flexShrink: 0,
             }}
           >
             <Sparkles size={16} color="#FFFFFF" />
           </div>
-          <div style={{ textAlign: 'left' }}>
+          <div className="admin-ai-fab-text" style={{ textAlign: 'left' }}>
             <div style={{ fontSize: '13px', fontWeight: 900, letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span>Çağla AI Ajanı</span>
+              <span>Çağla Asistan</span>
               <span style={{ fontSize: '9px', backgroundColor: '#10B981', color: '#064E3B', padding: '1px 5px', borderRadius: '4px', fontWeight: 800 }}>
                 ONLINE
               </span>
             </div>
-            <div style={{ fontSize: '10px', color: '#94A3B8' }}>Railway tarzı otonom asistan</div>
+            <div style={{ fontSize: '10px', color: '#94A3B8' }}>Operasyon &amp; Kurye</div>
           </div>
         </button>
       )}
 
-      {/* Railway Agent Modal / Console */}
+      {/* Assistant Modal / Console */}
       {isOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            zIndex: 99999,
-            width: isMinimized ? '320px' : '440px',
-            maxWidth: 'calc(100vw - 32px)',
-            height: isMinimized ? '58px' : '580px',
-            maxHeight: 'calc(100vh - 48px)',
-            backgroundColor: '#0F172A',
-            borderRadius: '20px',
-            border: '1.5px solid #334155',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6), 0 0 40px rgba(93, 62, 188, 0.3)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            transition: 'height 0.25s ease, width 0.25s ease',
-          }}
-        >
+        <div className={`admin-ai-modal ${isMinimized ? 'minimized' : ''}`}>
           {/* Header */}
           <div
             style={{
-              padding: '14px 18px',
+              padding: '12px 16px',
               backgroundColor: '#1E293B',
               borderBottom: '1px solid #334155',
               display: 'flex',
@@ -422,19 +449,18 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  flexShrink: 0,
                 }}
               >
                 <Sparkles size={17} color="#FFFFFF" />
               </div>
               <div>
                 <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 900, color: '#F8FAFC', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>Çağla Operasyon Ajanı</span>
-                  <span style={{ fontSize: '9px', backgroundColor: '#10B98120', color: '#34D399', border: '1px solid #10B98140', padding: '1px 5px', borderRadius: '4px' }}>
-                    GPT-4o
-                  </span>
+                  <span>Çağla Asistan</span>
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
                 </h4>
                 <p style={{ margin: '1px 0 0 0', fontSize: '10px', color: '#94A3B8' }}>
-                  Kurye &amp; Yönetim Sesli Komut Sistemi
+                  Kurye &amp; Operasyon Yönetimi
                 </p>
               </div>
             </div>
@@ -451,12 +477,12 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
                   border: 'none',
                   color: '#94A3B8',
                   cursor: 'pointer',
-                  padding: '4px',
+                  padding: '6px',
                   borderRadius: '6px',
                 }}
                 title={isMinimized ? 'Genişlet' : 'Küçült'}
               >
-                {isMinimized ? <Maximize2 size={15} /> : <Minimize2 size={15} />}
+                {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
               </button>
               <button
                 type="button"
@@ -469,12 +495,12 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
                   border: 'none',
                   color: '#94A3B8',
                   cursor: 'pointer',
-                  padding: '4px',
+                  padding: '6px',
                   borderRadius: '6px',
                 }}
                 title="Kapat"
               >
-                <X size={17} />
+                <X size={18} />
               </button>
             </div>
           </div>
@@ -688,6 +714,90 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
           )}
         </div>
       )}
+
+      {/* Responsive Styles for Floating Assistant */}
+      <style jsx global>{`
+        .admin-ai-fab-btn {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 16px;
+          border-radius: 9999px;
+          background-color: #0F172A;
+          color: #FFFFFF;
+          border: 1.5px solid #334155;
+          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.4), 0 0 20px rgba(93, 62, 188, 0.35);
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          backdrop-filter: blur(8px);
+        }
+        .admin-ai-fab-btn:hover {
+          transform: translateY(-2px) scale(1.02);
+          box-shadow: 0 14px 28px rgba(93, 62, 188, 0.5);
+        }
+
+        .admin-ai-modal {
+          position: fixed;
+          bottom: 24px;
+          right: 24px;
+          z-index: 99999;
+          width: 430px;
+          max-width: calc(100vw - 32px);
+          height: 570px;
+          max-height: calc(100vh - 48px);
+          background-color: #0F172A;
+          border-radius: 20px;
+          border: 1.5px solid #334155;
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6), 0 0 40px rgba(93, 62, 188, 0.3);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          transition: height 0.25s ease, width 0.25s ease;
+        }
+        .admin-ai-modal.minimized {
+          width: 300px;
+          height: 56px;
+        }
+
+        @media (max-width: 640px) {
+          .admin-ai-fab-btn {
+            bottom: 74px !important; /* Safely above the 60px bottom dock */
+            right: 14px !important;
+            padding: 0 !important;
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 50% !important;
+            justify-content: center !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 16px rgba(93, 62, 188, 0.5) !important;
+          }
+          .admin-ai-fab-text {
+            display: none !important;
+          }
+          .admin-ai-modal {
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: 72vh !important;
+            max-height: 82vh !important;
+            border-radius: 20px 20px 0 0 !important;
+            border-bottom: none !important;
+          }
+          .admin-ai-modal.minimized {
+            bottom: 64px !important;
+            left: 10px !important;
+            right: 10px !important;
+            width: calc(100% - 20px) !important;
+            height: 50px !important;
+            border-radius: 14px !important;
+          }
+        }
+      `}</style>
     </>
   );
 };

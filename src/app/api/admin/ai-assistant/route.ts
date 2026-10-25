@@ -99,21 +99,32 @@ export async function POST(req: NextRequest) {
       specialNote: d.specialNote,
     }));
 
+    const kykZone = (context?.zones || []).find((z: any) => z.id === 'zone-kyk-yurtlari' || (z.name || '').toLowerCase().includes('kyk') || (z.name || '').toLowerCase().includes('yurt'));
+    const currentKykMin = kykZone?.minOrderAmount || 60;
+    const suggestedKykMin = currentKykMin + 15;
+
     const systemPrompt = `
-Sen Çağla Büfe & Market'in (Karabük/Bostanbükü) Akıllı Operasyon Yönetim Asistanısın (Railway AI benzeri otonom asistan).
-Kuryelerin ve işletme sahibinin sahadan hızlıca verdiği komutlarla sipariş durumlarını değiştirir, ürün fiyatlarını günceller, teslimat bölgelerinin ve yurtların minimum sepet tutarlarını ayarlar ve dükkanı açıp kapatabilirsin.
+Sen Çağla Büfe & Market'in (Karabük/Bostanbükü) Akıllı Operasyon Yönetim Asistanısın.
+Kuryelerin ve işletme sahibinin sahadan hızlıca verdiği sesli veya yazılı komutlarla sipariş durumlarını değiştirir, ürün fiyatlarını günceller, teslimat bölgelerinin ve yurtların minimum sepet tutarlarını ayarlar ve dükkanı açıp kapatabilirsin.
 
 ÖNEMLİ BAĞLAM VERİLERİ:
 - Son Siparişler: ${JSON.stringify(ordersSummary)}
 - Ürünler Listesi (Özet): ${JSON.stringify(productsSummary)}
 - Bölgeler: ${JSON.stringify(zonesSummary)}
 - Yurtlar: ${JSON.stringify(dormsSummary)}
+- KYK Yurtları Mevcut Min Sepet Tutarı: ${currentKykMin} TL (Artırma komutunda hedef tutar: ${suggestedKykMin} TL)
 
 GÜVENLİK VE ÇALIŞMA KURALLARI:
 1. ASLA toplu silme, veritabanı çökertme veya güvenlik sınırlarını aşan eylemlere izin verme.
-2. Kullanıcının niyeti bir eylem gerektiriyorsa (örn. "hubbi hatuna giden son siparişi teslim edildi yap", "yoğurda zam geldi 200 tl yap", "yurtların sepet tutarını 80 tl yap", "dükkanı aç"):
-   MUTLAKA uygun aracı (tool calling) çağır.
-3. İlgili aracı çağırdıktan sonra Türkçe, net, enerjik ve profesyonel bir açıklama yap. Kuryeye "Tamamdır usta, işlem yapıldı!" gibi samimi ve güven verici bir tonla hitap et.
+2. Kullanıcının niyeti bir eylem gerektiriyorsa MUTLAKA uygun aracı (tool calling) çağır:
+   - "yurdun min tutarını artır", "yurtların sepetini artır", "kyk sepetini 80 yap":
+     * update_dorm_override ve/veya update_zone_min_order aracını çağır.
+     * Kullanıcı özel bir yurt adı belirtmediyse dormName olarak "KYK Yurtları", zoneName olarak "KYK Yurtları" ver.
+     * Eğer kullanıcı belirli bir sayı söylemediyse (sadece "artır" dediyse), minOrderAmount parametresine kesinlikle ${suggestedKykMin} sayısını ata.
+   - "yoğurda zam geldi 200 tl yap": update_product_price aracını çağır.
+   - "hubbi hatuna götürdüğümüz son siparişi teslim edildi yap": update_order_status aracını çağır.
+   - "dükkanı aç" veya "kapat": toggle_store_status aracını çağır.
+3. İlgili aracı çağırdıktan sonra Türkçe, net, enerjik ve samimi bir açıklama yap. Kuryeye "Tamamdır usta, işlem yapıldı!" gibi güven verici bir tonla hitap et.
 `;
 
     const tools = [
@@ -203,7 +214,7 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
               },
               minOrderAmount: {
                 type: 'number',
-                description: 'Yeni minimum sepet tutarı (TL)',
+                description: 'Yeni minimum sepet tutarı (TL). Belirtilmediyse mevcut tutarı 10 TL artırın.',
               },
               deliveryFee: {
                 type: 'number',
@@ -218,17 +229,17 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
         type: 'function',
         function: {
           name: 'update_dorm_override',
-          description: 'Belirli bir KYK yurduna özel min sepet tutarı veya indirim oranı tanımlar / override eder.',
+          description: 'Belirli bir KYK yurduna veya genel yurtlara özel min sepet tutarı veya indirim oranı tanımlar / override eder.',
           parameters: {
             type: 'object',
             properties: {
               dormName: {
                 type: 'string',
-                description: 'Yurt adı (örn: "Hubbi Hatun", "Bahaddin Gazi", "İsmail Necati")',
+                description: 'Yurt adı veya genel adı (örn: "Hubbi Hatun", "Şeyh Edebali", "Eflani", "KYK Yurtları", "Yurtlar")',
               },
               minOrderAmount: {
                 type: 'number',
-                description: 'Yurda özel minimum sepet tutarı (TL)',
+                description: 'Yurda özel minimum sepet tutarı (TL). Belirtilmediyse mevcut tutarı 10 TL artırıp kesin sayı olarak verin (örn: 75).',
               },
               discountPercentage: {
                 type: 'number',
