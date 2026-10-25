@@ -110,7 +110,7 @@ export const PWAInstallBanner = () => {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '12px',
-          zIndex: 890,
+          zIndex: 75,
           animation: 'slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >

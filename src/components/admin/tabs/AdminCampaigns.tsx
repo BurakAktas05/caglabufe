@@ -295,13 +295,26 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
     });
 
     if (sendVipNotifNow) {
+      const cleanTarget = couponTargetPhone.trim() ? normalizePhoneNumber(couponTargetPhone.trim()) : undefined;
       sendVipNotification({
         title: `🎉 ${couponTitle.trim() || 'Tebrikler! Size Özel VIP İndirim Kuponu!'}`,
         message: couponDesc.trim() || `Değerli siparişleriniz için teşekkürler! ${couponCode.trim().toUpperCase()} kodunuz tanımlandı.`,
         couponCode: couponCode.trim().toUpperCase(),
-        targetPhone: couponTargetPhone.trim() ? normalizePhoneNumber(couponTargetPhone.trim()) : undefined,
+        targetPhone: cleanTarget,
         expiresAt: couponExpiresAt ? new Date(couponExpiresAt).toISOString() : undefined,
       });
+
+      if (cleanTarget) {
+        fetch('/api/send-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: cleanTarget,
+            code: couponCode.trim().toUpperCase(),
+            message: `Cagla Bufe: Tebrikler! Size ozel VIP indirim kuponunuz (${couponCode.trim().toUpperCase()}) tanimlandi. caglabufe.vercel.app adresinden hemen siparis verebilirsiniz.`,
+          }),
+        }).catch(() => {});
+      }
     }
 
     setCouponsList(getCoupons());
@@ -360,16 +373,42 @@ export const AdminCampaigns: React.FC<AdminCampaignsProps> = ({
       targetPhone: cust.cleanPhone,
     });
 
+    if (cust.cleanPhone) {
+      fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: cust.cleanPhone,
+          code,
+          message: `Cagla Bufe: Tebrikler ${cust.name}! Size ozel %20 VIP kuponunuz (${code}) tanimlandi. caglabufe.vercel.app adresinden siparisinizde kullanabilirsiniz.`,
+        }),
+      }).catch(() => {});
+    }
+
     alert(`🔔 ${cust.name} (${cust.formattedPhone}) müşterisine VIP bildirimi ve %20 indirim kuponu (${code}) anında iletildi!\n\nMüşteri uygulamayı açtığında tebrik kutlama kartı gösterilecektir.`);
   };
 
   const handleNotifyCoupon = (cp: Coupon) => {
+    const cleanTarget = cp.targetPhone ? normalizePhoneNumber(cp.targetPhone) : undefined;
     sendVipNotification({
       title: `🎉 ${cp.title}`,
       message: cp.description || `${cp.code} kupon kodunuz tanımlandı. Sepette anında uygulayabilirsiniz!`,
       couponCode: cp.code,
-      targetPhone: cp.targetPhone ? normalizePhoneNumber(cp.targetPhone) : undefined,
+      targetPhone: cleanTarget,
     });
+
+    if (cleanTarget) {
+      fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: cleanTarget,
+          code: cp.code,
+          message: `Cagla Bufe: Tebrikler! ${cp.title} (${cp.code}) kodunuz tanimlandi. caglabufe.vercel.app adresinden siparisinizde kullanabilirsiniz.`,
+        }),
+      }).catch(() => {});
+    }
+
     alert(`🔔 Kupon bildirimi (${cp.code}) ${cp.targetPhone ? `${cp.targetPhone} müşterisine` : 'tüm müşterilere'} başarıyla gönderildi!`);
   };
 

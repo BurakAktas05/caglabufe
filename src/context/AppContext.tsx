@@ -38,6 +38,7 @@ import {
   formatTemplate,
   getCoupons,
   validateCoupon,
+  getDormitories,
 } from '@/lib/settingsManager';
 import confetti from 'canvas-confetti';
 import {
@@ -61,6 +62,7 @@ interface AppContextType {
   deleteItemFromCart: (productId: string) => void;
   clearCart: () => void;
   reorderItems: (items: Order['items']) => void;
+  getMaxQuantityForProduct: (product: Product) => number;
   cartTotal: number;
   itemCount: number;
   minOrderAmount: number;
@@ -125,6 +127,8 @@ interface AppContextType {
   // i18n Multi-Language
   locale: Locale;
   setLocale: (loc: Locale) => void;
+  isLanguageWelcomeOpen: boolean;
+  setIsLanguageWelcomeOpen: (open: boolean) => void;
   t: (
     key: string,
     fallbackOrParams?: string | Record<string, string | number>,
@@ -188,14 +192,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [bannedModalInfo, setBannedModalInfo] = useState<BannedUser | null>(null);
   const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
+  const [isLanguageWelcomeOpen, setIsLanguageWelcomeOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('caglabufe_locale') as Locale;
+      const hasSelected = localStorage.getItem('caglabufe_lang_selected');
       if (saved && ['tr', 'en', 'ru', 'ar', 'fr'].includes(saved)) {
         setLocaleState(saved);
         document.documentElement.lang = saved;
         document.documentElement.dir = saved === 'ar' ? 'rtl' : 'ltr';
+      }
+      // First-time visitor on this device: prompt language selection modal
+      if (!hasSelected) {
+        setIsLanguageWelcomeOpen(true);
       }
     }
   }, []);
@@ -204,6 +214,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setLocaleState(newLocale);
     if (typeof window !== 'undefined') {
       localStorage.setItem('caglabufe_locale', newLocale);
+      localStorage.setItem('caglabufe_lang_selected', 'true');
       document.documentElement.lang = newLocale;
       document.documentElement.dir = newLocale === 'ar' ? 'rtl' : 'ltr';
     }
@@ -705,12 +716,62 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [products]);
 
+  // --- ÜRÜN BAŞINA MAKSİMUM ADET LİMİTİ ---
+  const getMaxQuantityForProduct = (product: Product): number => {
+    const cat = (product.category || '').toLowerCase();
+    const name = (product.name || '').toLowerCase();
+
+    // Litrelik kolalar ve büyük şişe içecekler: max 2
+    if (cat === 'kola' || cat === 'soda' || cat === 'gazoz' || cat === 'limonata' || cat === 'su'
+      || cat === 'diğer gazlı i̇çecek' || cat === 'diğer gazsız i̇çecek' || cat === 'malt i̇çecek'
+      || cat === 'ramazan şerbeti') {
+      // Litrelik / büyük şişeler: max 2, kutu/küçük olanlar: max 3
+      if (name.includes('litre') || name.includes('lt') || name.includes('1l') || name.includes('1,5') || name.includes('2,5')) {
+        return 2;
+      }
+      return 3;
+    }
+
+    // Çikolatalar: max 10
+    if (cat === 'çikolata' || cat === 'sürülebilir çikolata' || cat === 'sıcak çikolata') {
+      return 10;
+    }
+
+    // Cipsler: max 5
+    if (cat === 'cips') {
+      return 5;
+    }
+
+    // Enerji içecekleri: max 3
+    if (cat === 'enerji i̇çeceği') {
+      return 3;
+    }
+
+    // Meyve suyu, soğuk çay, ayran, soğuk kahve: max 3
+    if (cat === 'meyve suyu' || cat === 'soğuk çay' || cat === 'ayran' || cat === 'soğuk kahve' || cat === 'aromalı süt') {
+      return 3;
+    }
+
+    // Diğer tüm ürünler: max 3
+    return 3;
+  };
+
   // --- CART ---
   const addToCart = (product: Product, options?: Record<string, string>, note?: string) => {
     if (!product.isAvailable) {
       showToast('Bu ürün şu an stokta bulunmuyor.', 'warning');
       return;
     }
+
+    // Miktar limiti kontrolü
+    const maxQty = getMaxQuantityForProduct(product);
+    const existingItem = cart.find((item) => item.product.id === product.id);
+    const currentQty = existingItem ? existingItem.quantity : 0;
+    if (currentQty >= maxQty) {
+      showToast(`Bu üründen en fazla ${maxQty} adet ekleyebilirsiniz.`, 'warning');
+      return;
+    }
+
     audioAlert.playCartClickSound();
     if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       try { navigator.vibrate(35); } catch {}
@@ -799,18 +860,28 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Zone-based delivery calculation
+  // Zone-based delivery calculation & Dormitory Overrides
   const selectedAddress = addresses.find((a) => a.id === selectedAddressId) || addresses[0] || null;
 
-  const zoneCalc = useMemo(() => {
-    const zone = selectedAddress
+  const selectedDormConfig = useMemo(() => {
+    if (!selectedAddress || selectedAddress.type !== 'dormitory') return null;
+    const dorms = getDormitories();
+    const dormName = (selectedAddress.dormName || selectedAddress.title || '').toLowerCase();
+    return dorms.find((d) => d.name.toLowerCase().includes(dormName) || dormName.includes(d.name.toLowerCase())) || null;
+  }, [selectedAddress]);
+
+  const activeZone = useMemo(() => {
+    return selectedAddress
       ? getZoneForAddress(selectedAddress.district, selectedAddress.dormName, {
           latitude: selectedAddress.latitude,
           longitude: selectedAddress.longitude,
         })
       : null;
-    return calculateDeliveryForZone(zone, cartTotal, systemSettings);
-  }, [selectedAddress, cartTotal, systemSettings]);
+  }, [selectedAddress]);
+
+  const zoneCalc = useMemo(() => {
+    return calculateDeliveryForZone(activeZone, cartTotal, systemSettings, selectedDormConfig);
+  }, [activeZone, cartTotal, systemSettings, selectedDormConfig]);
 
   const minOrderAmount = zoneCalc.minOrder;
   const freeDeliveryThreshold = zoneCalc.freeThreshold;
@@ -833,8 +904,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       standardDeliveryFee: zoneCalc.deliveryFee,
       isZoneAlreadyFree: cartTotal >= freeDeliveryThreshold || cartTotal === 0,
       campaignsList: campaigns,
+      zoneId: activeZone?.id,
+      dormitoryId: selectedDormConfig?.id,
     });
-  }, [cart, cartTotal, zoneCalc.deliveryFee, freeDeliveryThreshold, campaigns]);
+  }, [cart, cartTotal, zoneCalc.deliveryFee, freeDeliveryThreshold, campaigns, activeZone?.id, selectedDormConfig?.id]);
+
+  // Dormitory Special Discount
+  const dormDiscount = useMemo(() => {
+    if (!selectedDormConfig || !selectedDormConfig.discountPercentage || cartTotal <= 0) return 0;
+    const disc = (cartTotal * selectedDormConfig.discountPercentage) / 100;
+    return Math.min(cartTotal, Math.round(disc * 100) / 100);
+  }, [selectedDormConfig, cartTotal]);
 
   // Coupon Discount
   const couponDiscount = useMemo(() => {
@@ -852,13 +932,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return Math.min(cartTotal, Math.round(disc * 100) / 100);
   }, [appliedCoupon, cartTotal]);
 
-  const discountAmount = Math.max(singleCampaignResult.discountAmount, couponDiscount);
+  const discountAmount = Math.max(singleCampaignResult.discountAmount, couponDiscount, dormDiscount);
+
   const appliedCampaignTitle = appliedCoupon
     ? appliedCoupon.title
+    : dormDiscount >= singleCampaignResult.discountAmount && dormDiscount > 0
+    ? (selectedDormConfig?.specialNote || `🏢 ${selectedDormConfig?.name} %${selectedDormConfig?.discountPercentage} İndirimi`)
     : singleCampaignResult.appliedCampaignTitle;
+
   const appliedCampaignDescription = appliedCoupon
     ? appliedCoupon.description
+    : dormDiscount >= singleCampaignResult.discountAmount && dormDiscount > 0
+    ? 'Yurdunuza özel indirim sepetinize otomatik uygulandı.'
     : singleCampaignResult.campaignDescription;
+
   const isFreeDeliveryCampaign = singleCampaignResult.isFreeDeliveryCampaign;
   const isBundleCampaignApplied = singleCampaignResult.isBundleApplied;
 
@@ -1187,7 +1274,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AppContext.Provider
       value={{
-        cart, addToCart, removeFromCart, deleteItemFromCart, clearCart, reorderItems,
+        cart, addToCart, removeFromCart, deleteItemFromCart, clearCart, reorderItems, getMaxQuantityForProduct,
         cartTotal, itemCount, minOrderAmount, freeDeliveryThreshold,
         deliveryFee, discountAmount, appliedCampaignTitle,
         appliedCampaignDescription, isFreeDeliveryCampaign, isBundleCampaignApplied,
@@ -1204,7 +1291,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         isProfileModalOpen, setIsProfileModalOpen,
         isSupportModalOpen, setIsSupportModalOpen,
         bannedModalInfo, setBannedModalInfo,
-        locale, setLocale, t, dir,
+        locale, setLocale, isLanguageWelcomeOpen, setIsLanguageWelcomeOpen, t, dir,
         storeOpen,
         toasts, showToast,
       }}

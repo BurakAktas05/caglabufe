@@ -12,6 +12,12 @@ import { useApp } from '@/context/AppContext';
 import { Product } from '@/types';
 import { smartSearchProducts, SmartSearchResult } from '@/lib/searchEngine';
 import {
+  translateCampaignTitle,
+  translateCampaignDescription,
+  translateAnnouncement,
+  translateStoreHoursBar,
+} from '@/lib/campaignTranslator';
+import {
   Search,
   ShoppingBag,
   Clock,
@@ -45,6 +51,8 @@ export default function Home() {
     activeCampaigns,
     bundleDeals,
     setIsSupportModalOpen,
+    locale,
+    t,
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,7 +173,7 @@ export default function Home() {
           }}
         >
           <Sparkles size={15} color="#5D3EBC" />
-          <span>{systemSettings.announcementText}</span>
+          <span>{translateAnnouncement(systemSettings.announcementText, locale)}</span>
         </div>
       )}
 
@@ -212,8 +220,10 @@ export default function Home() {
           title="Çalışma Saatleri & Büfe Bilgisi"
         >
           <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block', flexShrink: 0 }} />
-          <span>Şu An Açığız • {systemSettings.storeCloseTime}&apos;e kadar Karabük 100. Yıl &amp; KYK Yurtlarına hızlı teslimat</span>
-          <span style={{ fontSize: '11px', textDecoration: 'underline', opacity: 0.85, marginLeft: '4px' }}>Saatler ➔</span>
+          <span>{translateStoreHoursBar(systemSettings.storeCloseTime, locale).text}</span>
+          <span style={{ fontSize: '11px', textDecoration: 'underline', opacity: 0.85, marginLeft: '4px' }}>
+            {translateStoreHoursBar(systemSettings.storeCloseTime, locale).hoursLabel}
+          </span>
         </div>
       )}
 
@@ -330,9 +340,13 @@ export default function Home() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                   <Tag size={16} color="#FFD10D" />
-                  <span style={{ fontSize: '14px', fontWeight: 800 }}>{campaign.title}</span>
+                  <span style={{ fontSize: '14px', fontWeight: 800 }}>
+                    {translateCampaignTitle(campaign.title, locale, campaign.type)}
+                  </span>
                 </div>
-                <p style={{ fontSize: '12px', opacity: 0.92, lineHeight: 1.4 }}>{campaign.description}</p>
+                <p style={{ fontSize: '12px', opacity: 0.92, lineHeight: 1.4 }}>
+                  {translateCampaignDescription(campaign.description, locale, campaign)}
+                </p>
               </div>
             ))}
           </div>

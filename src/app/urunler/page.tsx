@@ -83,11 +83,21 @@ function ProductsPageContent() {
 
     // Filter by department if chosen
     if (activeDepartment) {
-      pool = pool.filter(
-        (p) =>
-          activeDepartment.categories.includes(p.category) ||
-          findDepartmentForCategory(p.category)?.id === activeDepartment.id
-      );
+      if (activeDepartment.id === 'sicak-mutfak') {
+        pool = pool.filter(
+          (p) =>
+            p.isKitchenItem ||
+            activeDepartment.categories.includes(p.category) ||
+            findDepartmentForCategory(p.category)?.id === 'sicak-mutfak'
+        );
+      } else {
+        pool = pool.filter(
+          (p) =>
+            !p.isKitchenItem &&
+            (activeDepartment.categories.includes(p.category) ||
+            findDepartmentForCategory(p.category)?.id === activeDepartment.id)
+        );
+      }
     }
 
     // Filter by specific subcategory if chosen
@@ -253,10 +263,12 @@ function ProductsPageContent() {
           </div>
         </div>
 
-        {/* Department Switcher Tabs (Horizontal Scroll) */}
+        {/* Department Switcher Tabs (2-Row Grid Scroll) */}
         <div
           style={{
-            display: 'flex',
+            display: 'grid',
+            gridTemplateRows: 'repeat(2, auto)',
+            gridAutoFlow: 'column',
             gap: '8px',
             overflowX: 'auto',
             paddingBottom: '10px',
@@ -323,18 +335,16 @@ function ProductsPageContent() {
           })}
         </div>
 
-        {/* Sub-Category Filter Chips (If Department has multiple categories) */}
+        {/* Sub-Category Filter Chips (Clean Wrapping) */}
         {subCategories.length > 1 && (
           <div
             style={{
               display: 'flex',
+              flexWrap: 'wrap',
               gap: '6px',
-              overflowX: 'auto',
-              paddingBottom: '10px',
-              marginBottom: '18px',
-              scrollbarWidth: 'none',
+              paddingBottom: '6px',
+              marginBottom: '16px',
             }}
-            className="no-scrollbar"
           >
             <button
               type="button"
@@ -380,6 +390,77 @@ function ProductsPageContent() {
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* Hot Kitchen Special Reyon Banner */}
+        {selectedDepartmentId === 'sicak-mutfak' && (
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 50%, #FED7AA 100%)',
+              border: '2px solid #FDBA74',
+              borderRadius: '18px',
+              padding: '16px 20px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              boxShadow: '0 8px 24px -4px rgba(234, 88, 12, 0.15)',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ flex: '1 1 0', minWidth: '240px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                <span
+                  style={{
+                    backgroundColor: '#EA580C',
+                    color: '#FFFFFF',
+                    fontSize: '11px',
+                    fontWeight: 900,
+                    padding: '3px 9px',
+                    borderRadius: '8px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  🔥 Ateşte Pişen Lezzetler
+                </span>
+                <span
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    color: '#C2410C',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    border: '1px solid #FDBA74',
+                  }}
+                >
+                  ⏱️ ~20-25 dk Taze Hazırlık
+                </span>
+                <span
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    color: '#7C2D12',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    border: '1px solid #FDBA74',
+                  }}
+                >
+                  🎓 KYK &amp; Kampüs Hızlı Teslimat
+                </span>
+              </div>
+              <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#9A3412', margin: '0 0 4px 0' }}>
+                🥪 Sıcak Mutfak &amp; Efsane Tostlar
+              </h3>
+              <p style={{ fontSize: '12.5px', color: '#7C2D12', margin: 0, lineHeight: 1.45 }}>
+                Tüm tostlar, sandviçler ve sıcak büfe lezzetleri siparişiniz anında taze pişirilir, özenle paketlenir ve sıcacık kapınıza getirilir.
+              </p>
+            </div>
           </div>
         )}
 

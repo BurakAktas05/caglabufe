@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
-import { MapPin, ShoppingBag, User as UserIcon, ChevronDown, Headphones, Award } from 'lucide-react';
+import { MapPin, ShoppingBag, User as UserIcon, ChevronDown, Award } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 import { LanguageSelector } from './LanguageSelector';
 import { getVipTierInfo } from '@/lib/settingsManager';
@@ -19,7 +19,6 @@ export const Header = () => {
     orders,
     setIsAuthModalOpen,
     setIsProfileModalOpen,
-    setIsSupportModalOpen,
     minOrderAmount,
     t,
   } = useApp();
@@ -81,29 +80,6 @@ export const Header = () => {
           {/* Dil Seçici (TR, EN, RU, AR, FR) */}
           <LanguageSelector />
 
-          {/* Canlı Destek & İletişim Butonu */}
-          <button
-            type="button"
-            className="header-link-btn"
-            onClick={() => setIsSupportModalOpen(true)}
-            title="Sipariş & Teknik Destek"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 10px',
-              borderRadius: '10px',
-              backgroundColor: '#F3F0FE',
-              border: '1px solid #DDD6FE',
-              color: '#5D3EBC',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-            }}
-          >
-            <Headphones size={15} color="#5D3EBC" />
-            <span className="d-desktop">{t('support', 'Destek')}</span>
-          </button>
 
           {/* User Profile on Desktop only (Mobilde sağ alt BottomNav'da) */}
           {user ? (

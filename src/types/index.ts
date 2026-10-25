@@ -167,6 +167,8 @@ export interface Campaign {
   maxDiscount?: number;       // Maksimum indirim tutarı
   applicableCategories?: ProductCategory[]; // Belirli kategorilere mi?
   applicableProductIds?: string[];          // Belirli ürünlere mi?
+  applicableZoneIds?: string[];             // Belirli teslimat bölgelerine mi?
+  applicableDormitoryIds?: string[];        // Belirli yurtlara mı özel?
   isActive: boolean;
   startsAt: string;           // ISO date
   endsAt: string;             // ISO date
@@ -257,6 +259,10 @@ export interface DormitoryConfig {
   mapsQuery?: string;         // Google Maps arama sorgusu
   latitude?: number;
   longitude?: number;
+  // Yurtlara Özel Fiyat & İndirim & Min Sepet Tutarı Override
+  minOrderAmount?: number;     // Yurda özel minimum sepet tutarı (override)
+  discountPercentage?: number; // Yurda özel indirim oranı (%)
+  specialNote?: string;        // Örn: "Hubbi Hatun Öğrencilerine Özel %10 İndirim"
 }
 
 export interface SystemSettings {
@@ -289,6 +295,10 @@ export interface SystemSettings {
   templateOrderOnTheWay?: string;
   templateOrderDelivered?: string;
   templateWhatsApp?: string;
+  coupons?: Coupon[];
+  vipNotifications?: VipNotification[];
+  dormitories?: DormitoryConfig[];
+  deliveryZones?: DeliveryZone[];
 }
 
 export interface PushSubscriptionData {

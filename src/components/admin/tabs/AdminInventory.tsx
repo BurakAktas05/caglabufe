@@ -11,6 +11,7 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
+  Flame,
 } from 'lucide-react';
 import { ProductModal } from '../ProductModal';
 
@@ -32,15 +33,33 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalInitialIsKitchen, setModalInitialIsKitchen] = useState(false);
+  const [sectionFilter, setSectionFilter] = useState<'all' | 'general' | 'kitchen'>('all');
+
+  const kitchenCount = useMemo(() => products.filter((p) => p.isKitchenItem).length, [products]);
+  const generalCount = useMemo(() => products.filter((p) => !p.isKitchenItem).length, [products]);
 
   const dynamicCategories = useMemo(() => {
-    const set = new Set(products.map((p) => p.category).filter(Boolean));
+    let source = products;
+    if (sectionFilter === 'kitchen') {
+      source = products.filter((p) => p.isKitchenItem);
+    } else if (sectionFilter === 'general') {
+      source = products.filter((p) => !p.isKitchenItem);
+    }
+    const set = new Set(source.map((p) => p.category).filter(Boolean));
     const dynamic = Array.from(set).map((c) => ({ id: c, name: c }));
     return [{ id: 'all', name: 'Tümü' }, ...dynamic];
-  }, [products]);
+  }, [products, sectionFilter]);
 
   const filteredProducts = useMemo(() => {
     let list = products;
+
+    if (sectionFilter === 'kitchen') {
+      list = list.filter((p) => p.isKitchenItem);
+    } else if (sectionFilter === 'general') {
+      list = list.filter((p) => !p.isKitchenItem);
+    }
+
     if (selectedCategory !== 'all') {
       list = list.filter((p) => p.category === selectedCategory);
     }
@@ -56,15 +75,17 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
       );
     }
     return list;
-  }, [products, selectedCategory, searchTerm]);
+  }, [products, sectionFilter, selectedCategory, searchTerm]);
 
-  const handleAddNew = () => {
+  const handleAddNew = (isKitchen: boolean = false) => {
+    setModalInitialIsKitchen(isKitchen);
     setEditingProduct(null);
     setIsModalOpen(true);
   };
 
   const handleEdit = (p: Product) => {
     setEditingProduct(p);
+    setModalInitialIsKitchen(Boolean(p.isKitchenItem));
     setIsModalOpen(true);
   };
 
@@ -74,7 +95,7 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Top Header Bar */}
       <div
         style={{
@@ -91,12 +112,17 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Package size={20} color="#5D3EBC" />
-          <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#1F2937', margin: 0 }}>
-            Toplam {products.length} Ürün Listeleniyor
-          </h2>
+          <div>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#1F2937', margin: 0 }}>
+              Ürün Yönetimi ({products.length} Ürün)
+            </h2>
+            <p style={{ fontSize: '11px', color: '#6B7280', margin: '2px 0 0 0' }}>
+              Genel market ve sıcak mutfak ürünlerini ayrı ayrı ekleyebilir ve yönetebilirsiniz.
+            </p>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <div
             style={{
               display: 'flex',
@@ -106,45 +132,163 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
               padding: '6px 12px',
               borderRadius: '10px',
               border: '1px solid #E5E7EB',
-              minWidth: '220px',
+              minWidth: '180px',
             }}
           >
             <Search size={15} color="#6B7280" />
             <input
               type="text"
-              placeholder="Ürün adı ara..."
+              placeholder="Ürün veya barkod ara..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ border: 'none', background: 'transparent', fontSize: '13px', outline: 'none', width: '100%' }}
             />
           </div>
 
+          {/* 1. Genel Ürün Ekle Butonu */}
           <button
-            onClick={handleAddNew}
+            onClick={() => handleAddNew(false)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               backgroundColor: '#5D3EBC',
               color: '#FFFFFF',
-              padding: '8px 16px',
+              padding: '8px 14px',
               borderRadius: '10px',
               fontSize: '13px',
               fontWeight: 800,
               border: 'none',
               cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(93, 62, 188, 0.25)',
+              whiteSpace: 'nowrap',
             }}
+            title="Normal market / kantin ürünü ekle"
           >
             <Plus size={16} />
-            <span>Yeni Ürün Ekle</span>
+            <span>Genel Ürün Ekle</span>
+          </button>
+
+          {/* 2. Mutfak Bölümüne Ürün Ekle Butonu */}
+          <button
+            onClick={() => handleAddNew(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#EA580C',
+              color: '#FFFFFF',
+              padding: '8px 14px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              fontWeight: 800,
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(234, 88, 12, 0.25)',
+              whiteSpace: 'nowrap',
+            }}
+            title="Sıcak mutfak, tost, sandviç lezzeti ekle"
+          >
+            <Flame size={16} />
+            <span>🥪 Mutfak Ürünü Ekle</span>
           </button>
         </div>
       </div>
 
-      {/* Category Filter Pills */}
+      {/* Section Filter Pills (Genel Market vs Sıcak Mutfak Reyonları) */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <button
+          type="button"
+          onClick={() => {
+            setSectionFilter('all');
+            setSelectedCategory('all');
+          }}
+          style={{
+            padding: '7px 14px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: 800,
+            backgroundColor: sectionFilter === 'all' ? '#1F2937' : '#FFFFFF',
+            color: sectionFilter === 'all' ? '#FFFFFF' : '#4B5563',
+            border: '1.5px solid ' + (sectionFilter === 'all' ? '#1F2937' : '#E5E7EB'),
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span>Tüm Ürünler ({products.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSectionFilter('general');
+            setSelectedCategory('all');
+          }}
+          style={{
+            padding: '7px 14px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: 800,
+            backgroundColor: sectionFilter === 'general' ? '#5D3EBC' : '#FFFFFF',
+            color: sectionFilter === 'general' ? '#FFFFFF' : '#5D3EBC',
+            border: '1.5px solid ' + (sectionFilter === 'general' ? '#5D3EBC' : '#DDD6FE'),
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Package size={14} />
+          <span>Genel Market Ürünleri ({generalCount})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setSectionFilter('kitchen');
+            setSelectedCategory('all');
+          }}
+          style={{
+            padding: '7px 14px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            fontWeight: 800,
+            backgroundColor: sectionFilter === 'kitchen' ? '#EA580C' : '#FFFFFF',
+            color: sectionFilter === 'kitchen' ? '#FFFFFF' : '#EA580C',
+            border: '1.5px solid ' + (sectionFilter === 'kitchen' ? '#EA580C' : '#FED7AA'),
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Flame size={14} />
+          <span>🥪 Sıcak Mutfak Reyonu ({kitchenCount})</span>
+        </button>
+      </div>
+
+      {/* Category Filter Pills - 2 Sıra / Wrap Yapısı */}
       {dynamicCategories.length > 1 && (
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
+        <div
+          style={{
+            backgroundColor: '#FFFFFF',
+            padding: '10px 14px',
+            borderRadius: '14px',
+            border: '1px solid #E5E7EB',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '6px',
+            alignItems: 'center',
+          }}
+        >
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', marginRight: '4px' }}>
+            Kategoriler:
+          </span>
           {dynamicCategories.map((cat) => {
             const isActive = selectedCategory === cat.id;
             return (
@@ -152,15 +296,18 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 style={{
-                  padding: '7px 14px',
-                  borderRadius: '20px',
+                  padding: '6px 12px',
+                  borderRadius: '16px',
                   fontSize: '12px',
                   fontWeight: 700,
-                  backgroundColor: isActive ? '#5D3EBC' : '#FFFFFF',
+                  backgroundColor: isActive
+                    ? (sectionFilter === 'kitchen' ? '#EA580C' : '#5D3EBC')
+                    : '#F3F4F6',
                   color: isActive ? '#FFFFFF' : '#4B5563',
-                  border: '1px solid ' + (isActive ? '#5D3EBC' : '#E5E7EB'),
+                  border: '1px solid ' + (isActive ? (sectionFilter === 'kitchen' ? '#EA580C' : '#5D3EBC') : '#E5E7EB'),
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease',
                 }}
               >
                 {cat.name}
@@ -241,7 +388,29 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
                     )}
                     <span style={{ fontWeight: 600 }}>{p.category}</span>
                     {p.barcode && <span style={{ color: '#9CA3AF', fontFamily: 'monospace' }}>#{p.barcode}</span>}
-                    {p.isKitchenItem && <span style={{ color: '#EA580C' }}>• Mutfak</span>}
+                    {p.isKitchenItem && (
+                      <span
+                        style={{
+                          backgroundColor: '#FFEDD5',
+                          color: '#C2410C',
+                          border: '1px solid #FDBA74',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 800,
+                          fontSize: '10px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                        }}
+                      >
+                        🥪 Sıcak Mutfak
+                      </span>
+                    )}
+                    {p.isKitchenItem && p.prepTimeMinutes && (
+                      <span style={{ color: '#EA580C', fontSize: '10px', fontWeight: 700 }}>
+                        ⏱️ ~{p.prepTimeMinutes} dk
+                      </span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                     <span style={{ fontSize: '15px', fontWeight: 900, color: '#5D3EBC' }}>
@@ -338,6 +507,7 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
       {isModalOpen && (
         <ProductModal
           product={editingProduct}
+          initialIsKitchen={modalInitialIsKitchen}
           onClose={() => setIsModalOpen(false)}
           onSave={handleSaveModal}
         />

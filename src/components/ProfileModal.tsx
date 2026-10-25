@@ -30,6 +30,7 @@ import {
 import { DigitalReceiptModal } from '@/components/DigitalReceipt';
 import { isPushSupported, getNotificationPermission, requestNotificationPermission } from '@/lib/pushNotifications';
 import { getVipTierInfo } from '@/lib/settingsManager';
+import { normalizePhoneNumber } from '@/lib/security';
 
 export const ProfileModal = () => {
   const {
@@ -111,13 +112,13 @@ export const ProfileModal = () => {
     };
   }, [vipTierBase, orderCount]);
 
-  const userCleanPhone = (user?.phone || '').replace(/\D/g, '');
+  const userCleanPhone = user?.phone ? normalizePhoneNumber(user.phone) : '';
   const availableCoupons: Coupon[] = useMemo(() => {
     return (coupons || []).filter((c: Coupon) => {
       if (!c.isActive) return false;
       if (c.expiresAt && new Date(c.expiresAt).getTime() < mountTime) return false;
       if (c.targetPhone) {
-        const cleanTarget = c.targetPhone.replace(/\D/g, '');
+        const cleanTarget = normalizePhoneNumber(c.targetPhone);
         return cleanTarget === userCleanPhone;
       }
       return true;

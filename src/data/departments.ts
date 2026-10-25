@@ -11,6 +11,27 @@ export interface Department {
 
 export const DEPARTMENTS: Department[] = [
   {
+    id: 'sicak-mutfak',
+    name: 'Sıcak Mutfak & Tostlar',
+    badge: 'Taze Tost, Sandviç & Büfe',
+    emoji: '🥪',
+    count: 20,
+    imageUrl: '/categories/hot-tost-hero.jpg',
+    accentBg: '#FFF7ED',
+    categories: [
+      'Tost & Sıcak Lezzetler',
+      'Tost',
+      'Sandviç',
+      'Sıcak Sandviç',
+      'Sıcak Lezzetler',
+      'Büfe',
+      'Burger & Sıcak Atıştırmalık',
+      'Gözleme',
+      'Dürüm',
+      'Patates & Sıcak Sepet',
+    ],
+  },
+  {
     id: 'kantin-atistirmalik',
     name: 'Kantin & Atıştırmalık',
     badge: 'Çikolata, Gofret & Bisküvi',
@@ -93,9 +114,9 @@ export const DEPARTMENTS: Department[] = [
   },
   {
     id: 'hazir-yiyecek',
-    name: 'Hazır Yiyecek, Tost & Soslar',
+    name: 'Pratik Mutfak, Noodle & Soslar',
     badge: 'Noodle, Makarna & Soslar',
-    emoji: '🥪',
+    emoji: '🍜',
     count: 24,
     imageUrl: '/categories/hazir-yiyecek.jpg',
     accentBg: '#FFFBEB',
@@ -109,12 +130,6 @@ export const DEPARTMENTS: Department[] = [
       'Makarna',
       'Hazır Yemek',
       'Hazır Çorba',
-      'Tost & Sıcak Lezzetler',
-      'Tost',
-      'Sandviç',
-      'Sıcak Sandviç',
-      'Sıcak Lezzetler',
-      'Büfe'
     ],
   },
   {
@@ -273,10 +288,20 @@ export function findDepartmentForCategory(category: string): Department | undefi
     catLower.includes('burger') ||
     catLower.includes('sicak') ||
     catLower.includes('sıcak') ||
+    catLower.includes('gözleme') ||
+    catLower.includes('dürüm') ||
     catLower.includes('patates') ||
+    catLower.includes('mutfak') ||
+    catLower.includes('büfe')
+  ) {
+    return getDepartmentById('sicak-mutfak');
+  }
+  if (
     catLower.includes('yemek') ||
     catLower.includes('sos') ||
-    catLower.includes('noodle')
+    catLower.includes('noodle') ||
+    catLower.includes('makarna') ||
+    catLower.includes('çorba')
   ) {
     return getDepartmentById('hazir-yiyecek');
   }

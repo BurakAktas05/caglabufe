@@ -11,11 +11,13 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
-  const { cart, addToCart, removeFromCart, t } = useApp();
+  const { cart, addToCart, removeFromCart, getMaxQuantityForProduct, t } = useApp();
   const [imageError, setImageError] = useState(false);
 
   const cartItem = cart.find((item) => item.product.id === product.id);
   const quantity = cartItem ? cartItem.quantity : 0;
+  const maxQuantity = getMaxQuantityForProduct(product);
+  const isAtLimit = quantity >= maxQuantity;
 
   const currentPrice = product.discountPrice ?? product.price;
   const hasDiscount = product.discountPrice && product.discountPrice < product.price;
@@ -101,10 +103,18 @@ export const ProductCard = ({ product }: ProductCardProps) => {
                 className="stepper-btn"
                 onClick={() => addToCart(product)}
                 aria-label="Arttır"
+                disabled={isAtLimit}
+                style={isAtLimit ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
               >
                 <Plus size={14} />
               </button>
             </div>
+          )}
+          {/* Limit göstergesi */}
+          {isAtLimit && (
+            <span style={{ fontSize: '10px', color: '#EF4444', fontWeight: 700, marginTop: '3px', display: 'block', textAlign: 'center' }}>
+              Maks. {maxQuantity} adet
+            </span>
           )}
         </div>
       </div>

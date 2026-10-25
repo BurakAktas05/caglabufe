@@ -332,7 +332,77 @@ export const isValidStatusTransition = (current: OrderStatus, next: OrderStatus)
 };
 
 export const saveOrder = async (order: Order): Promise<Order> => {
-  // If Supabase is configured, push to Supabase with strict error handling
+  // 1. Try server-side order creation API (validates prices server-side)
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/orders/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          userId: order.userId,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone,
+          items: order.items.map(item => ({
+            product: {
+              id: (item as any).productId || (item as any).product?.id,
+              name: (item as any).productName || (item as any).product?.name,
+              price: (item as any).price || (item as any).product?.price,
+              discountPrice: (item as any).product?.discountPrice,
+              campaignId: (item as any).product?.campaignId,
+              isKitchenItem: (item as any).isKitchenItem || (item as any).product?.isKitchenItem,
+            },
+            quantity: item.quantity,
+            selectedOptions: (item as any).selectedOptions,
+          })),
+          deliveryFee: order.deliveryFee,
+          discountAmount: order.discountAmount || 0,
+          appliedCampaignId: order.appliedCampaignId,
+          address: order.address,
+          paymentMethod: order.paymentMethod,
+          orderNote: order.orderNote || '',
+          estimatedDeliveryMinutes: order.estimatedDeliveryMinutes,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          // Update order with server-validated amounts
+          const serverOrder: Order = {
+            ...order,
+            totalAmount: data.order.totalAmount ?? order.totalAmount,
+            finalAmount: data.order.finalAmount ?? order.finalAmount,
+            status: 'pending',
+          };
+
+          // Sync to local storage
+          const orders = getStoredOrders();
+          const updatedList = [serverOrder, ...orders];
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(STORAGE_ORDERS_KEY, JSON.stringify(updatedList));
+          }
+          broadcastOrderUpdate(serverOrder);
+          return serverOrder;
+        }
+      }
+
+      // If server returned an error, throw it
+      const errData = await res.json().catch(() => ({}));
+      if (errData.error) {
+        throw new Error(errData.error);
+      }
+    } catch (apiError: any) {
+      // If the error has a meaningful message, rethrow it
+      if (apiError.message && !apiError.message.includes('fetch')) {
+        throw apiError;
+      }
+      console.warn('[saveOrder] Server API unavailable, falling back to direct Supabase:', apiError.message);
+    }
+  }
+
+  // 2. Fallback: Direct Supabase insert (when server API is unavailable)
   if (isSupabaseConfigured() && supabase) {
     const { data, error } = await supabase.from('orders').insert({
       id: order.id,
@@ -375,7 +445,7 @@ export const saveOrder = async (order: Order): Promise<Order> => {
     throw new Error('Sipariş kaydedilirken beklenmeyen bir hata oluştu.');
   }
 
-  // Local/Offline mock mode (only when Supabase keys are not configured)
+  // 3. Local/Offline mock mode (only when Supabase keys are not configured)
   const orders = getStoredOrders();
   const exists = orders.some((o) => o.id === order.id);
   const updatedList = exists

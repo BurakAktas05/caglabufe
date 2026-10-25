@@ -387,6 +387,25 @@ export async function fetchSystemSettings(): Promise<SystemSettings> {
         }
         if (typeof window !== 'undefined') {
           localStorage.setItem(SETTINGS_KEY, JSON.stringify(merged));
+
+          // Realtime cross-device sync for coupons
+          if (data.settings.coupons && Array.isArray(data.settings.coupons)) {
+            localStorage.setItem(COUPONS_KEY, JSON.stringify(data.settings.coupons));
+          }
+          // Realtime cross-device sync for VIP notifications
+          if (data.settings.vipNotifications && Array.isArray(data.settings.vipNotifications)) {
+            localStorage.setItem(VIP_NOTIFICATIONS_KEY, JSON.stringify(data.settings.vipNotifications));
+            window.dispatchEvent(new CustomEvent('caglabufe_vip_notif_event', { detail: data.settings.vipNotifications }));
+          }
+          // Realtime cross-device sync for dormitories
+          if (data.settings.dormitories && Array.isArray(data.settings.dormitories)) {
+            localStorage.setItem(DORMS_KEY, JSON.stringify(data.settings.dormitories));
+          }
+          // Realtime cross-device sync for delivery zones
+          if (data.settings.deliveryZones && Array.isArray(data.settings.deliveryZones)) {
+            localStorage.setItem(ZONES_KEY, JSON.stringify(data.settings.deliveryZones));
+          }
+
           window.dispatchEvent(new CustomEvent('caglabufe_settings_updated', { detail: merged }));
         }
         return merged;
@@ -441,6 +460,20 @@ export function subscribeToSettings(callback: (settings: SystemSettings) => void
               const updated: SystemSettings = { ...DEFAULT_SETTINGS, ...payload.new.settings };
               if (typeof window !== 'undefined') {
                 localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
+
+                if (payload.new.settings.coupons && Array.isArray(payload.new.settings.coupons)) {
+                  localStorage.setItem(COUPONS_KEY, JSON.stringify(payload.new.settings.coupons));
+                }
+                if (payload.new.settings.vipNotifications && Array.isArray(payload.new.settings.vipNotifications)) {
+                  localStorage.setItem(VIP_NOTIFICATIONS_KEY, JSON.stringify(payload.new.settings.vipNotifications));
+                  window.dispatchEvent(new CustomEvent('caglabufe_vip_notif_event', { detail: payload.new.settings.vipNotifications }));
+                }
+                if (payload.new.settings.dormitories && Array.isArray(payload.new.settings.dormitories)) {
+                  localStorage.setItem(DORMS_KEY, JSON.stringify(payload.new.settings.dormitories));
+                }
+                if (payload.new.settings.deliveryZones && Array.isArray(payload.new.settings.deliveryZones)) {
+                  localStorage.setItem(ZONES_KEY, JSON.stringify(payload.new.settings.deliveryZones));
+                }
               }
               callback(updated);
             }
@@ -496,6 +529,8 @@ export function getDeliveryZones(): DeliveryZone[] {
 export function saveDeliveryZones(zones: DeliveryZone[]): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(ZONES_KEY, JSON.stringify(zones));
+  const current = getSystemSettings();
+  saveSystemSettings({ ...current, deliveryZones: zones }).catch(() => {});
 }
 
 export function getDormitories(): DormitoryConfig[] {
@@ -699,6 +734,8 @@ export function getClosestBranchAndZone(lat: number, lng: number): {
 export function saveDormitories(dorms: DormitoryConfig[]): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(DORMS_KEY, JSON.stringify(dorms));
+  const current = getSystemSettings();
+  saveSystemSettings({ ...current, dormitories: dorms }).catch(() => {});
 }
 
 export function addDormitory(dorm: Omit<DormitoryConfig, 'id'>): DormitoryConfig {
@@ -1107,22 +1144,45 @@ export function getZoneForAddress(
 export function calculateDeliveryForZone(
   zone: DeliveryZone | null,
   cartTotal: number,
-  customSettings?: SystemSettings
-): { minOrder: number; deliveryFee: number; freeThreshold: number; estimatedMin: number } {
+  customSettings?: SystemSettings,
+  dormitory?: DormitoryConfig | null
+): {
+  minOrder: number;
+  deliveryFee: number;
+  freeThreshold: number;
+  estimatedMin: number;
+  dormDiscountPercent?: number;
+} {
   const settings = customSettings || getSystemSettings();
-  if (!zone) {
-    return {
-      minOrder: settings.defaultMinOrder,
-      deliveryFee: cartTotal >= settings.defaultFreeDeliveryThreshold ? 0 : settings.defaultDeliveryFee,
-      freeThreshold: settings.defaultFreeDeliveryThreshold,
-      estimatedMin: 20,
-    };
+
+  // Base values
+  let minOrder = zone ? zone.minOrderAmount : settings.defaultMinOrder;
+  const deliveryFee = zone
+    ? cartTotal >= zone.freeDeliveryThreshold
+      ? 0
+      : zone.deliveryFee
+    : cartTotal >= settings.defaultFreeDeliveryThreshold
+      ? 0
+      : settings.defaultDeliveryFee;
+  const freeThreshold = zone ? zone.freeDeliveryThreshold : settings.defaultFreeDeliveryThreshold;
+  const estimatedMin = zone ? zone.estimatedMinutes : 20;
+
+  // YURTLARA ÖZEL OVERRIDE: Belirlenmediyse bölgesi neyse o, belirlendiyse override eder!
+  if (dormitory && dormitory.minOrderAmount !== undefined && dormitory.minOrderAmount > 0) {
+    minOrder = dormitory.minOrderAmount;
   }
+
+  const dormDiscountPercent =
+    dormitory && dormitory.discountPercentage && dormitory.discountPercentage > 0
+      ? dormitory.discountPercentage
+      : undefined;
+
   return {
-    minOrder: zone.minOrderAmount,
-    deliveryFee: cartTotal >= zone.freeDeliveryThreshold ? 0 : zone.deliveryFee,
-    freeThreshold: zone.freeDeliveryThreshold,
-    estimatedMin: zone.estimatedMinutes,
+    minOrder,
+    deliveryFee,
+    freeThreshold,
+    estimatedMin,
+    dormDiscountPercent,
   };
 }
 
@@ -1150,6 +1210,8 @@ export function evaluateSingleBestCampaign({
   standardDeliveryFee = 0,
   isZoneAlreadyFree = false,
   campaignsList,
+  zoneId,
+  dormitoryId,
 }: {
   cartTotal: number;
   cartItems: { productId: string; category: string; quantity: number; price: number }[];
@@ -1157,6 +1219,8 @@ export function evaluateSingleBestCampaign({
   standardDeliveryFee?: number;
   isZoneAlreadyFree?: boolean;
   campaignsList?: Campaign[];
+  zoneId?: string;
+  dormitoryId?: string;
 }): SingleCampaignEvaluationResult {
   // If the cart contains a bundle deal (combo menu), that order is already using a campaign.
   if (hasBundle) {
@@ -1189,6 +1253,16 @@ export function evaluateSingleBestCampaign({
   for (const campaign of activeCampaigns) {
     // Ignore bundle deals here since bundles are evaluated via cart items above
     if (campaign.type === 'bundle_deal') continue;
+
+    // Konuma & Bölgeye özel kampanya kontrolü
+    if (campaign.applicableZoneIds && campaign.applicableZoneIds.length > 0) {
+      if (!zoneId || !campaign.applicableZoneIds.includes(zoneId)) continue;
+    }
+
+    // Yurda özel kampanya kontrolü
+    if (campaign.applicableDormitoryIds && campaign.applicableDormitoryIds.length > 0) {
+      if (!dormitoryId || !campaign.applicableDormitoryIds.includes(dormitoryId)) continue;
+    }
 
     // Minimum order check
     if (campaign.minOrderAmount && cartTotal < campaign.minOrderAmount) continue;
@@ -1340,6 +1414,8 @@ export function saveCoupons(coupons: Coupon[]): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
+    const current = getSystemSettings();
+    saveSystemSettings({ ...current, coupons }).catch(() => {});
   } catch {}
 }
 
@@ -1387,12 +1463,23 @@ export function validateCoupon(
     return { valid: false, message: 'Bu kupon kodunun kullanım süresi dolmuştur.', discountAmount: 0 };
   }
 
-  // Target phone check
-  if (coupon.targetPhone && userPhone) {
-    const cleanUser = userPhone.replace(/\D/g, '');
-    const cleanTarget = coupon.targetPhone.replace(/\D/g, '');
-    if (cleanUser && cleanTarget && cleanUser !== cleanTarget) {
-      return { valid: false, message: 'Bu özel kupon yalnızca tanımlanan hesaba aittir.', discountAmount: 0 };
+  // Target phone check (Kişiye özel kupon kontrolü)
+  if (coupon.targetPhone) {
+    if (!userPhone) {
+      return {
+        valid: false,
+        message: 'Bu kişiye özel kuponu kullanmak için lütfen hesabınıza giriş yapınız.',
+        discountAmount: 0,
+      };
+    }
+    const cleanUser = normalizePhoneNumber(userPhone);
+    const cleanTarget = normalizePhoneNumber(coupon.targetPhone);
+    if (!cleanUser || !cleanTarget || cleanUser !== cleanTarget) {
+      return {
+        valid: false,
+        message: 'Bu özel indirim kuponu yalnızca tanımlandığı müdavim hesabına aittir.',
+        discountAmount: 0,
+      };
     }
   }
 
@@ -1573,6 +1660,8 @@ export function saveVipNotifications(notifs: VipNotification[]): void {
       }
     } catch {}
     window.dispatchEvent(new CustomEvent('caglabufe_vip_notif_event', { detail: notifs }));
+    const current = getSystemSettings();
+    saveSystemSettings({ ...current, vipNotifications: notifs }).catch(() => {});
   } catch {}
 }
 

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { PaymentMethod, Product } from '@/types';
 import { getSmartRecommendations } from '@/lib/recommendationEngine';
+import { translateCampaignTitle } from '@/lib/campaignTranslator';
 import {
   X,
   Trash2,
@@ -21,6 +22,8 @@ import {
   Check,
   Gift,
 } from 'lucide-react';
+
+import { normalizePhoneNumber } from '@/lib/security';
 
 export const CartDrawer = () => {
   const {
@@ -64,13 +67,13 @@ export const CartDrawer = () => {
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   const [mountTime] = useState(() => Date.now());
-  const cleanUserPhone = user?.phone ? user.phone.replace(/\D/g, '') : '';
+  const cleanUserPhone = user?.phone ? normalizePhoneNumber(user.phone) : '';
   const availableQuickCoupons = useMemo(() => {
     const activeList = (coupons || []).filter((c) => {
       if (!c.isActive) return false;
       if (c.expiresAt && new Date(c.expiresAt).getTime() < mountTime) return false;
       if (c.targetPhone) {
-        const cleanTarget = c.targetPhone.replace(/\D/g, '');
+        const cleanTarget = normalizePhoneNumber(c.targetPhone);
         return cleanUserPhone && cleanTarget === cleanUserPhone;
       }
       return true;
@@ -961,7 +964,7 @@ export const CartDrawer = () => {
                 </div>
                 {discountAmount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#10B981', marginBottom: '6px' }}>
-                    <span>{t('discount', 'İndirim')} {appliedCampaignTitle ? `(${appliedCampaignTitle})` : ''}</span>
+                    <span>{t('discount', 'İndirim')} {appliedCampaignTitle ? `(${translateCampaignTitle(appliedCampaignTitle, locale)})` : ''}</span>
                     <span style={{ fontWeight: 700 }}>-{discountAmount.toFixed(2)} TL</span>
                   </div>
                 )}

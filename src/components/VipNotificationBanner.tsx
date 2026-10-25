@@ -107,7 +107,7 @@ export const VipNotificationBanner: React.FC = () => {
         bottom: '80px',
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 9998,
+        zIndex: 85,
         width: 'calc(100% - 24px)',
         maxWidth: '460px',
         animation: 'slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)',

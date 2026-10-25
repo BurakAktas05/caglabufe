@@ -35,29 +35,6 @@ export const TrendyolCategoryGrid: React.FC<TrendyolCategoryGridProps> = () => {
     { label: t('pillNoodleMakarna', '🍜 Noodle & Makarna'), query: 'Noodle' },
   ];
 
-  const drinkPills = [
-    { label: t('pillKola', '🥤 Kutu Kola'), query: 'Kola' },
-    { label: t('pillAyran', '🥛 Yayık Ayran'), query: 'Ayran' },
-    { label: t('pillSogukCay', '🍑 Soğuk Çay'), query: 'Soğuk Çay' },
-    { label: t('pillEnerji', '⚡ Enerji İçeceği'), query: 'Enerji' },
-  ];
-
-  const snackPills = [
-    { label: t('pillCikolata', '🍫 Çikolata'), query: 'Çikolata' },
-    { label: t('pillGofret', '🧇 Çıtır Gofret'), query: 'Gofret' },
-    { label: t('pillBiskuvi', '🍪 Bisküvi'), query: 'Bisküvi' },
-  ];
-
-  const chipsPills = [
-    { label: t('pillCips', '🥔 Baharatlı Cips'), query: 'Cips' },
-    { label: t('pillCerez', '🥜 Kuruyemiş & Fıstık'), query: 'Kuruyemiş' },
-  ];
-
-  const coffeePills = [
-    { label: t('pillKahve', '☕ Kahve'), query: 'Kahve' },
-    { label: t('pillCay', '🫖 Demleme Çay'), query: 'Çay' },
-  ];
-
   return (
     <section className="trendyol-category-section" style={{ marginBottom: '32px' }} dir={dir}>
       {/* Section Header */}
@@ -130,106 +107,68 @@ export const TrendyolCategoryGrid: React.FC<TrendyolCategoryGridProps> = () => {
           ====================================================================== */}
       <div className="bento-showcase-grid">
         {/* --- 1. HERO BENTO: SICAK MUTFAK & EFSANE TOSTLAR --- */}
+        {/* --- 1. HERO BENTO: SICAK MUTFAK & EFSANE TOSTLAR --- */}
         <div className="bento-card-hero">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '16px',
-              position: 'relative',
-              zIndex: 2,
-            }}
-          >
-            <div style={{ flex: '1 1 280px', minWidth: '240px' }}>
+          <div className="bento-hero-wrapper">
+            <div className="bento-hero-main">
               {/* Badges Bar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                <span
-                  style={{
-                    backgroundColor: '#EA580C',
-                    color: '#FFFFFF',
-                    fontSize: '11px',
-                    fontWeight: 900,
-                    padding: '3px 9px',
-                    borderRadius: '8px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    letterSpacing: '0.3px',
-                    boxShadow: '0 2px 6px rgba(234, 88, 12, 0.25)',
-                  }}
-                >
+              <div className="bento-badges-row">
+                <span className="bento-badge-flame">
                   <Flame size={13} fill="#FFFFFF" className="flame-anim" />
                   <span>{t('bentoHotKitchenBadge', 'Ateşte Pişen Lezzetler')}</span>
                 </span>
-                <span
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    color: '#C2410C',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    padding: '3px 8px',
-                    borderRadius: '8px',
-                    border: '1px solid #FDBA74',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
+                <span className="bento-badge-prep">
                   <Clock size={12} />
-                  <span>{t('bentoHotKitchenPrep', '~20-25 dk Taze Hazırlanır')}</span>
+                  <span>{t('bentoHotKitchenPrep', '~20-25 dk Taze')}</span>
                 </span>
-                <span
-                  style={{
-                    backgroundColor: '#FFF7ED',
-                    color: '#9A3412',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: '8px',
-                    border: '1px solid #FED7AA',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
+                <span className="bento-badge-loc">
                   <MapPin size={12} />
-                  <span>{t('bentoHotKitchenDorm', 'KYK & Kampüs Kapısına')}</span>
+                  <span>{t('bentoHotKitchenDorm', 'KYK & Kampüs')}</span>
                 </span>
               </div>
 
-              {/* Title & Desc */}
-              <h3
-                style={{
-                  fontSize: '22px',
-                  fontWeight: 900,
-                  color: '#9A3412',
-                  margin: '0 0 6px',
-                  letterSpacing: '-0.3px',
-                  lineHeight: 1.25,
-                }}
-              >
-                🥪 {t('bentoHotKitchenTitle', 'Sıcak Mutfak & Efsane Tostlar')}
-              </h3>
-              <p
-                style={{
-                  fontSize: '13px',
-                  color: '#7C2D12',
-                  margin: '0 0 14px',
-                  lineHeight: 1.45,
-                  fontWeight: 500,
-                  maxWidth: '520px',
-                }}
-              >
-                {t(
-                  'bentoHotKitchenDesc',
-                  'Bol kaşarlı sıcak tostlar, çıtır sandviçler ve sıcacık büfe lezzetleri taze hazırlanıp kapında.'
-                )}
-              </p>
+              {/* Title & Mobile Image Row */}
+              <div className="bento-title-mobile-row">
+                <div style={{ flex: '1 1 0', minWidth: 0 }}>
+                  <h3 className="bento-hero-heading">
+                    🥪 {t('bentoHotKitchenTitle', 'Sıcak Mutfak & Efsane Tostlar')}
+                  </h3>
+                  <p className="bento-hero-paragraph">
+                    {t(
+                      'bentoHotKitchenDesc',
+                      'Bol kaşarlı sıcak tostlar, çıtır sandviçler ve sıcacık büfe lezzetleri taze hazırlanıp kapında.'
+                    )}
+                  </p>
+                </div>
+                {/* Mobile Hero Thumbnail */}
+                <div
+                  className="bento-hero-img-mobile"
+                  style={{
+                    position: 'relative',
+                    width: '74px',
+                    height: '74px',
+                    borderRadius: '14px',
+                    overflow: 'hidden',
+                    backgroundColor: '#FFFFFF',
+                    border: '2px solid #FFFFFF',
+                    boxShadow: '0 4px 12px rgba(234, 88, 12, 0.22)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Image
+                    src="/categories/hot-tost-hero.jpg"
+                    alt="Sıcak Tost"
+                    fill
+                    sizes="74px"
+                    style={{ objectFit: 'cover' }}
+                    priority
+                  />
+                  <div className="bento-mobile-tag">🔥 Taze</div>
+                </div>
+              </div>
 
               {/* Quick Pills */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+              <div className="bento-pills-container">
                 {hotPills.map((pill, idx) => (
                   <Link
                     key={idx}
@@ -247,30 +186,20 @@ export const TrendyolCategoryGrid: React.FC<TrendyolCategoryGridProps> = () => {
               </div>
 
               {/* Action Button */}
-              <Link
-                href="/urunler?reyon=hazir-yiyecek"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: '#EA580C',
-                  color: '#FFFFFF',
-                  padding: '10px 18px',
-                  borderRadius: '12px',
-                  fontSize: '13px',
-                  fontWeight: 900,
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 14px rgba(234, 88, 12, 0.35)',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>{t('bentoHotKitchenBtn', 'Tostları Gör & Sipariş Ver')}</span>
-                <ArrowRight size={15} className="rtl-flip" />
-              </Link>
+              <div className="bento-cta-wrapper">
+                <Link
+                  href="/urunler?reyon=sicak-mutfak"
+                  className="bento-cta-btn"
+                >
+                  <span>{t('bentoHotKitchenBtn', 'Tostları Gör & Sipariş Ver')}</span>
+                  <ArrowRight size={15} className="rtl-flip" />
+                </Link>
+              </div>
             </div>
 
-            {/* Visual Hero Image Container */}
+            {/* Desktop Hero Image Container (hidden on mobile) */}
             <div
+              className="bento-hero-img-desktop"
               style={{
                 position: 'relative',
                 width: '140px',
@@ -291,386 +220,14 @@ export const TrendyolCategoryGrid: React.FC<TrendyolCategoryGridProps> = () => {
                 style={{ objectFit: 'cover' }}
                 priority
               />
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '6px',
-                  left: '6px',
-                  right: '6px',
-                  backgroundColor: 'rgba(0, 0, 0, 0.65)',
-                  backdropFilter: 'blur(4px)',
-                  color: '#FFFFFF',
-                  fontSize: '9px',
-                  fontWeight: 800,
-                  padding: '2px 6px',
-                  borderRadius: '6px',
-                  textAlign: 'center',
-                  letterSpacing: '0.2px',
-                }}
-              >
+              <div className="bento-desktop-tag">
                 🔥 Taze &amp; Çıtır
               </div>
             </div>
           </div>
         </div>
-
-        {/* --- 2. BENTO TILE: BUZ GİBİ İÇECEKLER & SU --- */}
-        <div
-          className="bento-sub-card"
-          style={{
-            background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 55%, #BAE6FD 100%)',
-            border: '1.5px solid #7DD3FC',
-            boxShadow: '0 4px 16px -2px rgba(2, 132, 199, 0.12)',
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span
-                style={{
-                  backgroundColor: '#0284C7',
-                  color: '#FFFFFF',
-                  fontSize: '10px',
-                  fontWeight: 900,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                  letterSpacing: '0.2px',
-                }}
-              >
-                🧊 {t('bentoColdDrinksBadge', 'Buz Gibi Ferahlık')}
-              </span>
-              <div
-                style={{
-                  position: 'relative',
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #BAE6FD',
-                  flexShrink: 0,
-                }}
-              >
-                <Image
-                  src="/categories/soguk-icecek.jpg"
-                  alt="Soğuk İçecek"
-                  fill
-                  sizes="42px"
-                  style={{ objectFit: 'cover' }}
-                />
-              </div>
-            </div>
-
-            <h4 style={{ fontSize: '15px', fontWeight: 900, color: '#0369A1', margin: '0 0 4px' }}>
-              {t('bentoColdDrinksTitle', 'Buz Gibi İçecekler & Su')}
-            </h4>
-            <p style={{ fontSize: '12px', color: '#075985', margin: '0 0 10px', lineHeight: 1.35, fontWeight: 500 }}>
-              {t('bentoColdDrinksDesc', 'Kola, ayran, soğuk çay ve enerji içecekleri kapında.')}
-            </p>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-              {drinkPills.map((pill, idx) => (
-                <Link
-                  key={idx}
-                  href={`/urunler?q=${encodeURIComponent(pill.query)}`}
-                  className="bento-pill"
-                  style={{
-                    color: '#0369A1',
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #BAE6FD',
-                  }}
-                >
-                  {pill.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-            <Link
-              href="/urunler?reyon=soguk-icecek"
-              style={{
-                fontSize: '12px',
-                fontWeight: 800,
-                color: '#0284C7',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span>{t('viewAllAisles', 'İncele')}</span>
-              <ArrowRight size={13} className="rtl-flip" />
-            </Link>
-          </div>
-        </div>
-
-        {/* --- 3. BENTO TILE: KANTİN & ÇITIR ATIŞTIRMALIK --- */}
-        <div
-          className="bento-sub-card"
-          style={{
-            background: 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 55%, #DDD6FE 100%)',
-            border: '1.5px solid #C4B5FD',
-            boxShadow: '0 4px 16px -2px rgba(126, 34, 206, 0.12)',
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span
-                style={{
-                  backgroundColor: '#7E22CE',
-                  color: '#FFFFFF',
-                  fontSize: '10px',
-                  fontWeight: 900,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                }}
-              >
-                🍫 {t('bentoSnacksBadge', 'Müdavim Favorileri')}
-              </span>
-              <div
-                style={{
-                  position: 'relative',
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #DDD6FE',
-                  flexShrink: 0,
-                }}
-              >
-                <Image
-                  src="/categories/kantin-atistirmalik.jpg"
-                  alt="Kantin Atıştırmalık"
-                  fill
-                  sizes="42px"
-                  style={{ objectFit: 'cover' }}
-                />
-              </div>
-            </div>
-
-            <h4 style={{ fontSize: '15px', fontWeight: 900, color: '#6B21A8', margin: '0 0 4px' }}>
-              {t('bentoSnacksTitle', 'Kantin & Çıtır Atıştırmalık')}
-            </h4>
-            <p style={{ fontSize: '12px', color: '#581C87', margin: '0 0 10px', lineHeight: 1.35, fontWeight: 500 }}>
-              {t('bentoSnacksDesc', 'Çikolata, gofret, bisküvi ve kek çeşitleri.')}
-            </p>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-              {snackPills.map((pill, idx) => (
-                <Link
-                  key={idx}
-                  href={`/urunler?q=${encodeURIComponent(pill.query)}`}
-                  className="bento-pill"
-                  style={{
-                    color: '#6B21A8',
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #DDD6FE',
-                  }}
-                >
-                  {pill.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-            <Link
-              href="/urunler?reyon=kantin-atistirmalik"
-              style={{
-                fontSize: '12px',
-                fontWeight: 800,
-                color: '#7E22CE',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span>{t('viewAllAisles', 'İncele')}</span>
-              <ArrowRight size={13} className="rtl-flip" />
-            </Link>
-          </div>
-        </div>
-
-        {/* --- 4. BENTO TILE: CİPS & KURUYEMİŞ KEYFİ --- */}
-        <div
-          className="bento-sub-card"
-          style={{
-            background: 'linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 55%, #FECDD3 100%)',
-            border: '1.5px solid #FDA4AF',
-            boxShadow: '0 4px 16px -2px rgba(225, 29, 72, 0.12)',
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span
-                style={{
-                  backgroundColor: '#E11D48',
-                  color: '#FFFFFF',
-                  fontSize: '10px',
-                  fontWeight: 900,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                }}
-              >
-                🍿 {t('bentoChipsBadge', 'Film & Dizi Keyfi')}
-              </span>
-              <div
-                style={{
-                  position: 'relative',
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #FECDD3',
-                  flexShrink: 0,
-                }}
-              >
-                <Image
-                  src="/categories/cips-cerez.jpg"
-                  alt="Cips & Çerez"
-                  fill
-                  sizes="42px"
-                  style={{ objectFit: 'cover' }}
-                />
-              </div>
-            </div>
-
-            <h4 style={{ fontSize: '15px', fontWeight: 900, color: '#BE123C', margin: '0 0 4px' }}>
-              {t('bentoChipsTitle', 'Cips & Kuruyemiş Keyfi')}
-            </h4>
-            <p style={{ fontSize: '12px', color: '#9F1239', margin: '0 0 10px', lineHeight: 1.35, fontWeight: 500 }}>
-              {t('bentoChipsDesc', 'Patates cipsi, fıstık ve taze çekirdek.')}
-            </p>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-              {chipsPills.map((pill, idx) => (
-                <Link
-                  key={idx}
-                  href={`/urunler?q=${encodeURIComponent(pill.query)}`}
-                  className="bento-pill"
-                  style={{
-                    color: '#BE123C',
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #FECDD3',
-                  }}
-                >
-                  {pill.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-            <Link
-              href="/urunler?reyon=cips-cerez"
-              style={{
-                fontSize: '12px',
-                fontWeight: 800,
-                color: '#E11D48',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span>{t('viewAllAisles', 'İncele')}</span>
-              <ArrowRight size={13} className="rtl-flip" />
-            </Link>
-          </div>
-        </div>
-
-        {/* --- 5. BENTO TILE: KAHVE & ÇAY MOLASI --- */}
-        <div
-          className="bento-sub-card"
-          style={{
-            background: 'linear-gradient(135deg, #FEFCE8 0%, #FEF08A 55%, #FDE047 100%)',
-            border: '1.5px solid #EAB308',
-            boxShadow: '0 4px 16px -2px rgba(161, 98, 7, 0.12)',
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span
-                style={{
-                  backgroundColor: '#A16207',
-                  color: '#FFFFFF',
-                  fontSize: '10px',
-                  fontWeight: 900,
-                  padding: '3px 8px',
-                  borderRadius: '6px',
-                }}
-              >
-                ☕ {t('bentoCoffeeBadge', 'Sıcak Mola')}
-              </span>
-              <div
-                style={{
-                  position: 'relative',
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #FDE047',
-                  flexShrink: 0,
-                }}
-              >
-                <Image
-                  src="/categories/kahve-cay.jpg"
-                  alt="Kahve & Çay"
-                  fill
-                  sizes="42px"
-                  style={{ objectFit: 'cover' }}
-                />
-              </div>
-            </div>
-
-            <h4 style={{ fontSize: '15px', fontWeight: 900, color: '#854D0E', margin: '0 0 4px' }}>
-              {t('bentoCoffeeTitle', 'Kahve & Çay Molası')}
-            </h4>
-            <p style={{ fontSize: '12px', color: '#713F12', margin: '0 0 10px', lineHeight: 1.35, fontWeight: 500 }}>
-              {t('bentoCoffeeDesc', 'Nescafe, filtre kahve ve sıcacık demleme çay.')}
-            </p>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-              {coffeePills.map((pill, idx) => (
-                <Link
-                  key={idx}
-                  href={`/urunler?q=${encodeURIComponent(pill.query)}`}
-                  className="bento-pill"
-                  style={{
-                    color: '#854D0E',
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #FDE047',
-                  }}
-                >
-                  {pill.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-            <Link
-              href="/urunler?reyon=kahve-cay"
-              style={{
-                fontSize: '12px',
-                fontWeight: 800,
-                color: '#A16207',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span>{t('viewAllAisles', 'İncele')}</span>
-              <ArrowRight size={13} className="rtl-flip" />
-            </Link>
-          </div>
-        </div>
       </div>
+
 
       {/* ======================================================================
           FULL REYON DIRECTORY (ALL 11 AISLES)

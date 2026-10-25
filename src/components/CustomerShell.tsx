@@ -15,6 +15,7 @@ import { StoreClosedOverlay } from '@/components/StoreClosedOverlay';
 import { BannedUserModal } from '@/components/BannedUserModal';
 import { SupportModal } from '@/components/SupportModal';
 import { VipNotificationBanner } from '@/components/VipNotificationBanner';
+import { LanguageWelcomeModal } from '@/components/LanguageWelcomeModal';
 import { useApp } from '@/context/AppContext';
 
 /**
@@ -25,13 +26,31 @@ import { useApp } from '@/context/AppContext';
 export const CustomerShell = () => {
   const pathname = usePathname();
   const {
+    isCartOpen,
+    isAddressModalOpen,
+    isAuthModalOpen,
+    isProfileModalOpen,
+    activeTrackingOrder,
     bannedModalInfo,
     setBannedModalInfo,
     logoutUser,
     systemSettings,
     isSupportModalOpen,
     setIsSupportModalOpen,
+    isLanguageWelcomeOpen,
+    setIsLanguageWelcomeOpen,
   } = useApp();
+
+  const isAnyModalOpen = Boolean(
+    isCartOpen ||
+    isAddressModalOpen ||
+    isAuthModalOpen ||
+    isProfileModalOpen ||
+    activeTrackingOrder ||
+    bannedModalInfo ||
+    isSupportModalOpen ||
+    isLanguageWelcomeOpen
+  );
 
   const isExcluded =
     Boolean(pathname && (pathname.startsWith('/admin') || pathname === '/brosur')) ||
@@ -51,8 +70,8 @@ export const CustomerShell = () => {
       <OrderTrackingModal />
       <ToastContainer />
       <BottomNav />
-      <NotificationPromptBanner />
-      <PWAInstallBanner />
+      {!isAnyModalOpen && <NotificationPromptBanner />}
+      {!isAnyModalOpen && <PWAInstallBanner />}
       <StoreClosedOverlay />
       <BannedUserModal
         bannedInfo={bannedModalInfo}
@@ -69,7 +88,11 @@ export const CustomerShell = () => {
         isOpen={isSupportModalOpen}
         onClose={() => setIsSupportModalOpen(false)}
       />
-      <VipNotificationBanner />
+      <LanguageWelcomeModal
+        isOpen={isLanguageWelcomeOpen}
+        onClose={() => setIsLanguageWelcomeOpen(false)}
+      />
+      {!isAnyModalOpen && <VipNotificationBanner />}
     </>
   );
 };

@@ -64,6 +64,7 @@ import { AdminCampaigns } from '@/components/admin/tabs/AdminCampaigns';
 import { AdminZones } from '@/components/admin/tabs/AdminZones';
 import { AdminSettings } from '@/components/admin/tabs/AdminSettings';
 import { AdminBannedUsers } from '@/components/admin/tabs/AdminBannedUsers';
+import { AdminAIAssistant } from '@/components/admin/AdminAIAssistant';
 import {
   Lock,
   ArrowLeft,
@@ -75,10 +76,6 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import {
-  getAdminLockoutStatus,
-  recordAdminLoginAttempt,
-  generateAdminSessionSignature,
-  verifyAdminSessionSignature,
   normalizePhoneNumber,
   formatPhoneNumber,
 } from '@/lib/security';
@@ -103,22 +100,15 @@ export default function AdminPage() {
   const [adminPasswordInput, setAdminPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
+  const [loginLoading, setLoginLoading] = useState(false);
 
+  // Check existing session on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const currentSettings = getSystemSettings();
-      const expectedPassword = currentSettings.adminPassword || 'cagla2024';
-      const storedToken = sessionStorage.getItem('caglabufe_admin_auth');
-      
-      if (storedToken && verifyAdminSessionSignature(storedToken, expectedPassword)) {
+      // If there's a previous auth flag from sessionStorage, check it
+      const wasAuthed = sessionStorage.getItem('caglabufe_admin_auth');
+      if (wasAuthed === 'active') {
         setIsAuthorized(true);
-      } else if (storedToken) {
-        sessionStorage.removeItem('caglabufe_admin_auth');
-      }
-
-      const lockout = getAdminLockoutStatus();
-      if (lockout.isLocked) {
-        setLockoutRemaining(lockout.remainingSeconds);
       }
 
       setNotificationPerm(getNotificationPermission());
@@ -141,46 +131,58 @@ export default function AdminPage() {
     return () => clearInterval(interval);
   }, [lockoutRemaining]);
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loginLoading) return;
 
-    // Check brute force lockout
-    const lockout = getAdminLockoutStatus();
-    if (lockout.isLocked) {
-      setLockoutRemaining(lockout.remainingSeconds);
-      setAuthError(`Yönetici paneli kilitli! Lütfen ${lockout.remainingSeconds} saniye sonra tekrar deneyiniz.`);
+    if (lockoutRemaining > 0) {
+      setAuthError(`Yönetici paneli kilitli! Lütfen ${lockoutRemaining} saniye sonra tekrar deneyiniz.`);
       return;
     }
 
-    const currentSettings = getSystemSettings();
-    const expectedPassword = currentSettings.adminPassword || 'cagla2024';
+    setLoginLoading(true);
+    setAuthError('');
 
-    if (adminPasswordInput === expectedPassword) {
-      recordAdminLoginAttempt(true);
-      setIsAuthorized(true);
-      setAuthError('');
-      setLockoutRemaining(0);
-      if (typeof window !== 'undefined') {
-        const token = generateAdminSessionSignature(expectedPassword);
-        sessionStorage.setItem('caglabufe_admin_auth', token);
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPasswordInput }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setIsAuthorized(true);
+        setAuthError('');
+        setLockoutRemaining(0);
+        sessionStorage.setItem('caglabufe_admin_auth', 'active');
+      } else {
+        setAuthError(data.error || 'Hatalı şifre!');
+        if (data.locked && data.remainingSeconds) {
+          setLockoutRemaining(data.remainingSeconds);
+        }
       }
-    } else {
-      const result = recordAdminLoginAttempt(false);
-      if (!result.canLogin) {
-        const updatedLockout = getAdminLockoutStatus();
-        setLockoutRemaining(updatedLockout.remainingSeconds);
-      }
-      setAuthError(result.message || 'Hatalı şifre! Lütfen kontrol edip tekrar deneyiniz.');
+    } catch {
+      setAuthError('Sunucu bağlantısı başarısız. Lütfen tekrar deneyiniz.');
+    } finally {
+      setLoginLoading(false);
     }
   };
 
-  const handleAdminLogout = () => {
+  const handleAdminLogout = async () => {
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' });
+    } catch {
+      // Still clear client state
+    }
     setIsAuthorized(false);
     setAdminPasswordInput('');
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('caglabufe_admin_auth');
     }
   };
+
 
   // Initial Data Load & Realtime Sync
   useEffect(() => {
@@ -480,22 +482,22 @@ export default function AdminPage() {
 
             <button
               type="submit"
-              disabled={lockoutRemaining > 0}
+              disabled={lockoutRemaining > 0 || loginLoading}
               style={{
                 width: '100%',
                 padding: '13px',
                 borderRadius: '12px',
-                backgroundColor: lockoutRemaining > 0 ? '#4B5563' : '#FFD10D',
-                color: lockoutRemaining > 0 ? '#9CA3AF' : '#191919',
+                backgroundColor: (lockoutRemaining > 0 || loginLoading) ? '#4B5563' : '#FFD10D',
+                color: (lockoutRemaining > 0 || loginLoading) ? '#9CA3AF' : '#191919',
                 fontWeight: 900,
                 fontSize: '15px',
                 border: 'none',
-                cursor: lockoutRemaining > 0 ? 'not-allowed' : 'pointer',
+                cursor: (lockoutRemaining > 0 || loginLoading) ? 'not-allowed' : 'pointer',
                 marginBottom: '16px',
-                boxShadow: lockoutRemaining > 0 ? 'none' : '0 4px 18px rgba(255, 209, 13, 0.3)',
+                boxShadow: (lockoutRemaining > 0 || loginLoading) ? 'none' : '0 4px 18px rgba(255, 209, 13, 0.3)',
               }}
             >
-              {lockoutRemaining > 0 ? `Kilitli (${lockoutRemaining}s)` : 'Panele Giriş Yap'}
+              {lockoutRemaining > 0 ? `Kilitli (${lockoutRemaining}s)` : loginLoading ? 'Giriş yapılıyor...' : 'Panele Giriş Yap'}
             </button>
 
             <Link
@@ -620,6 +622,28 @@ export default function AdminPage() {
           )}
         </main>
       </div>
+
+      {/* Railway Tarzı Otonom Operasyon Yapay Zeka Ajanı */}
+      <AdminAIAssistant
+        orders={orders}
+        products={products}
+        zones={zones}
+        dorms={dorms}
+        settings={settings}
+        onStatusChange={handleStatusChange}
+        onSaveProduct={handleSaveProduct}
+        onToggleProductAvailability={handleToggleProduct}
+        onUpdateZone={handleUpdateZone}
+        onUpdateDorm={handleUpdateDorm}
+        onToggleStoreOpen={(nextState) => {
+          const updated: SystemSettings = {
+            ...settings,
+            isManualOverride: true,
+            isManuallyOpen: nextState,
+          };
+          handleSaveSettings(updated);
+        }}
+      />
 
       {receiptOrder && (
         <DigitalReceiptModal

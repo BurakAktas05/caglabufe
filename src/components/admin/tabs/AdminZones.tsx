@@ -116,6 +116,15 @@ export const AdminZones: React.FC<AdminZonesProps> = ({
   const [dormBlocks, setDormBlocks] = useState('A Blok, B Blok, C Blok');
   const [dormZoneId, setDormZoneId] = useState('');
   const [dormDistanceKm, setDormDistanceKm] = useState('2.4');
+  const [dormMinOrder, setDormMinOrder] = useState('');
+  const [dormDiscountPercentage, setDormDiscountPercentage] = useState('');
+  const [dormSpecialNote, setDormSpecialNote] = useState('');
+
+  // Inline Editing Dorm State
+  const [editingDormId, setEditingDormId] = useState<string | null>(null);
+  const [editDormMinOrder, setEditDormMinOrder] = useState<string>('');
+  const [editDormDiscount, setEditDormDiscount] = useState<string>('');
+  const [editDormNote, setEditDormNote] = useState<string>('');
 
   // Inline Editing Zone State
   const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
@@ -159,8 +168,30 @@ export const AdminZones: React.FC<AdminZonesProps> = ({
       isActive: true,
       distanceKm: Number(dormDistanceKm) || 2.4,
       mapsQuery: `${dormName.trim()}, Karabük`,
+      minOrderAmount: dormMinOrder.trim() ? parseFloat(dormMinOrder) : undefined,
+      discountPercentage: dormDiscountPercentage.trim() ? parseFloat(dormDiscountPercentage) : undefined,
+      specialNote: dormSpecialNote.trim() || undefined,
     });
     setDormName('');
+    setDormMinOrder('');
+    setDormDiscountPercentage('');
+    setDormSpecialNote('');
+  };
+
+  const startEditDorm = (d: DormitoryConfig) => {
+    setEditingDormId(d.id);
+    setEditDormMinOrder(d.minOrderAmount ? d.minOrderAmount.toString() : '');
+    setEditDormDiscount(d.discountPercentage ? d.discountPercentage.toString() : '');
+    setEditDormNote(d.specialNote || '');
+  };
+
+  const saveEditDorm = (id: string) => {
+    onUpdateDorm(id, {
+      minOrderAmount: editDormMinOrder.trim() ? parseFloat(editDormMinOrder) : undefined,
+      discountPercentage: editDormDiscount.trim() ? parseFloat(editDormDiscount) : undefined,
+      specialNote: editDormNote.trim() || undefined,
+    });
+    setEditingDormId(null);
   };
 
   // Tariff Presets Handlers
@@ -1395,6 +1426,27 @@ export const AdminZones: React.FC<AdminZonesProps> = ({
             onChange={(e) => setDormDistanceKm(e.target.value)}
             style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
           />
+          <input
+            type="number"
+            placeholder="Yurda Özel Min Sepet (₺ - Boşsa bölge)"
+            value={dormMinOrder}
+            onChange={(e) => setDormMinOrder(e.target.value)}
+            style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+          />
+          <input
+            type="number"
+            placeholder="Yurda Özel İndirim (% - Opsiyonel)"
+            value={dormDiscountPercentage}
+            onChange={(e) => setDormDiscountPercentage(e.target.value)}
+            style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+          />
+          <input
+            type="text"
+            placeholder="Özel Not (Örn: Hubbi Hatun %10 İndirim)"
+            value={dormSpecialNote}
+            onChange={(e) => setDormSpecialNote(e.target.value)}
+            style={{ padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+          />
           <select
             value={dormZoneId}
             onChange={(e) => setDormZoneId(e.target.value)}
@@ -1430,10 +1482,11 @@ export const AdminZones: React.FC<AdminZonesProps> = ({
         </form>
 
         {/* Dorms Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: '12px' }}>
           {dorms.map((d) => {
             const dormMapsNavUrl = getGoogleMapsDormUrl(d);
             const parentZone = zones.find((z) => z.id === d.zoneId);
+            const isEditing = editingDormId === d.id;
 
             return (
               <div
@@ -1441,7 +1494,7 @@ export const AdminZones: React.FC<AdminZonesProps> = ({
                 style={{
                   padding: '14px',
                   borderRadius: '12px',
-                  border: '1px solid #EBEBF2',
+                  border: isEditing ? '2px solid #10B981' : '1px solid #EBEBF2',
                   backgroundColor: d.isActive ? '#FFFFFF' : '#F9FAFB',
                   display: 'flex',
                   flexDirection: 'column',
@@ -1497,11 +1550,110 @@ export const AdminZones: React.FC<AdminZonesProps> = ({
                         {parentZone.name.split('(')[0].trim()}
                       </span>
                     )}
+
+                    {/* Yurda Özel Min Sepet Rozeti */}
+                    {d.minOrderAmount !== undefined && d.minOrderAmount > 0 ? (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          color: '#B45309',
+                          backgroundColor: '#FEF3C7',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          border: '1px solid #FCD34D',
+                        }}
+                        title="Bu yurt için bölge tutarı override edilmiştir"
+                      >
+                        🎯 Min Sepet: ₺{d.minOrderAmount}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '10px', color: '#94A3B8' }}>
+                        Min: ₺{parentZone?.minOrderAmount || settings.defaultMinOrder} (Bölge)
+                      </span>
+                    )}
+
+                    {/* Yurda Özel İndirim Rozeti */}
+                    {d.discountPercentage !== undefined && d.discountPercentage > 0 && (
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          color: '#7C3AED',
+                          backgroundColor: '#EDE9FE',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          border: '1px solid #DDD6FE',
+                        }}
+                      >
+                        🎁 %{d.discountPercentage} İndirim
+                      </span>
+                    )}
                   </div>
+
+                  {d.specialNote && (
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#047857', marginTop: '4px' }}>
+                      ✨ {d.specialNote}
+                    </div>
+                  )}
 
                   <div style={{ fontSize: '11px', color: '#64748B', marginTop: '6px' }}>
                     {d.district} • Bloklar: {d.blocks.join(', ')}
                   </div>
+
+                  {/* Inline Editing Inputs */}
+                  {isEditing && (
+                    <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#F0FDF4', borderRadius: '8px', border: '1px solid #BBF7D0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <div>
+                          <label style={{ fontSize: '10px', fontWeight: 800, color: '#166534' }}>Min. Sepet (₺)</label>
+                          <input
+                            type="number"
+                            placeholder="Boş = Bölge"
+                            value={editDormMinOrder}
+                            onChange={(e) => setEditDormMinOrder(e.target.value)}
+                            style={{ width: '100%', padding: '4px 6px', borderRadius: '6px', border: '1px solid #86EFAC', fontSize: '12px' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '10px', fontWeight: 800, color: '#166534' }}>İndirim (%)</label>
+                          <input
+                            type="number"
+                            placeholder="Örn: 10"
+                            value={editDormDiscount}
+                            onChange={(e) => setEditDormDiscount(e.target.value)}
+                            style={{ width: '100%', padding: '4px 6px', borderRadius: '6px', border: '1px solid #86EFAC', fontSize: '12px' }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '10px', fontWeight: 800, color: '#166534' }}>Özel Not</label>
+                        <input
+                          type="text"
+                          placeholder="Örn: %10 İndirim Fırsatı"
+                          value={editDormNote}
+                          onChange={(e) => setEditDormNote(e.target.value)}
+                          style={{ width: '100%', padding: '4px 6px', borderRadius: '6px', border: '1px solid #86EFAC', fontSize: '12px' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => saveEditDorm(d.id)}
+                          style={{ flex: 1, padding: '5px', backgroundColor: '#10B981', color: '#FFF', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
+                        >
+                          Kaydet
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingDormId(null)}
+                          style={{ padding: '5px 10px', backgroundColor: '#E5E7EB', color: '#374151', border: 'none', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}
+                        >
+                          İptal
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -1538,6 +1690,27 @@ export const AdminZones: React.FC<AdminZonesProps> = ({
                   </a>
 
                   <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => (isEditing ? setEditingDormId(null) : startEditDorm(d))}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        backgroundColor: '#F3F4F6',
+                        color: '#374151',
+                        border: '1px solid #D1D5DB',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                      }}
+                      title="Min Sepet & İndirim Düzenle"
+                    >
+                      <Edit2 size={12} />
+                      <span>Düzenle</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => onUpdateDorm(d.id, { isActive: !d.isActive })}

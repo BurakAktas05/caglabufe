@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Campaign, Product } from '@/types';
 import { useApp } from '@/context/AppContext';
 import { Flame, Sparkles, Check, ShoppingBag, Plus } from 'lucide-react';
+import { translateBundleBadge, translateCampaignDescription } from '@/lib/campaignTranslator';
 
 interface BundleDealsSectionProps {
   bundles: Campaign[];
@@ -14,7 +15,7 @@ export const BundleDealsSection: React.FC<BundleDealsSectionProps> = ({
   bundles,
   products,
 }) => {
-  const { addToCart } = useApp();
+  const { addToCart, locale } = useApp();
   const [addedBundleId, setAddedBundleId] = useState<string | null>(null);
 
   if (!bundles || bundles.length === 0) return null;
@@ -67,21 +68,84 @@ export const BundleDealsSection: React.FC<BundleDealsSectionProps> = ({
     }, 1800);
   };
 
+  const getSectionTexts = () => {
+    switch (locale) {
+      case 'en':
+        return {
+          title: 'Super Deal Bundles (Combo Deals)',
+          subtitle: 'Cold Drinks + Chips, Snacks & Drink Combos with extra discounts at a single price!',
+          badge: `${bundles.length} Active Deals`,
+          savings: (s: number) => `Save ${s} ₺!`,
+          unit: 'pcs',
+          individually: 'Individually',
+          add: 'Add Bundle',
+          added: 'Added!',
+        };
+      case 'ru':
+        return {
+          title: 'Супер комбо-наборы (Специальные предложения)',
+          subtitle: 'Напитки + чипсы, снеки и комбо-наборы с дополнительной скидкой!',
+          badge: `${bundles.length} Активных наборов`,
+          savings: (s: number) => `Экономия ${s} ₺!`,
+          unit: 'шт.',
+          individually: 'По отдельности',
+          add: 'Добавить набор',
+          added: 'Добавлено!',
+        };
+      case 'ar':
+        return {
+          title: 'باقات العروض المميزة (وجبات كومبو)',
+          subtitle: 'مشروبات + شيبس، وجبات خفيفة ومجموعات بسعر مخفض مميز!',
+          badge: `${bundles.length} باقات نشطة`,
+          savings: (s: number) => `وفر ${s} ₺!`,
+          unit: 'قطع',
+          individually: 'سعر المفرد',
+          add: 'أضف الباقة',
+          added: 'تمت الإضافة!',
+        };
+      case 'fr':
+        return {
+          title: 'Packs Super Offre (Menus Combo)',
+          subtitle: 'Boissons + chips, snacks et combos avec remise spéciale à prix unique !',
+          badge: `${bundles.length} Packs Actifs`,
+          savings: (s: number) => `Économisez ${s} ₺ !`,
+          unit: 'pièces',
+          individually: 'À l\'unité',
+          add: 'Ajouter le pack',
+          added: 'Ajouté !',
+        };
+      case 'tr':
+      default:
+        return {
+          title: 'Süper Fırsat Paketleri (Kombin Menüler)',
+          subtitle: 'Kola + Cips, Atıştırmalık & İçecek Menüleri tek fiyata ekstra indirimli!',
+          badge: `${bundles.length} Aktif Paket`,
+          savings: (s: number) => `${s} ₺ Tasarruf!`,
+          unit: 'Adet',
+          individually: 'Tek Tek',
+          add: 'Paketi Ekle',
+          added: 'Eklendi!',
+        };
+    }
+  };
+
+  const texts = getSectionTexts();
+
   return (
     <section className="bundle-deals-section" style={{ marginBottom: '32px' }}>
       <div className="section-header" style={{ marginBottom: '14px' }}>
         <div>
           <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Flame size={22} color="#DC2626" />
-            <span>Süper Fırsat Paketleri (Kombin Menüler)</span>
+            <span>{texts.title}</span>
           </h2>
           <p style={{ fontSize: '13px', color: '#6B7280', marginTop: '2px', fontWeight: 500 }}>
-            Kola + Cips, Atıştırmalık &amp; İçecek Menüleri tek fiyata ekstra indirimli!
+            {texts.subtitle}
           </p>
         </div>
         <span className="bundle-header-badge">
           <Sparkles size={13} style={{ display: 'inline', marginRight: '4px' }} />
-          {bundles.length} Aktif Paket
+          {texts.badge}
         </span>
       </div>
 
@@ -107,11 +171,11 @@ export const BundleDealsSection: React.FC<BundleDealsSectionProps> = ({
               {/* Top Banner Tag */}
               <div className="bundle-card-topbar">
                 <span className="bundle-card-badge">
-                  {campaign.bundleBadge || '🔥 Süper Fırsat'}
+                  {translateBundleBadge(campaign.bundleBadge, locale)}
                 </span>
                 {savings > 0 && (
                   <span className="bundle-savings-tag">
-                    {savings} ₺ Tasarruf!
+                    {texts.savings(savings)}
                   </span>
                 )}
               </div>
@@ -123,13 +187,16 @@ export const BundleDealsSection: React.FC<BundleDealsSectionProps> = ({
                     <React.Fragment key={item.product.id}>
                       <div className="bundle-image-box">
                         <img
-                          src={item.product.imageUrl}
+                          src={item.product.imageUrl || '/categories/kantin-atistirmalik.jpg'}
                           alt={item.product.name}
                           className="bundle-item-img"
                           loading="lazy"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = '/categories/kantin-atistirmalik.jpg';
+                          }}
                         />
                         <span className="bundle-item-qty-tag">
-                          {item.quantity} Adet
+                          {item.quantity} {texts.unit}
                         </span>
                         <span className="bundle-item-caption">
                           {item.product.name}
@@ -154,7 +221,9 @@ export const BundleDealsSection: React.FC<BundleDealsSectionProps> = ({
               {/* Bundle Details */}
               <div className="bundle-content">
                 <h3 className="bundle-title">{campaign.title}</h3>
-                <p className="bundle-desc">{campaign.description}</p>
+                <p className="bundle-desc">
+                  {translateCampaignDescription(campaign.description, locale, campaign)}
+                </p>
 
                 {/* Items Pill List */}
                 <div className="bundle-items-pills">
@@ -171,7 +240,7 @@ export const BundleDealsSection: React.FC<BundleDealsSectionProps> = ({
                   <div className="bundle-pricing">
                     {normalTotal > finalPrice && (
                       <div className="bundle-original-price">
-                        Tek Tek: {normalTotal} ₺
+                        {texts.individually}: {normalTotal} ₺
                       </div>
                     )}
                     <div className="bundle-final-price">
@@ -187,12 +256,12 @@ export const BundleDealsSection: React.FC<BundleDealsSectionProps> = ({
                     {isJustAdded ? (
                       <>
                         <Check size={18} strokeWidth={2.5} />
-                        <span>Eklendi!</span>
+                        <span>{texts.added}</span>
                       </>
                     ) : (
                       <>
                         <ShoppingBag size={18} />
-                        <span>Paketi Ekle</span>
+                        <span>{texts.add}</span>
                       </>
                     )}
                   </button>
