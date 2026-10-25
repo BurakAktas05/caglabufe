@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import 'leaflet/dist/leaflet.css';
 import type * as LeafletType from 'leaflet';
 import { StoreBranch, DeliveryZone, DormitoryConfig } from '@/types';
 import {

@@ -40,7 +40,6 @@ import {
   validateCoupon,
   getDormitories,
 } from '@/lib/settingsManager';
-import confetti from 'canvas-confetti';
 import {
   sanitizeInput,
   normalizePhoneNumber,
@@ -1257,6 +1256,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         try { navigator.vibrate([60, 40, 80]); } catch {}
       }
       try {
+        const { default: confetti } = await import('canvas-confetti');
         confetti({
           particleCount: 80,
           spread: 70,
