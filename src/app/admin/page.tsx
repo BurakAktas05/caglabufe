@@ -630,11 +630,18 @@ export default function AdminPage() {
         zones={zones}
         dorms={dorms}
         settings={settings}
+        bannedUsers={bannedUsers}
         onStatusChange={handleStatusChange}
         onSaveProduct={handleSaveProduct}
         onToggleProductAvailability={handleToggleProduct}
         onUpdateZone={handleUpdateZone}
         onUpdateDorm={handleUpdateDorm}
+        onBanCustomer={handleManualBan}
+        onUnbanCustomer={async (phone: string) => {
+          const clean = normalizePhoneNumber(phone);
+          await unbanUser(clean);
+          setBannedUsers(getStoredBannedUsers());
+        }}
         onToggleStoreOpen={(nextState) => {
           const updated: SystemSettings = {
             ...settings,

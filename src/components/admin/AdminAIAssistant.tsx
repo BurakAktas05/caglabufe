@@ -18,8 +18,9 @@ import {
   Maximize2,
   Bot,
 } from 'lucide-react';
-import { Order, Product, DeliveryZone, DormitoryConfig, SystemSettings } from '@/types';
+import { Order, Product, DeliveryZone, DormitoryConfig, SystemSettings, BannedUser } from '@/types';
 import { normalizeTurkish, smartMatchProducts } from '@/lib/searchEngine';
+import { normalizePhoneNumber, formatPhoneNumber } from '@/lib/security';
 
 interface AdminAIAssistantProps {
   orders: Order[];
@@ -27,12 +28,15 @@ interface AdminAIAssistantProps {
   zones: DeliveryZone[];
   dorms: DormitoryConfig[];
   settings: SystemSettings;
+  bannedUsers?: BannedUser[];
   onStatusChange: (orderId: string, newStatus: Order['status']) => void;
   onSaveProduct: (product: Product) => void;
   onToggleProductAvailability: (productId: string, currentStatus: boolean) => void;
   onUpdateZone: (id: string, updates: Partial<DeliveryZone>) => void;
   onUpdateDorm: (id: string, updates: Partial<DormitoryConfig>) => void;
   onToggleStoreOpen: (nextState: boolean) => void;
+  onBanCustomer?: (phone: string, name: string, reason: string) => Promise<void> | void;
+  onUnbanCustomer?: (phone: string) => Promise<void> | void;
 }
 
 interface DisambiguationOption {
@@ -76,12 +80,15 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
   zones,
   dorms,
   settings,
+  bannedUsers = [],
   onStatusChange,
   onSaveProduct,
   onToggleProductAvailability,
   onUpdateZone,
   onUpdateDorm,
   onToggleStoreOpen,
+  onBanCustomer,
+  onUnbanCustomer,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -92,7 +99,7 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
     {
       id: 'welcome',
       sender: 'assistant',
-      text: 'Selam! Ben Çağla Operasyon Asistanınız. Kuryeyken veya dükkandayken sesli ya da yazılı komut verebilirsiniz. Örneğin:\n• "Hubbi Hatun\'a giden son siparişi teslim edildi yap"\n• "500g yoğurt fiyatını 200 TL yap"\n• "Yurdun min tutarını artır"\n• "Dükkanı hemen aç"',
+      text: 'Selam! Ben Çağla Operasyon Asistanınız. Kuryeyken veya dükkandayken sesli ya da yazılı komut verebilirsiniz. Örneğin:\n• "Hubbi Hatun\'a giden son siparişi teslim edildi yap"\n• "Bize son sipariş veren numarayı kara listeye ekle telefonu açmadı"\n• "500g yoğurt fiyatını 200 TL yap"\n• "Yurdun min tutarını artır"\n• "Dükkanı hemen aç"',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
@@ -555,6 +562,76 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
       };
     }
 
+    if (tool === 'blacklist_customer') {
+      const ident = (args.customerIdentifier || '').toLowerCase();
+      let targetPhone = args.phoneNumber || '';
+      let targetName = args.customerName || '';
+      const reason = args.reason || 'Kapıda teslim almadı / telefonu açmadı';
+
+      // 1. "son", "son sipariş" veya sipariş eşleştirme
+      if (ident.includes('son') || ident.includes('last') || !ident) {
+        if (orders.length > 0) {
+          const lastOrder = orders[0];
+          targetPhone = lastOrder.customerPhone;
+          targetName = lastOrder.customerName;
+        }
+      } else {
+        const matchedOrder = orders.find((o) => {
+          const num = o.orderNumber?.toLowerCase() || '';
+          const name = o.customerName?.toLowerCase() || '';
+          const phone = o.customerPhone?.toLowerCase() || '';
+          return (
+            num.includes(ident) ||
+            name.includes(ident) ||
+            phone.includes(ident) ||
+            o.id.toLowerCase().includes(ident)
+          );
+        });
+
+        if (matchedOrder) {
+          targetPhone = matchedOrder.customerPhone;
+          targetName = matchedOrder.customerName;
+        } else {
+          // Doğrudan telefon numarası girilmiş olabilir
+          const digits = ident.replace(/\D/g, '');
+          if (digits.length >= 7) {
+            targetPhone = digits;
+            targetName = targetName || 'Müşteri';
+          }
+        }
+      }
+
+      if (targetPhone) {
+        const clean = normalizePhoneNumber(targetPhone);
+        const display = formatPhoneNumber(clean);
+        if (onBanCustomer) {
+          onBanCustomer(clean, targetName || 'Müşteri', reason);
+        }
+        return {
+          summary: `🚫 ${targetName ? `"${targetName}"` : 'Müşteri'} (${display}) başarıyla kara listeye eklendi ve engellendi.\nSebep: "${reason}".`,
+        };
+      } else {
+        return {
+          summary: `⚠️ Kara listeye eklenecek müşteri veya telefon numarası bulunamadı.`,
+        };
+      }
+    }
+
+    if (tool === 'unban_customer') {
+      const ident = (args.customerIdentifier || '').trim();
+      const clean = normalizePhoneNumber(ident);
+      const display = formatPhoneNumber(clean);
+      if (onUnbanCustomer && clean) {
+        onUnbanCustomer(clean);
+        return {
+          summary: `✅ "${display || ident}" numarasının kara liste engeli başarıyla kaldırıldı.`,
+        };
+      }
+      return {
+        summary: `⚠️ Kara liste engeli kaldırılamadı veya geçerli bir telefon numarası bulunamadı.`,
+      };
+    }
+
     return {
       summary: `İşlem tamamlandı: ${tool}`,
     };
@@ -587,6 +664,7 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
             zones,
             dorms,
             settings,
+            bannedUsers,
           },
         }),
       });
@@ -602,6 +680,20 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
         const numMatch = textToSend.match(/\b\d+(\.\d+)?\b/);
         const extractedAmount = numMatch ? Number(numMatch[0]) : undefined;
 
+        // Kara liste / engelleme fallback'i (örn: "bize son sipariş veren numarayı kara listeye ekle telefonu açmadı")
+        if (
+          !localRes &&
+          (normPrompt.includes('kara liste') || normPrompt.includes('engelle') || normPrompt.includes('banla') || normPrompt.includes('telefonu acmadi') || normPrompt.includes('acmadi'))
+        ) {
+          localRes = executeActionLocally({
+            tool: 'blacklist_customer',
+            arguments: {
+              customerIdentifier: normPrompt.includes('son') ? 'son sipariş' : textToSend,
+              reason: normPrompt.includes('telefon') || normPrompt.includes('acmadi') ? 'Telefonu açmadı' : 'Kötü niyetli kullanım / Sahte sipariş',
+            },
+          });
+        }
+
         // Yurt kontrolü (Hubbi, Bahaddin, Edebali vb.)
         const mentionedDorm = dorms.find((d) => {
           const normD = normalizeTurkish(d.name);
@@ -610,6 +702,7 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
         });
 
         if (
+          !localRes &&
           (normPrompt.includes('yurt') || normPrompt.includes('kyk') || mentionedDorm) &&
           (normPrompt.includes('artir') || normPrompt.includes('yukselt') || normPrompt.includes('zam') || normPrompt.includes('min') || normPrompt.includes('sepet') || normPrompt.includes('yap'))
         ) {

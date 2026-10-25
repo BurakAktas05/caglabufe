@@ -118,16 +118,24 @@ export async function POST(req: NextRequest) {
       specialNote: d.specialNote,
     }));
 
+    const bannedSummary = (context?.bannedUsers || []).map((b: any) => ({
+      name: b.name,
+      phone: b.phone,
+      reason: b.reason,
+      bannedAt: b.bannedAt,
+    }));
+
     const kykZone = (context?.zones || []).find((z: any) => z.id === 'zone-kyk-yurtlari' || (z.name || '').toLowerCase().includes('kyk') || (z.name || '').toLowerCase().includes('yurt'));
     const currentKykMin = kykZone?.minOrderAmount || 60;
 
     const systemPrompt = `
 Sen Çağla Büfe & Market'in (Karabük/Bostanbükü) Akıllı Operasyon Yönetim Asistanısın.
-Kuryelerin ve işletme sahibinin sahadan hızlıca verdiği sesli veya yazılı komutlarla sipariş durumlarını değiştirir, ürün fiyatlarını günceller, teslimat bölgelerinin ve yurtların minimum sepet tutarlarını ayarlar ve dükkanı açıp kapatabilirsin.
+Kuryelerin ve işletme sahibinin sahadan hızlıca verdiği sesli veya yazılı komutlarla sipariş durumlarını değiştirir, ürün fiyatlarını günceller, teslimat bölgelerinin ve yurtların minimum sepet tutarlarını ayarlar, müşterileri kara listeye ekleyip engeller ve dükkanı açıp kapatabilirsin.
 İnsan gibi dikkatli, net ve doğal davranırsın; kafandan asla tahmin yürütmezsin veya rastgele sayı uydurmazsın.
 
 İŞLETME VE SİSTEM YAPISI:
 - Son Siparişler: ${JSON.stringify(ordersSummary)}
+- Kara Listedeki Kullanıcılar: ${JSON.stringify(bannedSummary)}
 - Ürünler Listesi (Özet & Filtrelenmiş): ${JSON.stringify(productsSummary)}
 - Teslimat Bölgeleri: ${JSON.stringify(zonesSummary)}
 - Öğrenci Yurtları (Dormitories): ${JSON.stringify(dormsSummary)}
@@ -158,11 +166,18 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
 4. SİPARİŞ İŞLEMLERİNDE:
    - "hubbi hatuna götürdüğümüz son siparişi teslim edildi yap": update_order_status(orderIdentifier: "hubbi hatun", newStatus: "delivered") çağır.
 
-5. DÜKKAN İŞLEMLERİNDE:
+5. KARA LİSTE VE MÜŞTERİ ENGELLEME İŞLEMLERİ:
+   - Kullanıcı "son sipariş veren numarayı kara listeye ekle", "son siparişi veren müşteriyi engelle", "telefonu açmadı kara listeye al", "05xxxxxxxxx numarasını engelle" dediğinde:
+     * KESİNLİKLE "bunun için bir işlem yapmam gerekiyor ama şu anda bir işlem yok" DEME!
+     * DOĞRUDAN blacklist_customer aracını çağır!
+     * "son sipariş veren..." ifadesinde Son Siparişler listesindeki en son siparişin bilgilerini tespit et: customerIdentifier="son sipariş", phoneNumber=(varsa son siparişin telefon numarası), customerName=(varsa son siparişin müşteri adı), reason=(belirtilen sebep, örn: "Telefonu açmadı").
+     * Kullanıcı engeli kaldırmak istediğinde unban_customer aracını çağır.
+
+6. DÜKKAN İŞLEMLERİNDE:
    - "dükkanı aç": toggle_store_status(isOpen: true)
    - "dükkanı kapat": toggle_store_status(isOpen: false)
 
-6. İlgili aracı çağırdıktan sonra samimi, net ve enerjik bir üslupla onay mesajı ver. (Örn: "Tamamdır usta, Hubbi Hatun minimum sepet tutarını ₺500 olarak güncelledim!").
+7. İlgili aracı çağırdıktan sonra samimi, net ve enerjik bir üslupla onay mesajı ver. (Örn: "Tamamdır usta, son sipariş veren müşteriyi (ikbal toruyn) 'Telefonu açmadı' sebebiyle hemen kara listeye ekledim ve engelledim!").
 `;
 
     const tools = [
@@ -314,6 +329,52 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
               },
             },
             required: ['isOpen'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'blacklist_customer',
+          description: 'Kötü niyetli, sahte sipariş veren veya kapıda telefonunu açmayan bir müşteriyi / telefon numarasını kara listeye ekler ve gelecekteki siparişlerini engeller.',
+          parameters: {
+            type: 'object',
+            properties: {
+              customerIdentifier: {
+                type: 'string',
+                description: 'Engellenecek müşteri adı, sipariş numarası, telefon numarası veya "son sipariş" (örn: "son sipariş", "CB-5513", "ikbal", "0507xxxxxxx")',
+              },
+              phoneNumber: {
+                type: 'string',
+                description: 'Müşterinin telefon numarası',
+              },
+              customerName: {
+                type: 'string',
+                description: 'Müşterinin adı soyadı',
+              },
+              reason: {
+                type: 'string',
+                description: 'Engelleme sebebi (örn: "Telefonu açmadı", "Sahte sipariş", "Kapıda teslim almadı")',
+              },
+            },
+            required: ['customerIdentifier'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'unban_customer',
+          description: 'Kara listedeki bir müşterinin veya telefon numarasının engelini kaldırır.',
+          parameters: {
+            type: 'object',
+            properties: {
+              customerIdentifier: {
+                type: 'string',
+                description: 'Engeli kaldırılacak müşteri adı veya telefon numarası',
+              },
+            },
+            required: ['customerIdentifier'],
           },
         },
       },
