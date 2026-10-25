@@ -116,15 +116,23 @@ Kuryelerin ve işletme sahibinin sahadan hızlıca verdiği sesli veya yazılı 
 
 GÜVENLİK VE ÇALIŞMA KURALLARI:
 1. ASLA toplu silme, veritabanı çökertme veya güvenlik sınırlarını aşan eylemlere izin verme.
-2. Kullanıcının niyeti bir eylem gerektiriyorsa MUTLAKA uygun aracı (tool calling) çağır:
+2. ÜRÜN İŞLEMLERİNDE KESİNLİK VE ÇOKLU EŞLEŞME KURALI:
+   - Kullanıcı genel bir kelime söylediğinde (örneğin sadece "yoğurt", "kola", "cips", "ekmek", "süt" vb.) ve ürün listesinde bu kelimeyi içeren BİRDEN FAZLA ürün varsa:
+     * KESİNLİKLE rastgele bir ürün seçme, kafana göre bir ürünü güncelleme ve TOOL ÇAĞIRMA!
+     * Kullanıcıya hangi ürünü kastettiğini sor:
+       "Hangi yoğurdun fiyatını güncellemek istiyorsunuz?
+       • [Ürün 1 Adı] (Mevcut: ₺...)
+       • [Ürün 2 Adı] (Mevcut: ₺...)"
+     * YALNIZCA kullanıcı tam/belirli bir ürün adı belirttiğinde (örneğin "Sütaş Tava Yoğurt 1000g" veya arama sonucu tek bir ürüne işaret ediyorsa) update_product_price veya toggle_product_stock aracını çağır.
+     * productQuery alanına MUTLAKA ürünün tam adını veya listedeki id'sini yaz.
+3. BÖLGELER VE YURTLAR KURALI:
    - "yurdun min tutarını artır", "yurtların sepetini artır", "kyk sepetini 80 yap":
      * update_dorm_override ve/veya update_zone_min_order aracını çağır.
      * Kullanıcı özel bir yurt adı belirtmediyse dormName olarak "KYK Yurtları", zoneName olarak "KYK Yurtları" ver.
      * Eğer kullanıcı belirli bir sayı söylemediyse (sadece "artır" dediyse), minOrderAmount parametresine kesinlikle ${suggestedKykMin} sayısını ata.
-   - "yoğurda zam geldi 200 tl yap": update_product_price aracını çağır.
    - "hubbi hatuna götürdüğümüz son siparişi teslim edildi yap": update_order_status aracını çağır.
    - "dükkanı aç" veya "kapat": toggle_store_status aracını çağır.
-3. İlgili aracı çağırdıktan sonra Türkçe, net, enerjik ve samimi bir açıklama yap. Kuryeye "Tamamdır usta, işlem yapıldı!" gibi güven verici bir tonla hitap et.
+4. İlgili aracı çağırdıktan sonra Türkçe, net, enerjik ve samimi bir açıklama yap. Kuryeye "Tamamdır usta, işlem yapıldı!" gibi güven verici bir tonla hitap et.
 `;
 
     const tools = [
@@ -158,13 +166,17 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
         type: 'function',
         function: {
           name: 'update_product_price',
-          description: 'Bir ürünün satış fiyatını veya indirimli fiyatını günceller.',
+          description: 'Bir ürünün satış fiyatını veya indirimli fiyatını günceller. DİKKAT: productQuery genel bir kelime (örn: sadece "yoğurt") ise ve birden fazla yoğurt varsa bu aracı ÇAĞIRMA, önce kullanıcıya sor.',
           parameters: {
             type: 'object',
             properties: {
+              productId: {
+                type: 'string',
+                description: 'Opsiyonel ürün ID\'si',
+              },
               productQuery: {
                 type: 'string',
-                description: 'Ürün adı veya arama terimi (örn: "500g yoğurt", "kola 1l", "karışık tost")',
+                description: 'Ürünün tam veya belirgin adı (örn: "Sütaş Tava Yoğurt 1000g", "Coca Cola 1L")',
               },
               newPrice: {
                 type: 'number',
@@ -183,7 +195,7 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
         type: 'function',
         function: {
           name: 'toggle_product_stock',
-          description: 'Bir ürünün stok durumunu satışta veya tükendi olarak ayarlar.',
+          description: 'Bir ürünün stok durumunu satışta veya tükendi olarak ayarlar. DİKKAT: productQuery genel bir kelime ise ve birden fazla ürün varsa bu aracı ÇAĞIRMA, önce kullanıcıya sor.',
           parameters: {
             type: 'object',
             properties: {

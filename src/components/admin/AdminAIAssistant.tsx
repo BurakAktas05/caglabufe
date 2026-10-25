@@ -34,11 +34,33 @@ interface AdminAIAssistantProps {
   onToggleStoreOpen: (nextState: boolean) => void;
 }
 
+interface DisambiguationOption {
+  id: string;
+  name: string;
+  currentPrice?: number;
+  isAvailable?: boolean;
+}
+
+interface DisambiguationData {
+  type: 'product_price' | 'product_stock';
+  newPrice?: number;
+  newDiscountPrice?: number;
+  isAvailable?: boolean;
+  options: DisambiguationOption[];
+}
+
+interface LocalActionResult {
+  summary: string;
+  isQuestion?: boolean;
+  disambiguation?: DisambiguationData;
+}
+
 interface ChatMessage {
   id: string;
   sender: 'user' | 'assistant';
   text: string;
   actionSummary?: string;
+  disambiguation?: DisambiguationData;
   timestamp: string;
 }
 
@@ -127,7 +149,43 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
     }
   };
 
-  const executeActionLocally = (action: { tool: string; arguments: any }): string => {
+  const handleSelectDisambiguation = (
+    data: DisambiguationData,
+    chosen: DisambiguationOption
+  ) => {
+    const fullProd = products.find((p) => p.id === chosen.id);
+    if (!fullProd) return;
+
+    if (data.type === 'product_price' && data.newPrice !== undefined) {
+      const updated: Product = {
+        ...fullProd,
+        price: data.newPrice,
+        discountPrice: data.newDiscountPrice !== undefined ? data.newDiscountPrice : fullProd.discountPrice,
+      };
+      onSaveProduct(updated);
+
+      const confirmMsg: ChatMessage = {
+        id: 'cfm_' + Date.now(),
+        sender: 'assistant',
+        text: `İşlem onaylandı: "${fullProd.name}" seçildi.`,
+        actionSummary: `✅ "${fullProd.name}" fiyatı ₺${data.newPrice} olarak güncellendi.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, confirmMsg]);
+    } else if (data.type === 'product_stock') {
+      onToggleProductAvailability(fullProd.id, fullProd.isAvailable);
+      const confirmMsg: ChatMessage = {
+        id: 'cfm_' + Date.now(),
+        sender: 'assistant',
+        text: `İşlem onaylandı: "${fullProd.name}" seçildi.`,
+        actionSummary: `✅ "${fullProd.name}" ürünü ${data.isAvailable ? 'Satışta' : 'Tükendi'} olarak işaretlendi.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prev) => [...prev, confirmMsg]);
+    }
+  };
+
+  const executeActionLocally = (action: { tool: string; arguments: any }): LocalActionResult => {
     const { tool, arguments: args } = action;
 
     if (tool === 'update_order_status') {
@@ -169,40 +227,118 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
           delivered: 'Teslim Edildi',
           cancelled: 'İptal Edildi',
         };
-        return `✅ #${matchedOrder.orderNumber || matchedOrder.id.slice(-4)} (${matchedOrder.customerName} - ${matchedOrder.address?.dormName || matchedOrder.address?.title}) durumu "${statusMap[args.newStatus] || args.newStatus}" yapıldı.`;
+        return {
+          summary: `✅ #${matchedOrder.orderNumber || matchedOrder.id.slice(-4)} (${matchedOrder.customerName} - ${matchedOrder.address?.dormName || matchedOrder.address?.title}) durumu "${statusMap[args.newStatus] || args.newStatus}" yapıldı.`,
+        };
       } else {
-        return `⚠️ "${args.orderIdentifier}" ile eşleşen aktif bir sipariş bulunamadı.`;
+        return {
+          summary: `⚠️ "${args.orderIdentifier}" ile eşleşen aktif bir sipariş bulunamadı.`,
+        };
       }
     }
 
     if (tool === 'update_product_price') {
-      const q = (args.productQuery || '').toLowerCase();
-      const matchedProd = products.find(
+      const q = (args.productQuery || '').trim().toLowerCase();
+      
+      // 1. Direct ID match
+      let exactMatch = products.find((p) => p.id === args.productId || p.id === q);
+      if (!exactMatch) {
+        exactMatch = products.find(
+          (p) => p.name.trim().toLowerCase() === q || (p.barcode && p.barcode.trim() === q)
+        );
+      }
+
+      if (exactMatch) {
+        const updated: Product = {
+          ...exactMatch,
+          price: Number(args.newPrice) || exactMatch.price,
+          discountPrice: args.newDiscountPrice ? Number(args.newDiscountPrice) : exactMatch.discountPrice,
+        };
+        onSaveProduct(updated);
+        return {
+          summary: `✅ "${exactMatch.name}" fiyatı ₺${args.newPrice}${args.newDiscountPrice ? ` (İndirimli: ₺${args.newDiscountPrice})` : ''} olarak güncellendi.`,
+        };
+      }
+
+      // 2. Substring matching
+      const matches = products.filter(
         (p) => p.name.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q))
       );
 
-      if (matchedProd) {
+      if (matches.length === 1) {
+        const matchedProd = matches[0];
         const updated: Product = {
           ...matchedProd,
           price: Number(args.newPrice) || matchedProd.price,
           discountPrice: args.newDiscountPrice ? Number(args.newDiscountPrice) : matchedProd.discountPrice,
         };
         onSaveProduct(updated);
-        return `✅ "${matchedProd.name}" fiyatı ₺${args.newPrice}${args.newDiscountPrice ? ` (İndirimli: ₺${args.newDiscountPrice})` : ''} olarak güncellendi.`;
+        return {
+          summary: `✅ "${matchedProd.name}" fiyatı ₺${args.newPrice}${args.newDiscountPrice ? ` (İndirimli: ₺${args.newDiscountPrice})` : ''} olarak güncellendi.`,
+        };
+      } else if (matches.length > 1) {
+        return {
+          summary: `❓ "${args.productQuery}" ile eşleşen ${matches.length} farklı ürün bulundu. Hangisinin fiyatını ₺${args.newPrice} yapmak istiyorsunuz?`,
+          isQuestion: true,
+          disambiguation: {
+            type: 'product_price',
+            newPrice: Number(args.newPrice),
+            newDiscountPrice: args.newDiscountPrice ? Number(args.newDiscountPrice) : undefined,
+            options: matches.slice(0, 8).map((p) => ({
+              id: p.id,
+              name: p.name,
+              currentPrice: p.price,
+            })),
+          },
+        };
       } else {
-        return `⚠️ "${args.productQuery}" isimli ürün bulunamadı.`;
+        return {
+          summary: `⚠️ "${args.productQuery}" isimli ürün bulunamadı.`,
+        };
       }
     }
 
     if (tool === 'toggle_product_stock') {
-      const q = (args.productQuery || '').toLowerCase();
-      const matchedProd = products.find((p) => p.name.toLowerCase().includes(q));
+      const q = (args.productQuery || '').trim().toLowerCase();
+      let exactMatch = products.find((p) => p.id === args.productId || p.id === q);
+      if (!exactMatch) {
+        exactMatch = products.find(
+          (p) => p.name.trim().toLowerCase() === q || (p.barcode && p.barcode.trim() === q)
+        );
+      }
 
-      if (matchedProd) {
+      if (exactMatch) {
+        onToggleProductAvailability(exactMatch.id, exactMatch.isAvailable);
+        return {
+          summary: `✅ "${exactMatch.name}" ürünü ${args.isAvailable ? 'Satışta (Stokta)' : 'Tükendi'} olarak işaretlendi.`,
+        };
+      }
+
+      const matches = products.filter((p) => p.name.toLowerCase().includes(q));
+      if (matches.length === 1) {
+        const matchedProd = matches[0];
         onToggleProductAvailability(matchedProd.id, matchedProd.isAvailable);
-        return `✅ "${matchedProd.name}" ürünü ${args.isAvailable ? 'Satışta (Stokta)' : 'Tükendi'} olarak işaretlendi.`;
+        return {
+          summary: `✅ "${matchedProd.name}" ürünü ${args.isAvailable ? 'Satışta (Stokta)' : 'Tükendi'} olarak işaretlendi.`,
+        };
+      } else if (matches.length > 1) {
+        return {
+          summary: `❓ "${args.productQuery}" ile eşleşen ${matches.length} farklı ürün bulundu. Hangisinin durumunu ${args.isAvailable ? 'Satışta' : 'Tükendi'} yapmak istiyorsunuz?`,
+          isQuestion: true,
+          disambiguation: {
+            type: 'product_stock',
+            isAvailable: Boolean(args.isAvailable),
+            options: matches.slice(0, 8).map((p) => ({
+              id: p.id,
+              name: p.name,
+              isAvailable: p.isAvailable,
+            })),
+          },
+        };
       } else {
-        return `⚠️ "${args.productQuery}" isimli ürün bulunamadı.`;
+        return {
+          summary: `⚠️ "${args.productQuery}" isimli ürün bulunamadı.`,
+        };
       }
     }
 
@@ -226,9 +362,13 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
           minOrderAmount: targetMin,
           deliveryFee: args.deliveryFee ? Number(args.deliveryFee) : matchedZone.deliveryFee,
         });
-        return `✅ "${matchedZone.name}" bölgesi min sepet tutarı ₺${targetMin} olarak güncellendi.`;
+        return {
+          summary: `✅ "${matchedZone.name}" bölgesi min sepet tutarı ₺${targetMin} olarak güncellendi.`,
+        };
       } else {
-        return `⚠️ "${args.zoneName}" isimli teslimat bölgesi bulunamadı.`;
+        return {
+          summary: `⚠️ "${args.zoneName}" isimli teslimat bölgesi bulunamadı.`,
+        };
       }
     }
 
@@ -262,7 +402,9 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
           }
         });
 
-        return `✅ KYK Yurtları teslimat bölgesi ve yurtların minimum sepet tutarı ₺${targetMin} olarak güncellendi.`;
+        return {
+          summary: `✅ KYK Yurtları teslimat bölgesi ve yurtların minimum sepet tutarı ₺${targetMin} olarak güncellendi.`,
+        };
       }
 
       const matchedDorm = dorms.find((d) => {
@@ -288,20 +430,28 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
               : matchedDorm.discountPercentage,
           specialNote: args.specialNote || matchedDorm.specialNote,
         });
-        return `✅ "${matchedDorm.name}" yurduna özel min sepet: ₺${targetMin}${
-          args.discountPercentage ? `, indirim: %${args.discountPercentage}` : ''
-        } olarak tanımlandı.`;
+        return {
+          summary: `✅ "${matchedDorm.name}" yurduna özel min sepet: ₺${targetMin}${
+            args.discountPercentage ? `, indirim: %${args.discountPercentage}` : ''
+          } olarak tanımlandı.`,
+        };
       } else {
-        return `⚠️ "${args.dormName}" isimli yurt bulunamadı.`;
+        return {
+          summary: `⚠️ "${args.dormName}" isimli yurt bulunamadı.`,
+        };
       }
     }
 
     if (tool === 'toggle_store_status') {
       onToggleStoreOpen(Boolean(args.isOpen));
-      return `✅ Dükkan durumu ${args.isOpen ? 'AÇIK (Sipariş alınıyor)' : 'KAPALI (Sipariş alımı durduruldu)'} olarak güncellendi.`;
+      return {
+        summary: `✅ Dükkan durumu ${args.isOpen ? 'AÇIK (Sipariş alınıyor)' : 'KAPALI (Sipariş alımı durduruldu)'} olarak güncellendi.`,
+      };
     }
 
-    return `İşlem tamamlandı: ${tool}`;
+    return {
+      summary: `İşlem tamamlandı: ${tool}`,
+    };
   };
 
   const handleSend = async (customPrompt?: string) => {
@@ -337,9 +487,9 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
 
       const data = await res.json();
 
-      let actionLog = '';
+      let localRes: LocalActionResult | null = null;
       if (data.actionTaken) {
-        actionLog = executeActionLocally(data.actionTaken);
+        localRes = executeActionLocally(data.actionTaken);
       } else {
         // Fallback for direct Turkish operational phrases if tool call was omitted by LLM
         const lowerPrompt = textToSend.toLowerCase();
@@ -347,7 +497,7 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
           (lowerPrompt.includes('yurt') || lowerPrompt.includes('kyk')) &&
           (lowerPrompt.includes('artır') || lowerPrompt.includes('yükselt') || lowerPrompt.includes('zam') || lowerPrompt.includes('min') || lowerPrompt.includes('sepet'))
         ) {
-          actionLog = executeActionLocally({
+          localRes = executeActionLocally({
             tool: 'update_dorm_override',
             arguments: { dormName: 'yurt' },
           });
@@ -357,8 +507,9 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
       const assistantMsg: ChatMessage = {
         id: 'ai_' + Date.now(),
         sender: 'assistant',
-        text: data.assistantMessage || 'İşleminiz tamamlandı.',
-        actionSummary: actionLog,
+        text: localRes?.isQuestion ? localRes.summary : (data.assistantMessage || 'İşleminiz tamamlandı.'),
+        actionSummary: localRes && !localRes.isQuestion ? localRes.summary : undefined,
+        disambiguation: localRes?.disambiguation,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
 
@@ -381,7 +532,7 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
   const quickPrompts = [
     { label: '🚀 Hubbi Hatun son siparişi teslim et', text: 'Hubbi Hatun yurduna giden son siparişi teslim edildi yap' },
     { label: '📈 Yurdun min tutarını artır (+10₺)', text: 'Yurdun min tutarını artır' },
-    { label: '🥛 Yoğurt fiyatını 200 TL yap', text: 'Yoğurt fiyatını 200 TL yap' },
+    { label: '🥛 Yoğurt fiyatını güncelle (Seçim)', text: 'Yoğurt fiyatını 200 TL yap' },
     { label: '🏪 Dükkanı hemen aç', text: 'Çağla Büfe dükkanını hemen aç' },
   ];
 
@@ -565,6 +716,68 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
                         >
                           <CheckCircle2 size={14} color="#34D399" />
                           <span>{m.actionSummary}</span>
+                        </div>
+                      )}
+
+                      {/* Interactive Disambiguation Options if multiple products matched */}
+                      {m.disambiguation && m.disambiguation.options && m.disambiguation.options.length > 0 && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            marginTop: '6px',
+                            padding: '10px',
+                            borderRadius: '12px',
+                            backgroundColor: '#0F172A',
+                            border: '1.5px solid #6366F1',
+                          }}
+                        >
+                          <div style={{ fontSize: '11px', color: '#CBD5E1', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <span>👉 Lütfen hedef ürünü seçin:</span>
+                          </div>
+                          {m.disambiguation.options.map((opt) => (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => handleSelectDisambiguation(m.disambiguation!, opt)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: '8px',
+                                padding: '8px 10px',
+                                borderRadius: '8px',
+                                backgroundColor: '#1E293B',
+                                border: '1px solid #334155',
+                                color: '#FFFFFF',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                transition: 'all 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#312E81';
+                                e.currentTarget.style.borderColor = '#818CF8';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#1E293B';
+                                e.currentTarget.style.borderColor = '#334155';
+                              }}
+                            >
+                              <span style={{ fontWeight: 600 }}>{opt.name}</span>
+                              {m.disambiguation?.type === 'product_price' && (
+                                <span style={{ fontSize: '11px', color: '#34D399', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                  ₺{opt.currentPrice} → ₺{m.disambiguation.newPrice}
+                                </span>
+                              )}
+                              {m.disambiguation?.type === 'product_stock' && (
+                                <span style={{ fontSize: '11px', color: m.disambiguation.isAvailable ? '#34D399' : '#EF4444', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                  {m.disambiguation.isAvailable ? 'Satışta Yap' : 'Tükendi Yap'}
+                                </span>
+                              )}
+                            </button>
+                          ))}
                         </div>
                       )}
 
