@@ -72,43 +72,10 @@ function ProductsPageContent() {
     );
   }, [products, activeDepartment]);
 
-  // 2. Base Search Results on the department pool (before subcategory filter)
-  const baseSearchResult: SmartSearchResult = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return {
-        products: departmentPool,
-        relatedProducts: [],
-        relatedTitle: undefined,
-        matchedIntent: null,
-        query: '',
-        totalFound: departmentPool.length,
-      };
-    }
-    return smartSearchProducts(searchQuery, departmentPool);
-  }, [departmentPool, searchQuery]);
-
-  // 3. Relevant Subcategories with live product counts
+  // 2. Subcategories with live product counts (only for browsing when NOT searching)
   const availableSubCategories = useMemo(() => {
-    // When actively searching: extract categories ONLY from matching products
-    if (searchQuery.trim()) {
-      const counts: Record<string, number> = {};
-      baseSearchResult.products.forEach((p) => {
-        if (p.category) {
-          counts[p.category] = (counts[p.category] || 0) + 1;
-        }
-      });
-
-      return Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([cat, count]) => ({
-          id: cat,
-          name: cat,
-          count,
-        }));
-    }
-
-    // When a specific department is chosen: show its categories with active product counts
-    if (activeDepartment) {
+    // When a specific department is chosen and user is not searching: show department categories
+    if (activeDepartment && !searchQuery.trim()) {
       const counts: Record<string, number> = {};
       departmentPool.forEach((p) => {
         if (p.category) {
@@ -125,23 +92,31 @@ function ProductsPageContent() {
         }));
     }
 
-    // When on "Tüm Reyonlar" with NO search query:
-    // Do NOT vomit all 80+ categories! Return empty array to keep UI clean and focused on department tiles.
     return [];
-  }, [searchQuery, baseSearchResult.products, activeDepartment, departmentPool]);
+  }, [searchQuery, activeDepartment, departmentPool]);
 
-  // 4. Final Search Result (applying selected subcategory filter)
+  // 3. Search Result & Products Display
   const searchResult: SmartSearchResult = useMemo(() => {
-    if (selectedCategory === 'all') {
-      return baseSearchResult;
+    // A. Active Search: Search across ALL store products without category/department restrictions
+    if (searchQuery.trim()) {
+      return smartSearchProducts(searchQuery, products);
     }
-    const filtered = baseSearchResult.products.filter((p) => p.category === selectedCategory);
+
+    // B. Browsing: Filter department pool by selectedCategory if any
+    let pool = departmentPool;
+    if (selectedCategory !== 'all') {
+      pool = pool.filter((p) => p.category === selectedCategory);
+    }
+
     return {
-      ...baseSearchResult,
-      products: filtered,
-      totalFound: filtered.length,
+      products: pool,
+      relatedProducts: [],
+      relatedTitle: undefined,
+      matchedIntent: null,
+      query: '',
+      totalFound: pool.length,
     };
-  }, [baseSearchResult, selectedCategory]);
+  }, [products, departmentPool, searchQuery, selectedCategory]);
 
   // Progressive Pagination
   const PAGE_SIZE = 24;
@@ -252,7 +227,7 @@ function ProductsPageContent() {
                 setSearchQuery(e.target.value);
                 setSelectedCategory('all');
               }}
-              placeholder="Bu reyon içinde ara... (Örn: Red Bull, Cips, Çikolata, Noodle)"
+              placeholder="Market genelinde ürün, marka veya kategori ara... (Örn: Uludağ, Nescafe, Cips)"
               style={{
                 width: '100%',
                 padding: '12px 42px 12px 46px',
@@ -289,64 +264,111 @@ function ProductsPageContent() {
           </div>
         </div>
 
-        {/* Department Switcher Tabs (2-Row Grid Scroll) */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateRows: 'repeat(2, auto)',
-            gridAutoFlow: 'column',
-            gap: '8px',
-            overflowX: 'auto',
-            paddingBottom: '10px',
-            marginBottom: '14px',
-            scrollbarWidth: 'none',
-          }}
-          className="no-scrollbar"
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedDepartmentId('all');
-              setSelectedCategory('all');
-            }}
+        {/* If Active Search: Show Search Status Bar; Else: Show Department Tabs & Category Chips */}
+        {searchQuery.trim() ? (
+          <div
             style={{
-              padding: '8px 16px',
-              borderRadius: '20px',
-              fontSize: '13px',
-              fontWeight: 800,
-              whiteSpace: 'nowrap',
-              border: selectedDepartmentId === 'all' ? '2px solid #5D3EBC' : '1px solid #E5E7EB',
-              backgroundColor: selectedDepartmentId === 'all' ? '#5D3EBC' : '#FFFFFF',
-              color: selectedDepartmentId === 'all' ? '#FFFFFF' : '#374151',
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease',
+              justifyContent: 'space-between',
+              backgroundColor: '#FFFFFF',
+              border: '1.5px solid #E9D5FF',
+              borderRadius: '16px',
+              padding: '12px 18px',
+              marginBottom: '20px',
+              gap: '12px',
+              boxShadow: '0 2px 8px rgba(93, 62, 188, 0.06)',
+              flexWrap: 'wrap',
             }}
           >
-            <span>Tüm Reyonlar</span>
-          </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  backgroundColor: '#F3F0FE',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#5D3EBC',
+                }}
+              >
+                <Search size={16} />
+              </div>
+              <div style={{ fontSize: '13.5px', color: '#374151' }}>
+                Tüm markette <strong style={{ color: '#5D3EBC' }}>&ldquo;{searchQuery}&rdquo;</strong> için arama sonuçları:
+              </div>
+              <span
+                style={{
+                  backgroundColor: '#5D3EBC',
+                  color: '#FFFFFF',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  padding: '3px 10px',
+                  borderRadius: '12px',
+                }}
+              >
+                {searchResult.products.length} ürün bulundu
+              </span>
+            </div>
 
-          {DEPARTMENTS.map((dept) => {
-            const isSelected = selectedDepartmentId === dept.id;
-            return (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('all');
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '10px',
+                backgroundColor: '#F3F4F6',
+                border: '1px solid #E5E7EB',
+                fontSize: '12.5px',
+                fontWeight: 700,
+                color: '#4B5563',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <X size={14} />
+              <span>Aramayı Temizle (Reyonlara Dön)</span>
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Department Switcher Tabs (2-Row Grid Scroll) */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateRows: 'repeat(2, auto)',
+                gridAutoFlow: 'column',
+                gap: '8px',
+                overflowX: 'auto',
+                paddingBottom: '10px',
+                marginBottom: '14px',
+                scrollbarWidth: 'none',
+              }}
+              className="no-scrollbar"
+            >
               <button
-                key={dept.id}
                 type="button"
                 onClick={() => {
-                  setSelectedDepartmentId(dept.id);
+                  setSelectedDepartmentId('all');
                   setSelectedCategory('all');
                 }}
                 style={{
-                  padding: '8px 14px',
+                  padding: '8px 16px',
                   borderRadius: '20px',
                   fontSize: '13px',
                   fontWeight: 800,
                   whiteSpace: 'nowrap',
-                  border: isSelected ? '2px solid #5D3EBC' : '1px solid #E5E7EB',
-                  backgroundColor: isSelected ? '#5D3EBC' : '#FFFFFF',
-                  color: isSelected ? '#FFFFFF' : '#374151',
+                  border: selectedDepartmentId === 'all' ? '2px solid #5D3EBC' : '1px solid #E5E7EB',
+                  backgroundColor: selectedDepartmentId === 'all' ? '#5D3EBC' : '#FFFFFF',
+                  color: selectedDepartmentId === 'all' ? '#FFFFFF' : '#374151',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -354,181 +376,212 @@ function ProductsPageContent() {
                   transition: 'all 0.15s ease',
                 }}
               >
-                <span>{dept.emoji}</span>
-                <span>{dept.name}</span>
+                <span>Tüm Reyonlar</span>
               </button>
-            );
-          })}
-        </div>
 
-        {/* Sub-Category Filter Chips (Single Row Horizontal Scroll with Live Counts) */}
-        {availableSubCategories.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              overflowX: 'auto',
-              paddingBottom: '8px',
-              marginBottom: '16px',
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-              WebkitOverflowScrolling: 'touch',
-            }}
-            className="no-scrollbar"
-          >
-            <button
-              type="button"
-              onClick={() => setSelectedCategory('all')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '12px',
-                fontSize: '12.5px',
-                fontWeight: selectedCategory === 'all' ? 800 : 600,
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                border: selectedCategory === 'all' ? '1.5px solid #5D3EBC' : '1px solid #E5E7EB',
-                backgroundColor: selectedCategory === 'all' ? '#5D3EBC' : '#FFFFFF',
-                color: selectedCategory === 'all' ? '#FFFFFF' : '#374151',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: selectedCategory === 'all' ? '0 2px 6px rgba(93, 62, 188, 0.25)' : 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>Hepsi</span>
-              <span
+              {DEPARTMENTS.map((dept) => {
+                const isSelected = selectedDepartmentId === dept.id;
+                return (
+                  <button
+                    key={dept.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDepartmentId(dept.id);
+                      setSelectedCategory('all');
+                    }}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      whiteSpace: 'nowrap',
+                      border: isSelected ? '2px solid #5D3EBC' : '1px solid #E5E7EB',
+                      backgroundColor: isSelected ? '#5D3EBC' : '#FFFFFF',
+                      color: isSelected ? '#FFFFFF' : '#374151',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <span>{dept.emoji}</span>
+                    <span>{dept.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sub-Category Filter Chips (Single Row Horizontal Scroll with Live Counts) */}
+            {availableSubCategories.length > 0 && (
+              <div
                 style={{
-                  fontSize: '11px',
-                  opacity: selectedCategory === 'all' ? 0.95 : 0.7,
-                  fontWeight: 700,
-                  backgroundColor: selectedCategory === 'all' ? 'rgba(255,255,255,0.25)' : '#F3F4F6',
-                  color: selectedCategory === 'all' ? '#FFFFFF' : '#6B7280',
-                  padding: '1px 6px',
-                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  overflowX: 'auto',
+                  paddingBottom: '8px',
+                  marginBottom: '16px',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  WebkitOverflowScrolling: 'touch',
                 }}
+                className="no-scrollbar"
               >
-                {baseSearchResult.products.length}
-              </span>
-            </button>
-
-            {availableSubCategories.map((cat) => {
-              const isSelected = selectedCategory === cat.id;
-
-              return (
                 <button
-                  key={cat.id}
                   type="button"
-                  onClick={() => setSelectedCategory(cat.id)}
+                  onClick={() => setSelectedCategory('all')}
                   style={{
                     padding: '6px 14px',
                     borderRadius: '12px',
                     fontSize: '12.5px',
-                    fontWeight: isSelected ? 800 : 600,
+                    fontWeight: selectedCategory === 'all' ? 800 : 600,
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
-                    border: isSelected ? '1.5px solid #5D3EBC' : '1px solid #E5E7EB',
-                    backgroundColor: isSelected ? '#5D3EBC' : '#FFFFFF',
-                    color: isSelected ? '#FFFFFF' : '#374151',
+                    border: selectedCategory === 'all' ? '1.5px solid #5D3EBC' : '1px solid #E5E7EB',
+                    backgroundColor: selectedCategory === 'all' ? '#5D3EBC' : '#FFFFFF',
+                    color: selectedCategory === 'all' ? '#FFFFFF' : '#374151',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    boxShadow: isSelected ? '0 2px 6px rgba(93, 62, 188, 0.25)' : 'none',
+                    boxShadow: selectedCategory === 'all' ? '0 2px 6px rgba(93, 62, 188, 0.25)' : 'none',
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  <span>{cat.name}</span>
+                  <span>Hepsi</span>
                   <span
                     style={{
                       fontSize: '11px',
-                      opacity: isSelected ? 0.95 : 0.7,
+                      opacity: selectedCategory === 'all' ? 0.95 : 0.7,
                       fontWeight: 700,
-                      backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#F3F4F6',
-                      color: isSelected ? '#FFFFFF' : '#6B7280',
+                      backgroundColor: selectedCategory === 'all' ? 'rgba(255,255,255,0.25)' : '#F3F4F6',
+                      color: selectedCategory === 'all' ? '#FFFFFF' : '#6B7280',
                       padding: '1px 6px',
                       borderRadius: '10px',
                     }}
                   >
-                    {cat.count}
+                    {departmentPool.length}
                   </span>
                 </button>
-              );
-            })}
-          </div>
-        )}
 
-        {/* Hot Kitchen Special Reyon Banner */}
-        {selectedDepartmentId === 'sicak-mutfak' && (
-          <div
-            style={{
-              background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 50%, #FED7AA 100%)',
-              border: '2px solid #FDBA74',
-              borderRadius: '18px',
-              padding: '16px 20px',
-              marginBottom: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '16px',
-              boxShadow: '0 8px 24px -4px rgba(234, 88, 12, 0.15)',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ flex: '1 1 0', minWidth: '240px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                <span
-                  style={{
-                    backgroundColor: '#EA580C',
-                    color: '#FFFFFF',
-                    fontSize: '11px',
-                    fontWeight: 900,
-                    padding: '3px 9px',
-                    borderRadius: '8px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  🔥 Ateşte Pişen Lezzetler
-                </span>
-                <span
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    color: '#C2410C',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    padding: '3px 8px',
-                    borderRadius: '8px',
-                    border: '1px solid #FDBA74',
-                  }}
-                >
-                  ⏱️ ~20-25 dk Taze Hazırlık
-                </span>
-                <span
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    color: '#7C2D12',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    padding: '3px 8px',
-                    borderRadius: '8px',
-                    border: '1px solid #FDBA74',
-                  }}
-                >
-                  🎓 KYK &amp; Kampüs Hızlı Teslimat
-                </span>
+                {availableSubCategories.map((cat) => {
+                  const isSelected = selectedCategory === cat.id;
+
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat.id)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '12px',
+                        fontSize: '12.5px',
+                        fontWeight: isSelected ? 800 : 600,
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        border: isSelected ? '1.5px solid #5D3EBC' : '1px solid #E5E7EB',
+                        backgroundColor: isSelected ? '#5D3EBC' : '#FFFFFF',
+                        color: isSelected ? '#FFFFFF' : '#374151',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: isSelected ? '0 2px 6px rgba(93, 62, 188, 0.25)' : 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <span>{cat.name}</span>
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          opacity: isSelected ? 0.95 : 0.7,
+                          fontWeight: 700,
+                          backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#F3F4F6',
+                          color: isSelected ? '#FFFFFF' : '#6B7280',
+                          padding: '1px 6px',
+                          borderRadius: '10px',
+                        }}
+                      >
+                        {cat.count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#9A3412', margin: '0 0 4px 0' }}>
-                🥪 Sıcak Mutfak &amp; Efsane Tostlar
-              </h3>
-              <p style={{ fontSize: '12.5px', color: '#7C2D12', margin: 0, lineHeight: 1.45 }}>
-                Tüm tostlar, sandviçler ve sıcak büfe lezzetleri siparişiniz anında taze pişirilir, özenle paketlenir ve sıcacık kapınıza getirilir.
-              </p>
-            </div>
-          </div>
+            )}
+
+            {/* Hot Kitchen Special Reyon Banner */}
+            {selectedDepartmentId === 'sicak-mutfak' && (
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 50%, #FED7AA 100%)',
+                  border: '2px solid #FDBA74',
+                  borderRadius: '18px',
+                  padding: '16px 20px',
+                  marginBottom: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  boxShadow: '0 8px 24px -4px rgba(234, 88, 12, 0.15)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ flex: '1 1 0', minWidth: '240px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                    <span
+                      style={{
+                        backgroundColor: '#EA580C',
+                        color: '#FFFFFF',
+                        fontSize: '11px',
+                        fontWeight: 900,
+                        padding: '3px 9px',
+                        borderRadius: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      🔥 Ateşte Pişen Lezzetler
+                    </span>
+                    <span
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        color: '#C2410C',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        border: '1px solid #FDBA74',
+                      }}
+                    >
+                      ⏱️ ~20-25 dk Taze Hazırlık
+                    </span>
+                    <span
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        color: '#7C2D12',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        padding: '3px 8px',
+                        borderRadius: '8px',
+                        border: '1px solid #FDBA74',
+                      }}
+                    >
+                      🎓 KYK &amp; Kampüs Hızlı Teslimat
+                    </span>
+                  </div>
+                  <h3 style={{ fontSize: '18px', fontWeight: 900, color: '#9A3412', margin: '0 0 4px 0' }}>
+                    🥪 Sıcak Mutfak &amp; Efsane Tostlar
+                  </h3>
+                  <p style={{ fontSize: '12.5px', color: '#7C2D12', margin: 0, lineHeight: 1.45 }}>
+                    Tüm tostlar, sandviçler ve sıcak büfe lezzetleri siparişiniz anında taze pişirilir, özenle paketlenir ve sıcacık kapınıza getirilir.
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Products Grid */}
@@ -560,8 +613,10 @@ function ProductsPageContent() {
             <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1F2937', marginBottom: '8px' }}>
               Ürün Bulunamadı
             </h3>
-            <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '380px', margin: '0 auto 20px' }}>
-              Aradığınız kriterde ürün bu reyonda bulunamadı. Diğer reyonları inceleyebilirsiniz.
+            <p style={{ fontSize: '13px', color: '#6B7280', maxWidth: '420px', margin: '0 auto 20px', lineHeight: 1.5 }}>
+              {searchQuery.trim()
+                ? `"${searchQuery}" ile eşleşen bir ürün bulunamadı. Farklı bir kelime deneyebilir veya tüm reyonlara göz atabilirsiniz.`
+                : 'Aradığınız kriterde ürün bu reyonda bulunamadı. Diğer reyonları inceleyebilirsiniz.'}
             </p>
             <button
               type="button"
