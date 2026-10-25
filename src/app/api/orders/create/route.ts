@@ -148,6 +148,35 @@ export async function POST(req: NextRequest) {
     const finalAmount = serverTotal + (payload.deliveryFee || 0) - (payload.discountAmount || 0);
 
     // 5. Insert order with server-validated prices
+    const normalizedItems = payload.items.map((item: any) => {
+      const p = item.product || {};
+      const productId = item.productId || item.product_id || p.id || '';
+      const productName = item.productName || item.product_name || p.name || 'Ürün';
+      const catalogItem = catalogProducts[productId];
+      const rawPrice = catalogItem
+        ? (catalogItem.discount_price ?? catalogItem.price)
+        : (item.price ?? p.discountPrice ?? p.price ?? 0);
+      const price = Number(rawPrice);
+      const quantity = Number(item.quantity || 1);
+      const validPrice = isNaN(price) || price < 0 ? 0 : price;
+      const validQty = isNaN(quantity) || quantity <= 0 ? 1 : quantity;
+
+      return {
+        productId,
+        productName,
+        price: validPrice,
+        quantity: validQty,
+        selectedOptions: item.selectedOptions || p.selectedOptions,
+        isKitchenItem: Boolean(item.isKitchenItem ?? p.isKitchenItem),
+        product: {
+          id: productId,
+          name: productName,
+          price: validPrice,
+          ...p,
+        },
+      };
+    });
+
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -156,7 +185,7 @@ export async function POST(req: NextRequest) {
         user_id: payload.userId,
         customer_name: payload.customerName,
         customer_phone: payload.customerPhone,
-        items: payload.items,
+        items: normalizedItems,
         total_amount: serverTotal,
         delivery_fee: payload.deliveryFee || 0,
         final_amount: finalAmount,

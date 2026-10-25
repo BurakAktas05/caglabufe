@@ -821,22 +821,30 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setCart((prev) => {
       const updated = [...prev];
       for (const item of orderItems) {
-        const prod = currentProducts.find((p) => p.id === item.productId);
+        const anyItem = item as any;
+        const targetId = item.productId || anyItem.product?.id || anyItem.id;
+        const targetName = (item.productName || anyItem.product?.name || anyItem.name || '').trim().toLowerCase();
+        const quantity = Number(item.quantity !== undefined ? item.quantity : anyItem.count ?? 1);
+        const safeQty = isNaN(quantity) || quantity <= 0 ? 1 : quantity;
+
+        const prod = currentProducts.find(
+          (p) => (targetId && p.id === targetId) || (targetName && p.name.trim().toLowerCase() === targetName)
+        );
         if (prod && prod.isAvailable) {
           const existingIdx = updated.findIndex((i) => i.product.id === prod.id);
           if (existingIdx > -1) {
             updated[existingIdx] = {
               ...updated[existingIdx],
-              quantity: updated[existingIdx].quantity + item.quantity,
+              quantity: updated[existingIdx].quantity + safeQty,
             };
           } else {
             updated.push({
               product: prod,
-              quantity: item.quantity,
+              quantity: safeQty,
               selectedOptions: item.selectedOptions,
             });
           }
-          addedCount += item.quantity;
+          addedCount += safeQty;
         }
       }
       return updated;

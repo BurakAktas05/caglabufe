@@ -156,10 +156,22 @@ export const levenshteinDistance = (a: string, b: string): number => {
 
 // Fuzzy kelime benzerliği kontrolü (yazım hataları için)
 export const isFuzzyMatch = (inputWord: string, targetWord: string): boolean => {
+  if (!inputWord || !targetWord) return false;
   if (inputWord === targetWord) return true;
-  if (targetWord.includes(inputWord) || inputWord.includes(targetWord)) return true;
+
+  // Sadece anlamlı uzunluktaki kelimelerde alt kelime kontrolü
   if (inputWord.length >= 3 && targetWord.length >= 3) {
-    const maxErrors = inputWord.length > 5 ? 2 : 1;
+    if (targetWord.includes(inputWord) || inputWord.includes(targetWord)) {
+      const minLen = Math.min(inputWord.length, targetWord.length);
+      const maxLen = Math.max(inputWord.length, targetWord.length);
+      // Kısa olan, uzunun en az %60'ı kadar olmalı (örn: "cikolat" -> "cikolata", "nodil" -> "noodle")
+      if (minLen / maxLen >= 0.6) return true;
+    }
+  }
+
+  // Levenshtein toleransı: Sadece 4+ harfli kelimelerde ve sıkı sınırlarla (1-2 harf hatası)
+  if (inputWord.length >= 4 && targetWord.length >= 4) {
+    const maxErrors = inputWord.length > 6 ? 2 : 1;
     return levenshteinDistance(inputWord, targetWord) <= maxErrors;
   }
   return false;
@@ -177,6 +189,14 @@ export interface SmartSearchResult {
 
 // Netflix Tarzı Kategori & Ürün İlgi Haritası
 export const RELATED_CATEGORY_MAP: Record<string, { relatedCats: string[]; defaultTitle: string }> = {
+  'Yoğurt': {
+    relatedCats: ['Normal Süt', 'Ayran', 'Peynir', 'Meyveli Yoğurt'],
+    defaultTitle: 'Süt, Peynir & Kahvaltılık Lezzetler',
+  },
+  'Meyveli Yoğurt': {
+    relatedCats: ['Yoğurt', 'Normal Süt', 'Atıştırmalık Bar', 'Meyve Suyu'],
+    defaultTitle: 'Meyveli ve Taze Atıştırmalıklar',
+  },
   'Soğuk Çay': {
     relatedCats: ['Enerji İçeceği', 'Soğuk Kahve', 'Gazoz', 'Kola', 'Limonata', 'Soda', 'Meyve Suyu'],
     defaultTitle: 'Enerji İçecekleri & Soğuk Lezzetler',
@@ -439,3 +459,118 @@ export const smartSearchProducts = (query: string, allProducts: Product[]): Smar
     totalFound: directMatches.length,
   };
 };
+
+// ============================================================================
+// ÇAĞLA BÜFE - AKILLI ÜRÜN & KATEGORİ EŞLEŞTİRME (ÇEŞNİ / AROMA AYIRIMI)
+// ============================================================================
+export const FLAVOR_CATEGORY_EXCLUSIONS: Record<string, string[]> = {
+  yogurt: ['cips', 'kraker', 'biskuvi', 'sekerleme', 'atistirmalik', 'sos'],
+  peynir: ['cips', 'kraker', 'biskuvi', 'makarna'],
+  sut: ['cikolata', 'gofret', 'biskuvi', 'kek', 'sekerleme', 'dondurma'],
+  kola: ['sekerleme', 'sakiz', 'dondurma', 'tatli'],
+  kahve: ['cikolata', 'biskuvi', 'gofret', 'kek', 'sekerleme'],
+  findik: ['cikolata', 'gofret', 'biskuvi', 'kek'],
+  fistik: ['cikolata', 'gofret', 'biskuvi', 'kek'],
+  limon: ['soda', 'gazoz', 'deterjan', 'temizlik', 'kek', 'biskuvi'],
+  cilek: ['sut', 'sakiz', 'sekerleme', 'gofret', 'biskuvi', 'soda'],
+  muz: ['sut', 'gofret', 'biskuvi', 'kek'],
+};
+
+export const smartMatchProducts = <
+  T extends {
+    id: string;
+    name: string;
+    category?: string;
+    brand?: string;
+    barcode?: string;
+    isAvailable?: boolean;
+    price?: number;
+  }
+>(
+  allProducts: T[],
+  rawQuery: string
+): T[] => {
+  const normQ = normalizeTurkish(rawQuery);
+  if (!normQ) return [];
+
+  // Stop words to clean if user sent phrase like "yoğurt fiyatını 200 TL yap"
+  const stopWords = new Set([
+    'fiyatini', 'fiyati', 'fiyat', 'yap', 'et', 'guncelle', 'kac', 'tl', 'lira', 'kurus',
+    'urunu', 'urun', 've', 'ile', 'icin', 'olan', 'bir', 'adet', 'tane', 'getir', 'ver',
+    'goster', 'listele', 'al', 'stok', 'stokta', 'stoktan', 'kaldir', 'kapat', 'ac',
+    'satista', 'tukendi', 'son', 'yeni', 'lutfen', 'cagla', 'bufe', 'market', 'selam',
+    'merhaba', 'usta', 'kardes', 'abi', 'bize', 'bana', 'bunu', 'su'
+  ]);
+
+  const rawWords = normQ.split(' ').filter((w) => w.length >= 2);
+  const cleanWords = rawWords.filter((w) => !stopWords.has(w) && !/^\d+$/.test(w));
+  const effectiveQuery = cleanWords.length > 0 ? cleanWords.join(' ') : normQ;
+  const qWords = effectiveQuery.split(' ').filter((w) => w.length > 0);
+
+  // 1. Direct ID / Barcode match
+  const directMatch = allProducts.find(
+    (p) => p.id === rawQuery || (p.barcode && p.barcode.trim() === rawQuery.trim())
+  );
+  if (directMatch) return [directMatch];
+
+  // 2. Exact full name match
+  const exactName = allProducts.find((p) => normalizeTurkish(p.name) === effectiveQuery);
+  if (exactName) return [exactName];
+
+  // 3. Find candidate products that match the query
+  let candidates = allProducts.filter((p) => {
+    const normName = normalizeTurkish(p.name || '');
+    const normCat = normalizeTurkish(p.category || '');
+    const normBrand = normalizeTurkish(p.brand || '');
+    return (
+      normName.includes(effectiveQuery) ||
+      normCat.includes(effectiveQuery) ||
+      (qWords.length > 0 &&
+        qWords.every((qw) => normName.includes(qw) || normCat.includes(qw) || normBrand.includes(qw)))
+    );
+  });
+
+  // 4. Primary Category Filtering (Avoid flavor matches like 'Yoğurtlu Cips' when searching 'yoğurt')
+  for (const [keyWord, excludedCats] of Object.entries(FLAVOR_CATEGORY_EXCLUSIONS)) {
+    if (qWords.includes(keyWord) || effectiveQuery === keyWord) {
+      const userAskedForExcluded = excludedCats.some((cat) => effectiveQuery.includes(cat));
+      if (!userAskedForExcluded) {
+        const primaryMatches = candidates.filter((p) => {
+          const cat = normalizeTurkish(p.category || '');
+          const isExcluded = excludedCats.some((ex) => cat.includes(ex));
+          return !isExcluded;
+        });
+
+        if (primaryMatches.length > 0) {
+          candidates = primaryMatches;
+        }
+      }
+    }
+  }
+
+  // 5. Rank candidates:
+  // - Category exactly matching keyword comes first
+  // - Name starting with keyword comes next
+  // - Purest / shortest name comes next
+  candidates.sort((a, b) => {
+    const aName = normalizeTurkish(a.name);
+    const bName = normalizeTurkish(b.name);
+    const aCat = normalizeTurkish(a.category || '');
+    const bCat = normalizeTurkish(b.category || '');
+
+    const aCatExact = aCat === effectiveQuery || aCat.startsWith(effectiveQuery);
+    const bCatExact = bCat === effectiveQuery || bCat.startsWith(effectiveQuery);
+    if (aCatExact && !bCatExact) return -1;
+    if (!aCatExact && bCatExact) return 1;
+
+    const aNameStarts = aName.startsWith(effectiveQuery);
+    const bNameStarts = bName.startsWith(effectiveQuery);
+    if (aNameStarts && !bNameStarts) return -1;
+    if (!aNameStarts && bNameStarts) return 1;
+
+    return aName.length - bName.length;
+  });
+
+  return candidates;
+};
+

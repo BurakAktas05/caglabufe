@@ -470,25 +470,33 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                 {/* Items List */}
                 <div style={{ borderTop: '1px dashed #E2E8F0', paddingTop: '10px' }}>
                   <div style={{ fontSize: '12px', fontWeight: 800, color: '#6B7280', marginBottom: '6px' }}>
-                    SİPARİŞ İÇERİĞİ ({order.items.reduce((s, i) => s + i.quantity, 0)} Parça):
+                    SİPARİŞ İÇERİĞİ ({order.items.reduce((s, i) => s + (Number(i.quantity !== undefined ? i.quantity : (i as any).count) || 1), 0)} Parça):
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {order.items.map((item, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          fontSize: '13px',
-                          color: '#1F2937',
-                        }}
-                      >
-                        <span>
-                          <strong style={{ color: '#5D3EBC' }}>{item.quantity}x</strong> {decodeHtmlEntities(item.productName)}
-                        </span>
-                        <span style={{ fontWeight: 600 }}>₺{(item.price * item.quantity).toFixed(2)}</span>
-                      </div>
-                    ))}
+                    {order.items.map((item, idx) => {
+                      const anyItem = item as any;
+                      const name = item.productName || anyItem.product?.name || anyItem.name || 'Ürün';
+                      const price = Number(item.price !== undefined ? item.price : anyItem.product?.price ?? 0);
+                      const qty = Number(item.quantity !== undefined ? item.quantity : anyItem.count ?? 1);
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            fontSize: '13px',
+                            color: '#1F2937',
+                          }}
+                        >
+                          <span>
+                            <strong style={{ color: '#5D3EBC' }}>{qty}x</strong> {decodeHtmlEntities(name)}
+                          </span>
+                          <span style={{ fontWeight: 600 }}>
+                            ₺{((isNaN(price) ? 0 : price) * (isNaN(qty) ? 1 : qty)).toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

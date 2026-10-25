@@ -19,6 +19,7 @@ import {
   Bot,
 } from 'lucide-react';
 import { Order, Product, DeliveryZone, DormitoryConfig, SystemSettings } from '@/types';
+import { normalizeTurkish, smartMatchProducts } from '@/lib/searchEngine';
 
 interface AdminAIAssistantProps {
   orders: Order[];
@@ -37,14 +38,19 @@ interface AdminAIAssistantProps {
 interface DisambiguationOption {
   id: string;
   name: string;
+  subText?: string;
   currentPrice?: number;
   isAvailable?: boolean;
+  minOrderAmount?: number;
 }
 
 interface DisambiguationData {
-  type: 'product_price' | 'product_stock';
+  type: 'product_price' | 'product_stock' | 'dorm_select' | 'amount_select';
+  targetId?: string;
+  targetName?: string;
   newPrice?: number;
   newDiscountPrice?: number;
+  minOrderAmount?: number;
   isAvailable?: boolean;
   options: DisambiguationOption[];
 }
@@ -98,61 +104,126 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Voice Recognition (Speech to Text)
+  // Cleanup voice recognition on unmount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recognition = new SpeechRecognition();
-        recognition.lang = 'tr-TR';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          if (transcript) {
-            setPrompt(transcript);
-            handleSend(transcript);
-          }
-          setIsListening(false);
-        };
-
-        recognition.onerror = () => {
-          setIsListening(false);
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-
-        recognitionRef.current = recognition;
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
       }
-    }
+    };
   }, []);
 
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-      alert('Tarayıcınız sesli komut algılamayı desteklemiyor (Chrome veya Safari önerilir).');
-      return;
-    }
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      try {
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch {
-        setIsListening(false);
-      }
-    }
-  };
+
 
   const handleSelectDisambiguation = (
     data: DisambiguationData,
     chosen: DisambiguationOption
   ) => {
+    if (data.type === 'dorm_select') {
+      const dormId = chosen.id;
+      const dormName = chosen.name;
+      const targetMin = data.minOrderAmount;
+
+      if (targetMin !== undefined && targetMin > 0) {
+        if (dormId === 'all_kyk') {
+          const kykZone = zones.find(
+            (z) => z.id === 'zone-kyk-yurtlari' || normalizeTurkish(z.name).includes('kyk') || normalizeTurkish(z.name).includes('yurt')
+          );
+          if (kykZone) {
+            onUpdateZone(kykZone.id, { minOrderAmount: targetMin });
+          }
+          dorms.forEach((d) => {
+            if (d.zoneId === 'zone-kyk-yurtlari' && d.minOrderAmount) {
+              onUpdateDorm(d.id, { minOrderAmount: targetMin });
+            }
+          });
+          const confirmMsg: ChatMessage = {
+            id: 'cfm_' + Date.now(),
+            sender: 'assistant',
+            text: `İşlem tamamlandı: Tüm KYK Yurtları seçildi.`,
+            actionSummary: `✅ Tüm KYK Yurtları teslimat bölgesi minimum sepet tutarı ₺${targetMin} olarak güncellendi.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          setMessages((prev) => [...prev, confirmMsg]);
+        } else {
+          onUpdateDorm(dormId, { minOrderAmount: targetMin });
+          const confirmMsg: ChatMessage = {
+            id: 'cfm_' + Date.now(),
+            sender: 'assistant',
+            text: `İşlem tamamlandı: "${dormName}" seçildi.`,
+            actionSummary: `✅ "${dormName}" yurduna özel minimum sepet tutarı ₺${targetMin} olarak güncellendi.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          };
+          setMessages((prev) => [...prev, confirmMsg]);
+        }
+      } else {
+        const currentMin = chosen.minOrderAmount || 60;
+        const askAmountMsg: ChatMessage = {
+          id: 'ask_' + Date.now(),
+          sender: 'assistant',
+          text: `❓ "${dormName}" için yeni minimum sepet tutarını belirleyin (Mevcut: ₺${currentMin}):`,
+          disambiguation: {
+            type: 'amount_select',
+            targetId: dormId,
+            targetName: dormName,
+            options: [
+              { id: 'inc_15', name: `+₺15 Artır`, minOrderAmount: currentMin + 15 },
+              { id: 'inc_25', name: `+₺25 Artır`, minOrderAmount: currentMin + 25 },
+              { id: 'inc_50', name: `+₺50 Artır`, minOrderAmount: currentMin + 50 },
+              { id: 'set_100', name: `₺100 Yap`, minOrderAmount: 100 },
+              { id: 'set_150', name: `₺150 Yap`, minOrderAmount: 150 },
+              { id: 'set_200', name: `₺200 Yap`, minOrderAmount: 200 },
+            ].filter((opt) => opt.minOrderAmount !== currentMin),
+          },
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, askAmountMsg]);
+      }
+      return;
+    }
+
+    if (data.type === 'amount_select') {
+      const dormId = data.targetId;
+      const dormName = data.targetName || 'Yurt';
+      const targetMin = chosen.minOrderAmount;
+      if (!targetMin) return;
+
+      if (dormId === 'all_kyk') {
+        const kykZone = zones.find(
+          (z) => z.id === 'zone-kyk-yurtlari' || normalizeTurkish(z.name).includes('kyk') || normalizeTurkish(z.name).includes('yurt')
+        );
+        if (kykZone) {
+          onUpdateZone(kykZone.id, { minOrderAmount: targetMin });
+        }
+        dorms.forEach((d) => {
+          if (d.zoneId === 'zone-kyk-yurtlari' && d.minOrderAmount) {
+            onUpdateDorm(d.id, { minOrderAmount: targetMin });
+          }
+        });
+        const confirmMsg: ChatMessage = {
+          id: 'cfm_' + Date.now(),
+          sender: 'assistant',
+          text: `İşlem tamamlandı: Tüm KYK Yurtları seçildi.`,
+          actionSummary: `✅ Tüm KYK Yurtları teslimat bölgesi minimum sepet tutarı ₺${targetMin} olarak güncellendi.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, confirmMsg]);
+      } else if (dormId) {
+        onUpdateDorm(dormId, { minOrderAmount: targetMin });
+        const confirmMsg: ChatMessage = {
+          id: 'cfm_' + Date.now(),
+          sender: 'assistant',
+          text: `İşlem tamamlandı: "${dormName}" seçildi.`,
+          actionSummary: `✅ "${dormName}" yurduna özel minimum sepet tutarı ₺${targetMin} olarak güncellendi.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setMessages((prev) => [...prev, confirmMsg]);
+      }
+      return;
+    }
+
     const fullProd = products.find((p) => p.id === chosen.id);
     if (!fullProd) return;
 
@@ -238,32 +309,10 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
     }
 
     if (tool === 'update_product_price') {
-      const q = (args.productQuery || '').trim().toLowerCase();
+      const rawQ = (args.productQuery || '').trim();
       
-      // 1. Direct ID match
-      let exactMatch = products.find((p) => p.id === args.productId || p.id === q);
-      if (!exactMatch) {
-        exactMatch = products.find(
-          (p) => p.name.trim().toLowerCase() === q || (p.barcode && p.barcode.trim() === q)
-        );
-      }
-
-      if (exactMatch) {
-        const updated: Product = {
-          ...exactMatch,
-          price: Number(args.newPrice) || exactMatch.price,
-          discountPrice: args.newDiscountPrice ? Number(args.newDiscountPrice) : exactMatch.discountPrice,
-        };
-        onSaveProduct(updated);
-        return {
-          summary: `✅ "${exactMatch.name}" fiyatı ₺${args.newPrice}${args.newDiscountPrice ? ` (İndirimli: ₺${args.newDiscountPrice})` : ''} olarak güncellendi.`,
-        };
-      }
-
-      // 2. Substring matching
-      const matches = products.filter(
-        (p) => p.name.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q))
-      );
+      // Smart matching with flavor/category separation (e.g. 'yoğurt' matches real yogurts, not chips)
+      const matches = smartMatchProducts(products, args.productId || rawQ);
 
       if (matches.length === 1) {
         const matchedProd = matches[0];
@@ -299,22 +348,9 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
     }
 
     if (tool === 'toggle_product_stock') {
-      const q = (args.productQuery || '').trim().toLowerCase();
-      let exactMatch = products.find((p) => p.id === args.productId || p.id === q);
-      if (!exactMatch) {
-        exactMatch = products.find(
-          (p) => p.name.trim().toLowerCase() === q || (p.barcode && p.barcode.trim() === q)
-        );
-      }
+      const rawQ = (args.productQuery || '').trim();
+      const matches = smartMatchProducts(products, args.productId || rawQ);
 
-      if (exactMatch) {
-        onToggleProductAvailability(exactMatch.id, exactMatch.isAvailable);
-        return {
-          summary: `✅ "${exactMatch.name}" ürünü ${args.isAvailable ? 'Satışta (Stokta)' : 'Tükendi'} olarak işaretlendi.`,
-        };
-      }
-
-      const matches = products.filter((p) => p.name.toLowerCase().includes(q));
       if (matches.length === 1) {
         const matchedProd = matches[0];
         onToggleProductAvailability(matchedProd.id, matchedProd.isAvailable);
@@ -344,17 +380,18 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
 
     if (tool === 'update_zone_min_order') {
       const zName = (args.zoneName || '').toLowerCase();
-      const isDormZone = zName.includes('yurt') || zName.includes('kyk') || zName === '';
+      const normZName = normalizeTurkish(zName);
+      const isDormZone = normZName.includes('yurt') || normZName.includes('kyk') || normZName === '';
       const matchedZone = zones.find((z) => {
-        const zn = z.name.toLowerCase();
+        const zn = normalizeTurkish(z.name);
         if (isDormZone) return zn.includes('kyk') || zn.includes('yurt') || z.id === 'zone-kyk-yurtlari';
-        return zn.includes(zName);
+        return zn.includes(normZName);
       }) || (isDormZone ? zones.find((z) => z.id === 'zone-kyk-yurtlari') : undefined);
 
       if (matchedZone) {
         const currentMin = matchedZone.minOrderAmount || 60;
         let targetMin = Number(args.minOrderAmount);
-        if (!targetMin || isNaN(targetMin) || targetMin <= currentMin) {
+        if (!targetMin || isNaN(targetMin) || targetMin <= 0) {
           targetMin = currentMin + 10;
         }
 
@@ -373,73 +410,142 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
     }
 
     if (tool === 'update_dorm_override') {
-      const dName = (args.dormName || '').toLowerCase();
-      const isGenericDorm =
-        dName.includes('yurt') ||
-        dName.includes('kyk') ||
-        dName === '' ||
-        dName.includes('tüm') ||
-        dName.includes('heps') ||
-        dName.includes('bölge');
+      const rawDName = (args.dormName || '').trim();
+      const normDName = normalizeTurkish(rawDName);
+      const kykZone = zones.find(
+        (z) => z.id === 'zone-kyk-yurtlari' || normalizeTurkish(z.name).includes('kyk') || normalizeTurkish(z.name).includes('yurt')
+      );
+      const currentZoneMin = kykZone?.minOrderAmount || 60;
+      const targetAmount = args.minOrderAmount ? Number(args.minOrderAmount) : undefined;
 
-      if (isGenericDorm) {
-        const kykZone = zones.find(
-          (z) => z.id === 'zone-kyk-yurtlari' || z.name.toLowerCase().includes('kyk') || z.name.toLowerCase().includes('yurt')
-        );
-        const currentZoneMin = kykZone?.minOrderAmount || 60;
-        let targetMin = Number(args.minOrderAmount);
-        if (!targetMin || isNaN(targetMin) || targetMin <= currentZoneMin) {
-          targetMin = currentZoneMin + 10;
+      // 1. Kullanıcı açıkça "tüm yurtlar", "hepsi", "tüm kyk" dediyse:
+      const isAllDormsExplicit =
+        normDName.includes('tum yurt') ||
+        normDName.includes('butun yurt') ||
+        normDName.includes('heps') ||
+        normDName.includes('kyk bolge');
+
+      if (isAllDormsExplicit) {
+        if (targetAmount && targetAmount > 0) {
+          if (kykZone) onUpdateZone(kykZone.id, { minOrderAmount: targetAmount });
+          dorms.forEach((d) => {
+            if (d.zoneId === 'zone-kyk-yurtlari' && d.minOrderAmount) {
+              onUpdateDorm(d.id, { minOrderAmount: targetAmount });
+            }
+          });
+          return {
+            summary: `✅ Tüm KYK Yurtları teslimat bölgesi minimum sepet tutarı ₺${targetAmount} olarak güncellendi.`,
+          };
+        } else {
+          return {
+            summary: `❓ Tüm KYK Yurtları için hedef minimum sepet tutarını belirleyin (Mevcut: ₺${currentZoneMin}):`,
+            isQuestion: true,
+            disambiguation: {
+              type: 'amount_select',
+              targetId: 'all_kyk',
+              targetName: 'Tüm KYK Yurtları',
+              options: [
+                { id: 'inc_15', name: '+₺15 Artır', minOrderAmount: currentZoneMin + 15 },
+                { id: 'inc_25', name: '+₺25 Artır', minOrderAmount: currentZoneMin + 25 },
+                { id: 'inc_50', name: '+₺50 Artır', minOrderAmount: currentZoneMin + 50 },
+                { id: 'set_100', name: '₺100 Yap', minOrderAmount: 100 },
+                { id: 'set_150', name: '₺150 Yap', minOrderAmount: 150 },
+                { id: 'set_200', name: '₺200 Yap', minOrderAmount: 200 },
+              ].filter((o) => o.minOrderAmount !== currentZoneMin),
+            },
+          };
         }
-
-        if (kykZone) {
-          onUpdateZone(kykZone.id, { minOrderAmount: targetMin });
-        }
-
-        dorms.forEach((d) => {
-          if (d.zoneId === 'zone-kyk-yurtlari' && d.minOrderAmount) {
-            onUpdateDorm(d.id, { minOrderAmount: targetMin });
-          }
-        });
-
-        return {
-          summary: `✅ KYK Yurtları teslimat bölgesi ve yurtların minimum sepet tutarı ₺${targetMin} olarak güncellendi.`,
-        };
       }
 
-      const matchedDorm = dorms.find((d) => {
-        const dn = d.name.toLowerCase();
-        return dn.includes(dName) || dName.includes(d.id);
-      });
+      // 2. Belirli bir yurt adı söylenmiş mi kontrol et (dinamik, hardcoded isim yok):
+      let matchedDorm: DormitoryConfig | undefined;
+      if (rawDName && rawDName !== 'secim_gerekli' && rawDName !== 'yurt' && rawDName !== 'yurdun') {
+        matchedDorm = dorms.find((d) => {
+          const normFullName = normalizeTurkish(d.name);
+          const normId = normalizeTurkish(d.id.replace(/-/g, ' '));
+          const specificKeywords = normFullName
+            .split(' ')
+            .filter((w) => !['kyk', 'ogrenci', 'yurdu', 'kiz', 'erkek'].includes(w) && w.length >= 3);
 
+          return (
+            specificKeywords.some((kw) => normDName.includes(kw)) ||
+            normFullName.includes(normDName) ||
+            normDName.includes(normId) ||
+            normDName.includes(normFullName)
+          );
+        });
+      }
+
+      // 3. Eğer belirli bir yurt bulunduysa:
       if (matchedDorm) {
         const currentMin =
           matchedDorm.minOrderAmount ||
           zones.find((z) => z.id === matchedDorm.zoneId)?.minOrderAmount ||
-          60;
-        let targetMin = Number(args.minOrderAmount);
-        if (!targetMin || isNaN(targetMin) || targetMin <= currentMin) {
-          targetMin = currentMin + 10;
-        }
+          currentZoneMin;
 
-        onUpdateDorm(matchedDorm.id, {
-          minOrderAmount: targetMin,
-          discountPercentage:
-            args.discountPercentage !== undefined
-              ? Number(args.discountPercentage)
-              : matchedDorm.discountPercentage,
-          specialNote: args.specialNote || matchedDorm.specialNote,
-        });
-        return {
-          summary: `✅ "${matchedDorm.name}" yurduna özel min sepet: ₺${targetMin}${
-            args.discountPercentage ? `, indirim: %${args.discountPercentage}` : ''
-          } olarak tanımlandı.`,
-        };
-      } else {
-        return {
-          summary: `⚠️ "${args.dormName}" isimli yurt bulunamadı.`,
-        };
+        if (targetAmount && targetAmount > 0) {
+          onUpdateDorm(matchedDorm.id, {
+            minOrderAmount: targetAmount,
+            discountPercentage:
+              args.discountPercentage !== undefined
+                ? Number(args.discountPercentage)
+                : matchedDorm.discountPercentage,
+            specialNote: args.specialNote || matchedDorm.specialNote,
+          });
+
+          return {
+            summary: `✅ "${matchedDorm.name}" yurduna özel minimum sepet tutarı ₺${targetAmount} olarak güncellendi.${
+              args.discountPercentage ? ` (İndirim: %${args.discountPercentage})` : ''
+            }`,
+          };
+        } else {
+          return {
+            summary: `❓ "${matchedDorm.name}" için hedef minimum sepet tutarını belirleyin (Mevcut: ₺${currentMin}):`,
+            isQuestion: true,
+            disambiguation: {
+              type: 'amount_select',
+              targetId: matchedDorm.id,
+              targetName: matchedDorm.name,
+              options: [
+                { id: 'inc_15', name: '+₺15 Artır', minOrderAmount: currentMin + 15 },
+                { id: 'inc_25', name: '+₺25 Artır', minOrderAmount: currentMin + 25 },
+                { id: 'inc_50', name: '+₺50 Artır', minOrderAmount: currentMin + 50 },
+                { id: 'set_100', name: '₺100 Yap', minOrderAmount: 100 },
+                { id: 'set_150', name: '₺150 Yap', minOrderAmount: 150 },
+                { id: 'set_200', name: '₺200 Yap', minOrderAmount: 200 },
+              ].filter((o) => o.minOrderAmount !== currentMin),
+            },
+          };
+        }
       }
+
+      // 4. Belirli bir yurt söylenmemiş ("yurdun min sepetini artır", "yurt sepetini 200 yap" vb.):
+      // KESİNLİKLE TAHMİN ETME, KULLANICIYA TÜM YURTLARI LİSTELE!
+      return {
+        summary: `❓ Hangi yurdun minimum sepet tutarını ${targetAmount ? `₺${targetAmount}` : 'güncellemek'} istiyorsunuz?`,
+        isQuestion: true,
+        disambiguation: {
+          type: 'dorm_select',
+          minOrderAmount: targetAmount,
+          options: [
+            {
+              id: 'all_kyk',
+              name: '🏢 Tüm KYK Yurtları (Genel Bölge)',
+              subText: `Mevcut: ₺${currentZoneMin}`,
+              minOrderAmount: currentZoneMin,
+            },
+            ...dorms.map((d) => {
+              const currentMin = d.minOrderAmount || currentZoneMin;
+              return {
+                id: d.id,
+                name: d.name,
+                subText: `Mevcut: ₺${currentMin}`,
+                minOrderAmount: currentMin,
+              };
+            }),
+          ],
+        },
+      };
     }
 
     if (tool === 'toggle_store_status') {
@@ -492,15 +598,64 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
         localRes = executeActionLocally(data.actionTaken);
       } else {
         // Fallback for direct Turkish operational phrases if tool call was omitted by LLM
-        const lowerPrompt = textToSend.toLowerCase();
+        const normPrompt = normalizeTurkish(textToSend);
+        const numMatch = textToSend.match(/\b\d+(\.\d+)?\b/);
+        const extractedAmount = numMatch ? Number(numMatch[0]) : undefined;
+
+        // Yurt kontrolü (Hubbi, Bahaddin, Edebali vb.)
+        const mentionedDorm = dorms.find((d) => {
+          const normD = normalizeTurkish(d.name);
+          const specific = normD.split(' ').filter((w) => !['kyk', 'ogrenci', 'yurdu', 'kiz', 'erkek'].includes(w) && w.length >= 3);
+          return specific.some((kw) => normPrompt.includes(kw));
+        });
+
         if (
-          (lowerPrompt.includes('yurt') || lowerPrompt.includes('kyk')) &&
-          (lowerPrompt.includes('artır') || lowerPrompt.includes('yükselt') || lowerPrompt.includes('zam') || lowerPrompt.includes('min') || lowerPrompt.includes('sepet'))
+          (normPrompt.includes('yurt') || normPrompt.includes('kyk') || mentionedDorm) &&
+          (normPrompt.includes('artir') || normPrompt.includes('yukselt') || normPrompt.includes('zam') || normPrompt.includes('min') || normPrompt.includes('sepet') || normPrompt.includes('yap'))
         ) {
           localRes = executeActionLocally({
             tool: 'update_dorm_override',
-            arguments: { dormName: 'yurt' },
+            arguments: {
+              dormName: mentionedDorm ? mentionedDorm.name : 'secim_gerekli',
+              minOrderAmount: extractedAmount,
+            },
           });
+        }
+
+        // Ürün fiyat güncelleme fallback'i (örn: "Yoğurt fiyatını 200 TL yap")
+        if (
+          !localRes &&
+          extractedAmount &&
+          (normPrompt.includes('fiyat') || normPrompt.includes('tl') || normPrompt.includes('lira') || normPrompt.includes('zam') || normPrompt.includes('yap'))
+        ) {
+          const productMatches = smartMatchProducts(products, textToSend);
+          if (productMatches.length > 0) {
+            localRes = executeActionLocally({
+              tool: 'update_product_price',
+              arguments: {
+                productQuery: textToSend,
+                newPrice: extractedAmount,
+              },
+            });
+          }
+        }
+
+        // Ürün stok durumu fallback'i (örn: "Kola tükendi", "Red Bull stokta")
+        if (
+          !localRes &&
+          (normPrompt.includes('tukendi') || normPrompt.includes('bitti') || normPrompt.includes('stokta') || normPrompt.includes('satista') || normPrompt.includes('yok'))
+        ) {
+          const isAvail = normPrompt.includes('stokta') || normPrompt.includes('satista');
+          const productMatches = smartMatchProducts(products, textToSend);
+          if (productMatches.length > 0) {
+            localRes = executeActionLocally({
+              tool: 'toggle_product_stock',
+              arguments: {
+                productQuery: textToSend,
+                isAvailable: isAvail,
+              },
+            });
+          }
         }
       }
 
@@ -526,6 +681,91 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleListening = () => {
+    if (typeof window === 'undefined') return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert('Tarayıcınız sesli komut algılamayı desteklemiyor. Google Chrome, Microsoft Edge veya Apple Safari kullanabilirsiniz.');
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {}
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'tr-TR';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      let recognizedText = '';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const item = event.results[i];
+          if (item.isFinal) {
+            recognizedText += item[0].transcript;
+          } else {
+            interim += item[0].transcript;
+          }
+        }
+        const currentText = (recognizedText || interim).trim();
+        if (currentText) {
+          setPrompt(currentText);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('[Speech Recognition Error]', event.error);
+        setIsListening(false);
+        recognitionRef.current = null;
+        if (event.error === 'not-allowed') {
+          alert('Mikrofon erişim izni verilmedi. Lütfen tarayıcınızın adres çubuğundaki kilit simgesine tıklayarak mikrofon iznine "İzin Ver" seçeneğini aktif edin.');
+        } else if (event.error === 'network') {
+          alert('Ses tanıma servisi için internet bağlantısı gerekiyor.');
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        recognitionRef.current = null;
+        const textToSubmit = recognizedText.trim();
+        if (textToSubmit) {
+          handleSend(textToSubmit);
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err: any) {
+      console.error('[Speech Start Error]', err);
+      setIsListening(false);
+      recognitionRef.current = null;
     }
   };
 
@@ -734,7 +974,13 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
                           }}
                         >
                           <div style={{ fontSize: '11px', color: '#CBD5E1', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <span>👉 Lütfen hedef ürünü seçin:</span>
+                            <span>
+                              {m.disambiguation?.type === 'dorm_select'
+                                ? '👉 Lütfen işlem yapılacak yurdu seçin:'
+                                : m.disambiguation?.type === 'amount_select'
+                                ? '👉 Hedef minimum sepet tutarını seçin:'
+                                : '👉 Lütfen hedef ürünü seçin:'}
+                            </span>
                           </div>
                           {m.disambiguation.options.map((opt) => (
                             <button
@@ -774,6 +1020,17 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
                               {m.disambiguation?.type === 'product_stock' && (
                                 <span style={{ fontSize: '11px', color: m.disambiguation.isAvailable ? '#34D399' : '#EF4444', fontWeight: 800, whiteSpace: 'nowrap' }}>
                                   {m.disambiguation.isAvailable ? 'Satışta Yap' : 'Tükendi Yap'}
+                                </span>
+                              )}
+                              {m.disambiguation?.type === 'dorm_select' && (
+                                <span style={{ fontSize: '11px', color: '#818CF8', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                                  {opt.subText || `₺${opt.minOrderAmount}`}
+                                  {m.disambiguation.minOrderAmount ? ` → ₺${m.disambiguation.minOrderAmount}` : ''}
+                                </span>
+                              )}
+                              {m.disambiguation?.type === 'amount_select' && (
+                                <span style={{ fontSize: '11px', color: '#34D399', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                                  ₺{opt.minOrderAmount}
                                 </span>
                               )}
                             </button>
@@ -844,6 +1101,51 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
                 ))}
               </div>
 
+              {/* Active Voice Listening Banner */}
+              {isListening && (
+                <div
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    borderTop: '1px solid rgba(239, 68, 68, 0.4)',
+                    padding: '8px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: '12px',
+                    color: '#FCA5A5',
+                    fontWeight: 600,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: '#EF4444',
+                        boxShadow: '0 0 8px #EF4444',
+                        display: 'inline-block',
+                      }}
+                    />
+                    <span>🎙️ Dinleniyor... Komutunuzu söyleyin (bitince otomatik algılanır)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#FFFFFF',
+                      fontSize: '11px',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Durdur
+                  </button>
+                </div>
+              )}
+
               {/* Input Bar */}
               <form
                 onSubmit={(e) => {
@@ -853,7 +1155,7 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
                 style={{
                   padding: '12px 14px',
                   backgroundColor: '#1E293B',
-                  borderTop: '1px solid #334155',
+                  borderTop: isListening ? 'none' : '1px solid #334155',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
@@ -867,16 +1169,16 @@ export const AdminAIAssistant: React.FC<AdminAIAssistantProps> = ({
                     width: '38px',
                     height: '38px',
                     borderRadius: '10px',
-                    backgroundColor: isListening ? '#EF4444' : '#334155',
+                    backgroundColor: isListening ? '#DC2626' : '#334155',
                     color: '#FFFFFF',
-                    border: 'none',
+                    border: isListening ? '2px solid #FCA5A5' : 'none',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
                     flexShrink: 0,
-                    animation: isListening ? 'pulse 1s infinite' : 'none',
+                    boxShadow: isListening ? '0 0 12px rgba(239, 68, 68, 0.7)' : 'none',
                   }}
                   title={isListening ? 'Dinleniyor... (Durdurmak için tıklayın)' : 'Sesli Komut Ver (Mikrofon)'}
                 >

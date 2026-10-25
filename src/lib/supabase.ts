@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Order, Product, OrderStatus, BannedUser } from '@/types';
+import { Order, OrderItem, Product, OrderStatus, BannedUser } from '@/types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -243,13 +243,42 @@ export const deleteStoredProduct = (productId: string): Product[] => {
 // Helper mapper for Supabase raw DB row
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const mapSupabaseOrderToOrder = (row: any): Order => {
+  const rawItems = typeof row.items === 'string' ? JSON.parse(row.items) : row.items || [];
+  const items: OrderItem[] = rawItems.map((item: any) => {
+    const p = item.product || {};
+    const productId = item.productId || item.product_id || p.id || item.id || '';
+    const productName = item.productName || item.product_name || p.name || item.name || 'Ürün';
+    const rawPrice = item.price !== undefined ? item.price : (p.discountPrice !== undefined ? p.discountPrice : p.price);
+    const price = Number(rawPrice);
+    const quantity = Number(item.quantity);
+    const validPrice = isNaN(price) || price < 0 ? 0 : price;
+    const validQty = isNaN(quantity) || quantity <= 0 ? 1 : quantity;
+    const selectedOptions = item.selectedOptions || p.selectedOptions;
+    const isKitchenItem = Boolean(item.isKitchenItem ?? p.isKitchenItem);
+
+    return {
+      productId,
+      productName,
+      price: validPrice,
+      quantity: validQty,
+      selectedOptions,
+      isKitchenItem,
+      product: {
+        id: productId,
+        name: productName,
+        price: validPrice,
+        ...p,
+      },
+    };
+  });
+
   return {
     id: row.id,
     orderNumber: row.order_number || row.orderNumber,
     userId: row.user_id || row.userId || '',
     customerName: row.customer_name || row.customerName || '',
     customerPhone: row.customer_phone || row.customerPhone || '',
-    items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items || [],
+    items,
     totalAmount: Number(row.total_amount || row.totalAmount || 0),
     deliveryFee: Number(row.delivery_fee || row.deliveryFee || 0),
     finalAmount: Number(row.final_amount || row.finalAmount || 0),
@@ -344,18 +373,32 @@ export const saveOrder = async (order: Order): Promise<Order> => {
           userId: order.userId,
           customerName: order.customerName,
           customerPhone: order.customerPhone,
-          items: order.items.map(item => ({
-            product: {
-              id: (item as any).productId || (item as any).product?.id,
-              name: (item as any).productName || (item as any).product?.name,
-              price: (item as any).price || (item as any).product?.price,
-              discountPrice: (item as any).product?.discountPrice,
-              campaignId: (item as any).product?.campaignId,
-              isKitchenItem: (item as any).isKitchenItem || (item as any).product?.isKitchenItem,
-            },
-            quantity: item.quantity,
-            selectedOptions: (item as any).selectedOptions,
-          })),
+          items: order.items.map((item: any) => {
+            const p = item.product || {};
+            const productId = item.productId || p.id || '';
+            const productName = item.productName || p.name || 'Ürün';
+            const price = Number(item.price !== undefined ? item.price : (p.discountPrice !== undefined ? p.discountPrice : p.price));
+            const quantity = Number(item.quantity || 1);
+            const validPrice = isNaN(price) || price < 0 ? 0 : price;
+            const validQty = isNaN(quantity) || quantity <= 0 ? 1 : quantity;
+
+            return {
+              productId,
+              productName,
+              price: validPrice,
+              quantity: validQty,
+              selectedOptions: item.selectedOptions,
+              isKitchenItem: Boolean(item.isKitchenItem || p.isKitchenItem),
+              product: {
+                id: productId,
+                name: productName,
+                price: validPrice,
+                discountPrice: p.discountPrice,
+                campaignId: p.campaignId,
+                isKitchenItem: Boolean(item.isKitchenItem || p.isKitchenItem),
+              },
+            };
+          }),
           deliveryFee: order.deliveryFee,
           discountAmount: order.discountAmount || 0,
           appliedCampaignId: order.appliedCampaignId,

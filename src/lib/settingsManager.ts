@@ -1286,12 +1286,12 @@ export function evaluateSingleBestCampaign({
     if (campaign.applicableCategories && campaign.applicableCategories.length > 0) {
       applicableTotal = cartItems
         .filter((item) => campaign.applicableCategories!.includes(item.category as never))
-        .reduce((sum, item) => sum + item.price * item.quantity, 0);
+        .reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
     }
     if (campaign.applicableProductIds && campaign.applicableProductIds.length > 0) {
       applicableTotal = cartItems
         .filter((item) => campaign.applicableProductIds!.includes(item.productId))
-        .reduce((sum, item) => sum + item.price * item.quantity, 0);
+        .reduce((sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
     }
 
     let discount = 0;

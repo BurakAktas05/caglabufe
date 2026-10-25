@@ -739,24 +739,30 @@ export const ProfileModal = () => {
                               color: '#374151',
                             }}
                           >
-                            {o.items.map((item, idx) => (
-                              <div
-                                key={idx}
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  padding: '2px 0',
-                                }}
-                              >
-                                <span>
-                                  {item.quantity}x {item.productName}
-                                </span>
-                                <span style={{ fontWeight: 700, color: '#1F2937' }}>
-                                  ₺{(item.price * item.quantity).toFixed(2)}
-                                </span>
-                              </div>
-                            ))}
+                            {o.items.map((item, idx) => {
+                              const anyItem = item as any;
+                              const name = item.productName || anyItem.product?.name || anyItem.name || 'Ürün';
+                              const price = Number(item.price !== undefined ? item.price : anyItem.product?.price ?? 0);
+                              const qty = Number(item.quantity !== undefined ? item.quantity : anyItem.count ?? 1);
+                              return (
+                                <div
+                                  key={idx}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '2px 0',
+                                  }}
+                                >
+                                  <span>
+                                    {qty}x {name}
+                                  </span>
+                                  <span style={{ fontWeight: 700, color: '#1F2937' }}>
+                                    ₺{((isNaN(price) ? 0 : price) * (isNaN(qty) ? 1 : qty)).toFixed(2)}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
 
                           {/* Price & Action Row */}

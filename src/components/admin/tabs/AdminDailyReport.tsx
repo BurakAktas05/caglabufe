@@ -75,14 +75,22 @@ export const AdminDailyReport: React.FC<AdminDailyReportProps> = ({ orders }) =>
     const map = new Map<string, { name: string; quantity: number; revenue: number }>();
     dailyDeliveredOrders.forEach((o) => {
       o.items.forEach((item) => {
-        const existing = map.get(item.productId) || {
-          name: item.productName,
+        const anyItem = item as any;
+        const productId = item.productId || anyItem.product?.id || anyItem.id || 'unknown';
+        const productName = item.productName || anyItem.product?.name || anyItem.name || 'Bilinmeyen Ürün';
+        const price = Number(item.price !== undefined ? item.price : anyItem.product?.price ?? 0);
+        const quantity = Number(item.quantity !== undefined ? item.quantity : anyItem.count ?? 1);
+        const safePrice = isNaN(price) ? 0 : price;
+        const safeQty = isNaN(quantity) ? 1 : quantity;
+
+        const existing = map.get(productId) || {
+          name: productName,
           quantity: 0,
           revenue: 0,
         };
-        existing.quantity += item.quantity;
-        existing.revenue += item.quantity * item.price;
-        map.set(item.productId, existing);
+        existing.quantity += safeQty;
+        existing.revenue += safeQty * safePrice;
+        map.set(productId, existing);
       });
     });
     return Array.from(map.values()).sort((a, b) => b.quantity - a.quantity);

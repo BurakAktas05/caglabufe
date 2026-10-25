@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAdminAuthenticated } from '@/lib/adminAuth';
+import { normalizeTurkish, smartMatchProducts } from '@/lib/searchEngine';
 
 interface ToolCall {
   id: string;
@@ -8,6 +9,32 @@ interface ToolCall {
     name: string;
     arguments: string;
   };
+}
+
+function selectRelevantProducts(allProducts: any[], promptText: string) {
+  const matched = smartMatchProducts(allProducts, promptText);
+  if (matched.length > 0) {
+    return matched.slice(0, 25).map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      discountPrice: p.discountPrice,
+      isAvailable: p.isAvailable,
+      category: p.category,
+      isKitchenItem: Boolean(p.isKitchenItem),
+    }));
+  }
+
+  // Sadece ürün odaklı olmayan genel sorularda örnek küçük liste sağla
+  return allProducts.slice(0, 15).map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    price: p.price,
+    discountPrice: p.discountPrice,
+    isAvailable: p.isAvailable,
+    category: p.category,
+    isKitchenItem: Boolean(p.isKitchenItem),
+  }));
 }
 
 export async function POST(req: NextRequest) {
@@ -73,15 +100,7 @@ export async function POST(req: NextRequest) {
       createdAt: o.createdAt,
     }));
 
-    const productsSummary = (context?.products || []).slice(0, 40).map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      price: p.price,
-      discountPrice: p.discountPrice,
-      isAvailable: p.isAvailable,
-      category: p.category,
-      isKitchenItem: Boolean(p.isKitchenItem),
-    }));
+    const productsSummary = selectRelevantProducts(context?.products || [], prompt);
 
     const zonesSummary = (context?.zones || []).map((z: any) => ({
       id: z.id,
@@ -101,38 +120,49 @@ export async function POST(req: NextRequest) {
 
     const kykZone = (context?.zones || []).find((z: any) => z.id === 'zone-kyk-yurtlari' || (z.name || '').toLowerCase().includes('kyk') || (z.name || '').toLowerCase().includes('yurt'));
     const currentKykMin = kykZone?.minOrderAmount || 60;
-    const suggestedKykMin = currentKykMin + 15;
 
     const systemPrompt = `
 Sen Çağla Büfe & Market'in (Karabük/Bostanbükü) Akıllı Operasyon Yönetim Asistanısın.
 Kuryelerin ve işletme sahibinin sahadan hızlıca verdiği sesli veya yazılı komutlarla sipariş durumlarını değiştirir, ürün fiyatlarını günceller, teslimat bölgelerinin ve yurtların minimum sepet tutarlarını ayarlar ve dükkanı açıp kapatabilirsin.
+İnsan gibi dikkatli, net ve doğal davranırsın; kafandan asla tahmin yürütmezsin veya rastgele sayı uydurmazsın.
 
-ÖNEMLİ BAĞLAM VERİLERİ:
+İŞLETME VE SİSTEM YAPISI:
 - Son Siparişler: ${JSON.stringify(ordersSummary)}
-- Ürünler Listesi (Özet): ${JSON.stringify(productsSummary)}
-- Bölgeler: ${JSON.stringify(zonesSummary)}
-- Yurtlar: ${JSON.stringify(dormsSummary)}
-- KYK Yurtları Mevcut Min Sepet Tutarı: ${currentKykMin} TL (Artırma komutunda hedef tutar: ${suggestedKykMin} TL)
+- Ürünler Listesi (Özet & Filtrelenmiş): ${JSON.stringify(productsSummary)}
+- Teslimat Bölgeleri: ${JSON.stringify(zonesSummary)}
+- Öğrenci Yurtları (Dormitories): ${JSON.stringify(dormsSummary)}
+- KYK Yurtları Genel Min Sepet Tutarı: ${currentKykMin} TL
 
 GÜVENLİK VE ÇALIŞMA KURALLARI:
 1. ASLA toplu silme, veritabanı çökertme veya güvenlik sınırlarını aşan eylemlere izin verme.
-2. ÜRÜN İŞLEMLERİNDE KESİNLİK VE ÇOKLU EŞLEŞME KURALI:
-   - Kullanıcı genel bir kelime söylediğinde (örneğin sadece "yoğurt", "kola", "cips", "ekmek", "süt" vb.) ve ürün listesinde bu kelimeyi içeren BİRDEN FAZLA ürün varsa:
-     * KESİNLİKLE rastgele bir ürün seçme, kafana göre bir ürünü güncelleme ve TOOL ÇAĞIRMA!
-     * Kullanıcıya hangi ürünü kastettiğini sor:
-       "Hangi yoğurdun fiyatını güncellemek istiyorsunuz?
-       • [Ürün 1 Adı] (Mevcut: ₺...)
-       • [Ürün 2 Adı] (Mevcut: ₺...)"
-     * YALNIZCA kullanıcı tam/belirli bir ürün adı belirttiğinde (örneğin "Sütaş Tava Yoğurt 1000g" veya arama sonucu tek bir ürüne işaret ediyorsa) update_product_price veya toggle_product_stock aracını çağır.
-     * productQuery alanına MUTLAKA ürünün tam adını veya listedeki id'sini yaz.
-3. BÖLGELER VE YURTLAR KURALI:
-   - "yurdun min tutarını artır", "yurtların sepetini artır", "kyk sepetini 80 yap":
-     * update_dorm_override ve/veya update_zone_min_order aracını çağır.
-     * Kullanıcı özel bir yurt adı belirtmediyse dormName olarak "KYK Yurtları", zoneName olarak "KYK Yurtları" ver.
-     * Eğer kullanıcı belirli bir sayı söylemediyse (sadece "artır" dediyse), minOrderAmount parametresine kesinlikle ${suggestedKykMin} sayısını ata.
-   - "hubbi hatuna götürdüğümüz son siparişi teslim edildi yap": update_order_status aracını çağır.
-   - "dükkanı aç" veya "kapat": toggle_store_status aracını çağır.
-4. İlgili aracı çağırdıktan sonra Türkçe, net, enerjik ve samimi bir açıklama yap. Kuryeye "Tamamdır usta, işlem yapıldı!" gibi güven verici bir tonla hitap et.
+
+2. BÖLGE VE YURT MİNİMUM SEPET TUTARI KURALLARI (İNSAN GİBİ DOĞAL ÇALIŞMA):
+   - KULLANICI BELİRLİ BİR YURT ADI SÖYLEDİYSE (Örn: "Hubbi Hatun", "Bahaddin Gazi", "Şeyh Edebali"):
+     * dormName olarak ilgili yurdun adını yaz.
+     * Kullanıcı belirli bir tutar belirttiyse (örn: "500 yap", "300 TL", "250"), minOrderAmount olarak tam o sayıyı ver.
+     * Kullanıcı sayı belirtmediyse (örn: "Hubbi Hatun sepetini artır / yükselt"), minOrderAmount boş bırakılabilir; sistem arayüzde yöneticiye butonlarla tutar seçimi yaptırır.
+   - KULLANICI GENEL OLARAK "YURDUN MİN TUTARINI YÜKSELT / ARTIR / DEĞİŞTİR" DEDİYSE (YURT ADI BELİRTMEDİYSE):
+     * KESİNLİKLE rastgele bir yurt seçme ve kafandan genel yurtlara zam uygulama!
+     * update_dorm_override(dormName: "secim_gerekli", minOrderAmount: kullanıcının_belirttiği_sayı_varsa) aracını çağır. Sistem arayüzde yöneticiye hangi yurt olduğunu butonlarla soracaktır.
+   - KULLANICI AÇIKÇA "TÜM YURTLAR", "BÜTÜN YURTLAR" VEYA "KYK BÖLGESİ" DEDİYSE:
+     * update_zone_min_order(zoneName: "KYK Yurtları") veya update_dorm_override(dormName: "KYK Yurtları") çağır.
+
+3. ÜRÜN İŞLEMLERİNDE:
+   - KULLANICI BİR ÜRÜNÜN FİYATINI VEYA STOĞUNU DEĞİŞTİRMEK İSTEDİĞİNDE:
+     * KESİNLİKLE METİN OLARAK KAHVE VEYA ALAKASIZ ÜRÜN LİSTESİ ÇIKARMA!
+     * DOĞRUDAN İLGİLİ ARACI ÇAĞIR: update_product_price veya toggle_product_stock.
+     * "yoğurt fiyatını 200 TL yap": update_product_price(productQuery: "yoğurt", newPrice: 200) çağır. Sistem arayüzü yalnızca gerçek yoğurtlar (Kaymaksız Yoğurt, Meyveli Yoğurt) için yöneticiye butonla seçim yaptırır.
+     * ASLA "yoğurt" dendiğinde "yoğurtlu cips" veya "kraker" gibi çeşnili atıştırmalıkları yoğurt diye sunma!
+     * "kola tükendi" veya "red bull stokta": toggle_product_stock(productQuery: "kola", isAvailable: false) çağır.
+
+4. SİPARİŞ İŞLEMLERİNDE:
+   - "hubbi hatuna götürdüğümüz son siparişi teslim edildi yap": update_order_status(orderIdentifier: "hubbi hatun", newStatus: "delivered") çağır.
+
+5. DÜKKAN İŞLEMLERİNDE:
+   - "dükkanı aç": toggle_store_status(isOpen: true)
+   - "dükkanı kapat": toggle_store_status(isOpen: false)
+
+6. İlgili aracı çağırdıktan sonra samimi, net ve enerjik bir üslupla onay mesajı ver. (Örn: "Tamamdır usta, Hubbi Hatun minimum sepet tutarını ₺500 olarak güncelledim!").
 `;
 
     const tools = [
@@ -166,7 +196,7 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
         type: 'function',
         function: {
           name: 'update_product_price',
-          description: 'Bir ürünün satış fiyatını veya indirimli fiyatını günceller. DİKKAT: productQuery genel bir kelime (örn: sadece "yoğurt") ise ve birden fazla yoğurt varsa bu aracı ÇAĞIRMA, önce kullanıcıya sor.',
+          description: 'Bir ürünün veya ürün grubunun satış fiyatını veya indirimli fiyatını günceller. Genel bir ürün grubu girilirse (örn: "yoğurt") sistem yöneticiye butonla ürün seçimi yaptırır.',
           parameters: {
             type: 'object',
             properties: {
@@ -176,7 +206,7 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
               },
               productQuery: {
                 type: 'string',
-                description: 'Ürünün tam veya belirgin adı (örn: "Sütaş Tava Yoğurt 1000g", "Coca Cola 1L")',
+                description: 'Ürünün tam veya belirgin adı (örn: "yoğurt", "Sütaş Tava Yoğurt 1000g", "Coca Cola 1L")',
               },
               newPrice: {
                 type: 'number',
@@ -195,13 +225,13 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
         type: 'function',
         function: {
           name: 'toggle_product_stock',
-          description: 'Bir ürünün stok durumunu satışta veya tükendi olarak ayarlar. DİKKAT: productQuery genel bir kelime ise ve birden fazla ürün varsa bu aracı ÇAĞIRMA, önce kullanıcıya sor.',
+          description: 'Bir ürünün stok durumunu satışta veya tükendi olarak ayarlar. Genel bir ürün adı girilirse sistem yöneticiye butonla ürün seçimi yaptırır.',
           parameters: {
             type: 'object',
             properties: {
               productQuery: {
                 type: 'string',
-                description: 'Ürün adı veya barkodu',
+                description: 'Ürün adı veya barkodu (örn: "yoğurt", "noodle")',
               },
               isAvailable: {
                 type: 'boolean',
@@ -216,7 +246,7 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
         type: 'function',
         function: {
           name: 'update_zone_min_order',
-          description: 'Bir teslimat bölgesinin minimum sipariş tutarını veya teslimat ücretini günceller.',
+          description: 'Bir teslimat bölgesinin (örn: "KYK Yurtları", "100. Yıl", "Bostanbükü") minimum sipariş tutarını veya teslimat ücretini günceller.',
           parameters: {
             type: 'object',
             properties: {
@@ -226,7 +256,7 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
               },
               minOrderAmount: {
                 type: 'number',
-                description: 'Yeni minimum sepet tutarı (TL). Belirtilmediyse mevcut tutarı 10 TL artırın.',
+                description: 'Yeni minimum sepet tutarı (TL). Kullanıcı sayı söylediyse o sayı.',
               },
               deliveryFee: {
                 type: 'number',
@@ -241,17 +271,17 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
         type: 'function',
         function: {
           name: 'update_dorm_override',
-          description: 'Belirli bir KYK yurduna veya genel yurtlara özel min sepet tutarı veya indirim oranı tanımlar / override eder.',
+          description: 'Bir KYK yurdunun minimum sipariş tutarını günceller. Kullanıcı belirli bir yurt adı söylemediyse (örn: sadece "yurdun min tutarını yükselt" dediyse), dormName parametresine "secim_gerekli" yaz; sistem kullanıcıya butonla hangi yurt olduğunu soracaktır.',
           parameters: {
             type: 'object',
             properties: {
               dormName: {
                 type: 'string',
-                description: 'Yurt adı veya genel adı (örn: "Hubbi Hatun", "Şeyh Edebali", "Eflani", "KYK Yurtları", "Yurtlar")',
+                description: 'Yurt adı (örn: "Hubbi Hatun", "Bahaddin Gazi", "Şeyh Edebali") veya yurt adı belirtilmediyse "secim_gerekli"',
               },
               minOrderAmount: {
                 type: 'number',
-                description: 'Yurda özel minimum sepet tutarı (TL). Belirtilmediyse mevcut tutarı 10 TL artırıp kesin sayı olarak verin (örn: 75).',
+                description: 'Opsiyonel yurda özel minimum sepet tutarı (TL). Kullanıcı sayı söylediyse o sayı.',
               },
               discountPercentage: {
                 type: 'number',
@@ -259,7 +289,7 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
               },
               specialNote: {
                 type: 'string',
-                description: 'Yurda özel açıklama notu (örn: "%10 Hubbi Hatun İndirimi")',
+                description: 'Yurda özel açıklama notu',
               },
             },
             required: ['dormName'],
@@ -324,19 +354,32 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
     let actionTaken: any = null;
 
     if (message?.tool_calls && message.tool_calls.length > 0) {
-      const toolCall: ToolCall = message.tool_calls[0];
-      const fnName = toolCall.function.name;
-      let args: any = {};
-      try {
-        args = JSON.parse(toolCall.function.arguments);
-      } catch {
-        args = {};
-      }
+      const parsedCalls = message.tool_calls.map((tc: ToolCall) => {
+        let args: any = {};
+        try {
+          args = JSON.parse(tc.function.arguments);
+        } catch {
+          args = {};
+        }
+        return {
+          tool: tc.function.name,
+          arguments: args,
+        };
+      });
 
-      actionTaken = {
-        tool: fnName,
-        arguments: args,
-      };
+      // Eğer kullanıcı belirli bir yurt adı söylemişse ve model hem zone hem dorm çağırmışsa,
+      // her zaman belirli yurt aracı olan update_dorm_override'ı seç:
+      const dormCall = parsedCalls.find((c: any) => c.tool === 'update_dorm_override');
+      const normP = normalizeTurkish(prompt);
+      const dormKeywords = (dormsSummary || []).flatMap((d: any) =>
+        normalizeTurkish(d.name).split(' ').filter((w: string) => !['kyk', 'ogrenci', 'yurdu', 'kiz', 'erkek'].includes(w) && w.length >= 3)
+      );
+      const hasSpecificDorm = dormKeywords.some((kw: string) => normP.includes(kw));
+      if (dormCall && hasSpecificDorm) {
+        actionTaken = dormCall;
+      } else {
+        actionTaken = parsedCalls[0];
+      }
     }
 
     const assistantContent =
@@ -354,3 +397,4 @@ GÜVENLİK VE ÇALIŞMA KURALLARI:
     return NextResponse.json({ error: error.message || 'Sunucu hatası.' }, { status: 500 });
   }
 }
+

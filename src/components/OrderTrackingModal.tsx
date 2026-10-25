@@ -502,16 +502,22 @@ export const OrderTrackingModal = () => {
                 Sipariş Detayı ({order.items.length} Kalem)
               </span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {order.items.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                    <span style={{ color: '#586174' }}>
-                      <strong style={{ color: '#191919' }}>{item.quantity}x</strong> {decodeHtmlEntities(item.productName)}
-                    </span>
-                    <span style={{ fontWeight: 700, color: '#191919' }}>
-                      ₺{(item.price * item.quantity).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+                {order.items.map((item, i) => {
+                  const anyItem = item as any;
+                  const name = item.productName || anyItem.product?.name || anyItem.name || 'Ürün';
+                  const price = Number(item.price !== undefined ? item.price : anyItem.product?.price ?? 0);
+                  const qty = Number(item.quantity !== undefined ? item.quantity : anyItem.count ?? 1);
+                  return (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                      <span style={{ color: '#586174' }}>
+                        <strong style={{ color: '#191919' }}>{qty}x</strong> {decodeHtmlEntities(name)}
+                      </span>
+                      <span style={{ fontWeight: 700, color: '#191919' }}>
+                        ₺{((isNaN(price) ? 0 : price) * (isNaN(qty) ? 1 : qty)).toFixed(2)}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
 
               <div style={{ height: '1px', backgroundColor: '#EBEBF2', margin: '12px 0' }} />

@@ -15,7 +15,7 @@ export const DigitalReceiptModal = ({ order, onClose }: DigitalReceiptProps) => 
   const receiptRef = useRef<HTMLDivElement>(null);
   const settings = getSystemSettings();
   const receiptNumber = `FIS-${order.orderNumber.replace('CB-', '')}`;
-  const totalItemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItemCount = order.items.reduce((sum, item) => sum + (Number(item.quantity !== undefined ? item.quantity : (item as any).count) || 1), 0);
 
   const dateStr = new Date(order.createdAt).toLocaleDateString('tr-TR', {
     day: '2-digit',
@@ -144,23 +144,29 @@ export const DigitalReceiptModal = ({ order, onClose }: DigitalReceiptProps) => 
                 SİPARİŞ İÇERİĞİ ({totalItemCount} PARÇA)
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                {order.items.map((item, i) => (
-                  <div key={i} style={{ borderBottom: '1px dotted #ccc', paddingBottom: '3px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '13px' }}>
-                      <span style={{ fontWeight: 800, color: '#000000', maxWidth: '75%', lineHeight: 1.25 }}>
-                        {item.quantity}x {decodeHtmlEntities(item.productName)}
-                      </span>
-                      <span style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>
-                        {(item.price * item.quantity).toFixed(2)} TL
-                      </span>
-                    </div>
-                    {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                      <div style={{ fontSize: '10px', color: '#555555', marginTop: '1px', paddingLeft: '14px' }}>
-                        {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                {order.items.map((item, i) => {
+                  const anyItem = item as any;
+                  const name = item.productName || anyItem.product?.name || anyItem.name || 'Ürün';
+                  const price = Number(item.price !== undefined ? item.price : anyItem.product?.price ?? 0);
+                  const qty = Number(item.quantity !== undefined ? item.quantity : anyItem.count ?? 1);
+                  return (
+                    <div key={i} style={{ borderBottom: '1px dotted #ccc', paddingBottom: '3px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', fontSize: '13px' }}>
+                        <span style={{ fontWeight: 800, color: '#000000', maxWidth: '75%', lineHeight: 1.25 }}>
+                          {qty}x {decodeHtmlEntities(name)}
+                        </span>
+                        <span style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>
+                          {((isNaN(price) ? 0 : price) * (isNaN(qty) ? 1 : qty)).toFixed(2)} TL
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                        <div style={{ fontSize: '10px', color: '#555555', marginTop: '1px', paddingLeft: '14px' }}>
+                          {Object.entries(item.selectedOptions).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
