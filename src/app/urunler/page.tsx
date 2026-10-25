@@ -53,75 +53,95 @@ function ProductsPageContent() {
     return getDepartmentById(selectedDepartmentId) || null;
   }, [selectedDepartmentId]);
 
-  // Categories under active department
-  const subCategories = useMemo(() => {
-    if (!activeDepartment) {
-      return CATEGORIES;
+  // 1. Department Pool (products belonging to current active department or whole store)
+  const departmentPool = useMemo(() => {
+    if (!activeDepartment) return products;
+    if (activeDepartment.id === 'sicak-mutfak') {
+      return products.filter(
+        (p) =>
+          p.isKitchenItem ||
+          activeDepartment.categories.includes(p.category) ||
+          findDepartmentForCategory(p.category)?.id === 'sicak-mutfak'
+      );
     }
-    const baseCats = CATEGORIES.filter((c) => activeDepartment.categories.includes(c.id));
-    // Also include any dynamically existing product categories belonging to this department
-    const dynamicCats = new Set<string>();
-    products.forEach((p) => {
-      const isMatch =
-        activeDepartment.categories.includes(p.category) ||
-        findDepartmentForCategory(p.category)?.id === activeDepartment.id;
-      if (isMatch && !baseCats.some((c) => c.id === p.category)) {
-        dynamicCats.add(p.category);
-      }
-    });
-    const extraCats = Array.from(dynamicCats).map((cat) => ({
-      id: cat as ProductCategory,
-      name: cat,
-      description: `${cat} çeşitleri`,
-    }));
-    return [...baseCats, ...extraCats];
-  }, [activeDepartment, products]);
+    return products.filter(
+      (p) =>
+        !p.isKitchenItem &&
+        (activeDepartment.categories.includes(p.category) ||
+          findDepartmentForCategory(p.category)?.id === activeDepartment.id)
+    );
+  }, [products, activeDepartment]);
 
-  // Filter pool
-  const filteredPool = useMemo(() => {
-    let pool = products;
-
-    // Filter by department if chosen
-    if (activeDepartment) {
-      if (activeDepartment.id === 'sicak-mutfak') {
-        pool = pool.filter(
-          (p) =>
-            p.isKitchenItem ||
-            activeDepartment.categories.includes(p.category) ||
-            findDepartmentForCategory(p.category)?.id === 'sicak-mutfak'
-        );
-      } else {
-        pool = pool.filter(
-          (p) =>
-            !p.isKitchenItem &&
-            (activeDepartment.categories.includes(p.category) ||
-            findDepartmentForCategory(p.category)?.id === activeDepartment.id)
-        );
-      }
-    }
-
-    // Filter by specific subcategory if chosen
-    if (selectedCategory !== 'all') {
-      pool = pool.filter((p) => p.category === selectedCategory);
-    }
-
-    return pool;
-  }, [products, activeDepartment, selectedCategory]);
-
-  // Smart Search Execution
-  const searchResult: SmartSearchResult = useMemo(() => {
+  // 2. Base Search Results on the department pool (before subcategory filter)
+  const baseSearchResult: SmartSearchResult = useMemo(() => {
     if (!searchQuery.trim()) {
       return {
-        products: filteredPool,
+        products: departmentPool,
         relatedProducts: [],
         relatedTitle: undefined,
         matchedIntent: null,
         query: '',
-        totalFound: filteredPool.length,
+        totalFound: departmentPool.length,
       };
     }
-    return smartSearchProducts(searchQuery, filteredPool);
-  }, [filteredPool, searchQuery]);
+    return smartSearchProducts(searchQuery, departmentPool);
+  }, [departmentPool, searchQuery]);
+
+  // 3. Relevant Subcategories with live product counts
+  const availableSubCategories = useMemo(() => {
+    // When actively searching: extract categories ONLY from matching products
+    if (searchQuery.trim()) {
+      const counts: Record<string, number> = {};
+      baseSearchResult.products.forEach((p) => {
+        if (p.category) {
+          counts[p.category] = (counts[p.category] || 0) + 1;
+        }
+      });
+
+      return Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cat, count]) => ({
+          id: cat,
+          name: cat,
+          count,
+        }));
+    }
+
+    // When a specific department is chosen: show its categories with active product counts
+    if (activeDepartment) {
+      const counts: Record<string, number> = {};
+      departmentPool.forEach((p) => {
+        if (p.category) {
+          counts[p.category] = (counts[p.category] || 0) + 1;
+        }
+      });
+
+      return activeDepartment.categories
+        .filter((cat) => (counts[cat] || 0) > 0)
+        .map((cat) => ({
+          id: cat,
+          name: cat,
+          count: counts[cat] || 0,
+        }));
+    }
+
+    // When on "Tüm Reyonlar" with NO search query:
+    // Do NOT vomit all 80+ categories! Return empty array to keep UI clean and focused on department tiles.
+    return [];
+  }, [searchQuery, baseSearchResult.products, activeDepartment, departmentPool]);
+
+  // 4. Final Search Result (applying selected subcategory filter)
+  const searchResult: SmartSearchResult = useMemo(() => {
+    if (selectedCategory === 'all') {
+      return baseSearchResult;
+    }
+    const filtered = baseSearchResult.products.filter((p) => p.category === selectedCategory);
+    return {
+      ...baseSearchResult,
+      products: filtered,
+      totalFound: filtered.length,
+    };
+  }, [baseSearchResult, selectedCategory]);
 
   // Progressive Pagination
   const PAGE_SIZE = 24;
@@ -228,7 +248,10 @@ function ProductsPageContent() {
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setSelectedCategory('all');
+              }}
               placeholder="Bu reyon içinde ara... (Örn: Red Bull, Cips, Çikolata, Noodle)"
               style={{
                 width: '100%',
@@ -245,7 +268,10 @@ function ProductsPageContent() {
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                }}
                 style={{
                   position: 'absolute',
                   right: '12px',
@@ -335,39 +361,61 @@ function ProductsPageContent() {
           })}
         </div>
 
-        {/* Sub-Category Filter Chips (Clean Wrapping) */}
-        {subCategories.length > 1 && (
+        {/* Sub-Category Filter Chips (Single Row Horizontal Scroll with Live Counts) */}
+        {availableSubCategories.length > 0 && (
           <div
             style={{
               display: 'flex',
-              flexWrap: 'wrap',
-              gap: '6px',
-              paddingBottom: '6px',
+              alignItems: 'center',
+              gap: '8px',
+              overflowX: 'auto',
+              paddingBottom: '8px',
               marginBottom: '16px',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
             }}
+            className="no-scrollbar"
           >
             <button
               type="button"
               onClick={() => setSelectedCategory('all')}
               style={{
-                padding: '5px 12px',
+                padding: '6px 14px',
                 borderRadius: '12px',
-                fontSize: '12px',
-                fontWeight: 700,
+                fontSize: '12.5px',
+                fontWeight: selectedCategory === 'all' ? 800 : 600,
                 whiteSpace: 'nowrap',
-                border: selectedCategory === 'all' ? '1.5px solid #7C3AED' : '1px solid #E5E7EB',
-                backgroundColor: selectedCategory === 'all' ? '#EDE9FE' : '#F9FAFB',
-                color: selectedCategory === 'all' ? '#6D28D9' : '#4B5563',
+                flexShrink: 0,
+                border: selectedCategory === 'all' ? '1.5px solid #5D3EBC' : '1px solid #E5E7EB',
+                backgroundColor: selectedCategory === 'all' ? '#5D3EBC' : '#FFFFFF',
+                color: selectedCategory === 'all' ? '#FFFFFF' : '#374151',
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: selectedCategory === 'all' ? '0 2px 6px rgba(93, 62, 188, 0.25)' : 'none',
+                transition: 'all 0.15s ease',
               }}
             >
-              Hepsi
+              <span>Hepsi</span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  opacity: selectedCategory === 'all' ? 0.95 : 0.7,
+                  fontWeight: 700,
+                  backgroundColor: selectedCategory === 'all' ? 'rgba(255,255,255,0.25)' : '#F3F4F6',
+                  color: selectedCategory === 'all' ? '#FFFFFF' : '#6B7280',
+                  padding: '1px 6px',
+                  borderRadius: '10px',
+                }}
+              >
+                {baseSearchResult.products.length}
+              </span>
             </button>
 
-            {subCategories.map((cat) => {
+            {availableSubCategories.map((cat) => {
               const isSelected = selectedCategory === cat.id;
-              const count = products.filter((p) => p.category === cat.id).length;
-              if (count === 0) return null;
 
               return (
                 <button
@@ -375,18 +423,37 @@ function ProductsPageContent() {
                   type="button"
                   onClick={() => setSelectedCategory(cat.id)}
                   style={{
-                    padding: '5px 12px',
+                    padding: '6px 14px',
                     borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: 700,
+                    fontSize: '12.5px',
+                    fontWeight: isSelected ? 800 : 600,
                     whiteSpace: 'nowrap',
-                    border: isSelected ? '1.5px solid #7C3AED' : '1px solid #E5E7EB',
-                    backgroundColor: isSelected ? '#EDE9FE' : '#FFFFFF',
-                    color: isSelected ? '#6D28D9' : '#4B5563',
+                    flexShrink: 0,
+                    border: isSelected ? '1.5px solid #5D3EBC' : '1px solid #E5E7EB',
+                    backgroundColor: isSelected ? '#5D3EBC' : '#FFFFFF',
+                    color: isSelected ? '#FFFFFF' : '#374151',
                     cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: isSelected ? '0 2px 6px rgba(93, 62, 188, 0.25)' : 'none',
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  {cat.name}
+                  <span>{cat.name}</span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      opacity: isSelected ? 0.95 : 0.7,
+                      fontWeight: 700,
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : '#F3F4F6',
+                      color: isSelected ? '#FFFFFF' : '#6B7280',
+                      padding: '1px 6px',
+                      borderRadius: '10px',
+                    }}
+                  >
+                    {cat.count}
+                  </span>
                 </button>
               );
             })}
