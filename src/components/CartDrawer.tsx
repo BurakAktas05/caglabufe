@@ -21,6 +21,8 @@ import {
   Ticket,
   Check,
   Gift,
+  Clock,
+  PhoneCall,
 } from 'lucide-react';
 
 import { normalizePhoneNumber } from '@/lib/security';
@@ -50,8 +52,12 @@ export const CartDrawer = () => {
     setIsAuthModalOpen,
     placeOrder,
     storeOpen,
+    systemSettings,
+    showToast,
     products,
     coupons,
+    userVipTier,
+    orders,
     appliedCoupon,
     applyCouponCode,
     removeCoupon,
@@ -61,6 +67,7 @@ export const CartDrawer = () => {
   } = useApp();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash_at_door');
+  const [customerPreference, setCustomerPreference] = useState<string>('Alternatif veya iptal ürün için müşteriyi ara');
   const [orderNote, setOrderNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [couponCodeInput, setCouponCodeInput] = useState('');
@@ -68,30 +75,56 @@ export const CartDrawer = () => {
 
   const [mountTime] = useState(() => Date.now());
   const cleanUserPhone = user?.phone ? normalizePhoneNumber(user.phone) : '';
+  const isUserLoggedIn = Boolean(user && user.phone);
+  const userOrderCount = orders.length;
+
   const availableQuickCoupons = useMemo(() => {
     const activeList = (coupons || []).filter((c) => {
       if (!c.isActive) return false;
       if (c.expiresAt && new Date(c.expiresAt).getTime() < mountTime) return false;
+
+      // 1. Misafir / Giriş yapmamış kullanıcı:
+      // Üyelik gerektiren, kişiye özel veya VIP kuponlar asla gösterilmez!
+      if (!isUserLoggedIn) {
+        if (c.requiresAuth || c.targetPhone || c.targetTier || (c.minOrdersRequired && c.minOrdersRequired > 0) || c.oneTimePerUser) {
+          return false;
+        }
+        return true;
+      }
+
+      // 2. Giriş yapmış kullanıcı için uygunluk kontrolleri:
+      // a. Kişiye özel telefon kuponu kontrolü
       if (c.targetPhone) {
         const cleanTarget = normalizePhoneNumber(c.targetPhone);
-        return cleanUserPhone && cleanTarget === cleanUserPhone;
+        if (cleanTarget !== cleanUserPhone) return false;
       }
+
+      // b. Tek kullanımlık kupon kontrolü (Örn: Hoş Geldin Kuponu)
+      if (c.oneTimePerUser && c.usedPhones?.includes(cleanUserPhone)) {
+        return false;
+      }
+
+      // c. Tamamlanmış sipariş sayısı şartı (Örn: 5+ sipariş)
+      if (c.minOrdersRequired && userOrderCount < c.minOrdersRequired) {
+        return false;
+      }
+
+      // d. VIP Seviye şartı kontrolü
+      if (c.targetTier) {
+        const TIER_RANKS: Record<string, number> = { new: 0, bronze: 1, silver: 2, gold: 3, platinum: 4 };
+        const userRank = TIER_RANKS[userVipTier.level] || 0;
+        const couponRank = TIER_RANKS[c.targetTier] || 0;
+        if (userRank < couponRank) return false;
+      }
+
       return true;
     });
-
-    if (activeList.length === 0) {
-      return [
-        { code: 'VIP20', label: '👑 VIP20 (%20)' },
-        { code: 'FAVORI15', label: '🥇 FAVORI15 (%15)' },
-        { code: 'CAGLA10', label: '⚡ CAGLA10 (15 TL)' },
-      ];
-    }
 
     return activeList.map((c) => ({
       code: c.code,
       label: `${c.targetPhone ? '🎁 ' : ''}${c.code} (${c.discountType === 'percentage' ? `%${c.discountValue}` : `₺${c.discountValue}`})`,
     }));
-  }, [coupons, cleanUserPhone]);
+  }, [coupons, isUserLoggedIn, cleanUserPhone, userOrderCount, userVipTier.level, mountTime]);
 
   // Intelligent Complementary Upsell Engine (Yanına İyi Gider)
   const upsellData = useMemo(() => {
@@ -105,6 +138,14 @@ export const CartDrawer = () => {
   const progressPercent = Math.min(100, (cartTotal / freeDeliveryThreshold) * 100);
 
   const handleCheckout = async () => {
+    if (!storeOpen) {
+      showToast(
+        systemSettings.closedMessage ||
+          `Mağaza şu an kapalıdır. Hizmet saatlerimiz: ${systemSettings.storeOpenTime || '16:00'} - ${systemSettings.storeCloseTime || '03:00'}.`,
+        'warning'
+      );
+      return;
+    }
     if (!user) {
       setIsAuthModalOpen(true);
       return;
@@ -115,7 +156,7 @@ export const CartDrawer = () => {
     }
     setIsSubmitting(true);
     try {
-      await placeOrder(paymentMethod, orderNote);
+      await placeOrder(paymentMethod, orderNote, customerPreference);
     } finally {
       setIsSubmitting(false);
     }
@@ -151,6 +192,33 @@ export const CartDrawer = () => {
 
         {/* Body */}
         <div className="sheet-body" style={{ padding: '16px', overflowX: 'hidden', width: '100%', boxSizing: 'border-box' }}>
+          {!storeOpen && (
+            <div
+              style={{
+                backgroundColor: '#FEF2F2',
+                borderRadius: '12px',
+                padding: '12px 14px',
+                marginBottom: '16px',
+                border: '1.5px solid #FCA5A5',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '10px',
+              }}
+            >
+              <Clock size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#991B1B' }}>
+                  Mağaza Şu Anda Kapalı
+                </div>
+                <div style={{ fontSize: '12px', color: '#B91C1C', marginTop: '2px', lineHeight: 1.4 }}>
+                  {systemSettings?.isManualOverride && !systemSettings?.isManuallyOpen
+                    ? (systemSettings.closedMessage || 'Şu an sipariş alımı geçici olarak durdurulmuştur.')
+                    : `Hizmet saatlerimiz: ${systemSettings?.storeOpenTime || '16:00'} - ${systemSettings?.storeCloseTime || '03:00'}. Menüyü inceleyebilirsiniz ancak açılış saatine kadar sipariş verilemez.`}
+                </div>
+              </div>
+            </div>
+          )}
+
           {cart.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 20px' }}>
               <div style={{ fontSize: '42px', marginBottom: '12px', opacity: 0.35 }}>
@@ -779,6 +847,108 @@ export const CartDrawer = () => {
                 </div>
               </div>
 
+              {/* Müşteri Talebi & Tercihleri (Alternatif veya İptal Ürün İçin Arama Tercihi) */}
+              <div
+                style={{
+                  backgroundColor: '#F8FAFC',
+                  border: '1.5px solid #E2E8F0',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  marginBottom: '14px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#334155', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                    <PhoneCall size={15} color="#5D3EBC" />
+                    <span>Müşteri Talebi &amp; Tercihleri</span>
+                  </label>
+                  <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 700 }}>Ürün Temin Durumu</span>
+                </div>
+
+                {/* Ana Seçenek: Alternatif veya iptal ürün için müşteriyi ara */}
+                <div
+                  onClick={() =>
+                    setCustomerPreference(
+                      customerPreference === 'Alternatif veya iptal ürün için müşteriyi ara'
+                        ? ''
+                        : 'Alternatif veya iptal ürün için müşteriyi ara'
+                    )
+                  }
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    backgroundColor:
+                      customerPreference === 'Alternatif veya iptal ürün için müşteriyi ara' ? '#F3F0FE' : '#FFFFFF',
+                    border: `1.5px solid ${
+                      customerPreference === 'Alternatif veya iptal ürün için müşteriyi ara' ? '#7C3AED' : '#CBD5E1'
+                    }`,
+                    cursor: 'pointer',
+                    boxShadow:
+                      customerPreference === 'Alternatif veya iptal ürün için müşteriyi ara'
+                        ? '0 2px 8px rgba(124, 58, 237, 0.08)'
+                        : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={customerPreference === 'Alternatif veya iptal ürün için müşteriyi ara'}
+                    onChange={() => {}}
+                    style={{ accentColor: '#5D3EBC', width: '16px', height: '16px', marginTop: '2px', cursor: 'pointer' }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        color:
+                          customerPreference === 'Alternatif veya iptal ürün için müşteriyi ara' ? '#5D3EBC' : '#1E293B',
+                      }}
+                    >
+                      📞 Müşteri Talebi: Alternatif veya iptal ürün için müşteriyi ara
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#64748B', marginTop: '3px', lineHeight: 1.35 }}>
+                      Stokta kalmayan bir ürün olduğunda büfe/kurye sizi telefonla arar; onayınıza göre alternatif ürün sunar veya ürünü siparişinizden düşer.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hızlı alternatif seçenekleri */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                  {[
+                    'Alternatif veya iptal ürün için müşteriyi ara',
+                    'Gelince arayın aşağı inerim',
+                    'Zili çalmayın, kapıya bırakın',
+                    'Eksik ürünü iptal et, aramadan getir',
+                  ].map((pref) => {
+                    const isSelected = customerPreference === pref;
+                    return (
+                      <button
+                        key={pref}
+                        type="button"
+                        onClick={() => setCustomerPreference(isSelected ? '' : pref)}
+                        style={{
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          backgroundColor: isSelected ? '#EDE9FE' : '#FFFFFF',
+                          color: isSelected ? '#6D28D9' : '#475569',
+                          border: `1px solid ${isSelected ? '#C4B5FD' : '#E2E8F0'}`,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {isSelected ? '✓ ' : '+ '}
+                        {pref}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Order Note with Friendly Student Presets */}
               <div style={{ marginBottom: '14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
@@ -920,7 +1090,7 @@ export const CartDrawer = () => {
                     </div>
 
                     {/* Quick suggestion tags */}
-                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                       {availableQuickCoupons.map((item) => (
                         <button
                           key={item.code}
@@ -943,6 +1113,25 @@ export const CartDrawer = () => {
                           🏷️ {item.label}
                         </button>
                       ))}
+
+                      {!isUserLoggedIn && (
+                        <button
+                          type="button"
+                          onClick={() => setIsAuthModalOpen(true)}
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            backgroundColor: '#FEF3C7',
+                            color: '#B45309',
+                            border: '1px solid #FDE68A',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ✨ Giriş yap, müdavim kuponlarını kazan
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -990,12 +1179,13 @@ export const CartDrawer = () => {
                     onClick={handleCheckout}
                     disabled={isSubmitting || cartTotal < minOrderAmount || !storeOpen || hasUnavailableItem}
                     style={{
-                      backgroundColor: hasUnavailableItem ? '#EF4444' : undefined,
+                      backgroundColor: !storeOpen ? '#4B5563' : hasUnavailableItem ? '#EF4444' : undefined,
+                      cursor: !storeOpen ? 'not-allowed' : undefined,
                     }}
                   >
                     <span>
                       {!storeOpen
-                        ? t('storeClosed', 'Mağaza Şu An Kapalı')
+                        ? t('storeClosed', '🚫 Mağaza Şu An Kapalı (Sipariş Alınmıyor)')
                         : hasUnavailableItem
                         ? t('removeOutOfStock', '⚠️ Tükenen Ürünü Çıkarınız')
                         : cartTotal < minOrderAmount
@@ -1009,7 +1199,13 @@ export const CartDrawer = () => {
                     <span style={{ fontWeight: 800 }}>- {finalTotal.toFixed(2)} TL</span>
                     <ArrowRight size={16} />
                   </button>
-                  {hasUnavailableItem ? (
+                  {!storeOpen ? (
+                    <p style={{ fontSize: '11px', color: '#DC2626', textAlign: 'center', marginTop: '6px', fontWeight: 700 }}>
+                      {systemSettings?.isManualOverride && !systemSettings?.isManuallyOpen
+                        ? (systemSettings.closedMessage || 'Şu an sipariş alımına geçici olarak kapalıyız.')
+                        : `🌙 Sipariş alımı açılış saatinde (${systemSettings?.storeOpenTime || '16:00'}) başlayacaktır.`}
+                    </p>
+                  ) : hasUnavailableItem ? (
                     <p style={{ fontSize: '11px', color: '#DC2626', textAlign: 'center', marginTop: '6px', fontWeight: 700 }}>
                       {t('outOfStockNotice', 'Stokta kalmayan ürünü (-) butonuna basarak sepetten çıkarınız.')}
                     </p>

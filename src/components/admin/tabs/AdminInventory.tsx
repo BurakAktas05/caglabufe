@@ -12,8 +12,10 @@ import {
   CheckCircle,
   XCircle,
   Flame,
+  X,
 } from 'lucide-react';
 import { ProductModal } from '../ProductModal';
+import { normalizeTurkish } from '@/lib/ai/rag/turkishNormalizer';
 
 interface AdminInventoryProps {
   products: Product[];
@@ -60,20 +62,27 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
       list = list.filter((p) => !p.isKitchenItem);
     }
 
-    if (selectedCategory !== 'all') {
+    // Arama kutusuna bir şey yazıldıysa:
+    // 1) Kategori filtresi (selectedCategory) kısıtlama yapmaz; tüm katalog genelinde aranır.
+    // 2) Kategori adıyla eşleştirme yapılmaz; sadece ürün adı, marka, barkod ve açıklama taranır.
+    if (searchTerm.trim()) {
+      const normTokens = normalizeTurkish(searchTerm).split(/\s+/).filter(Boolean);
+      const rawDigits = searchTerm.replace(/\D/g, '');
+
+      list = list.filter((p) => {
+        const doc = `${p.brand || ''} ${p.name} ${p.description || ''} ${p.barcode || ''}`;
+        const normDoc = normalizeTurkish(doc);
+
+        return (
+          normTokens.every((tok) => normDoc.includes(tok)) ||
+          (rawDigits.length >= 3 && (p.barcode || '').includes(rawDigits))
+        );
+      });
+    } else if (selectedCategory !== 'all') {
+      // Sadece arama yapılmıyorken seçili kategoriye göre filtreleme uygula
       list = list.filter((p) => p.category === selectedCategory);
     }
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(term) ||
-          (p.brand && p.brand.toLowerCase().includes(term)) ||
-          (p.barcode && p.barcode.includes(term)) ||
-          (p.category && p.category.toLowerCase().includes(term)) ||
-          (p.description && p.description.toLowerCase().includes(term))
-      );
-    }
+
     return list;
   }, [products, sectionFilter, selectedCategory, searchTerm]);
 
@@ -140,9 +149,34 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
               type="text"
               placeholder="Ürün veya barkod ara..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchTerm(val);
+                if (val.trim()) {
+                  // Arama yapıldığında kategori filtresini otomatik sıfırla
+                  setSelectedCategory('all');
+                }
+              }}
               style={{ border: 'none', background: 'transparent', fontSize: '13px', outline: 'none', width: '100%' }}
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: '#9CA3AF',
+                }}
+                title="Aramayı temizle"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           {/* 1. Genel Ürün Ekle Butonu */}
@@ -294,7 +328,10 @@ export const AdminInventory: React.FC<AdminInventoryProps> = ({
             return (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory(cat.id);
+                }}
                 style={{
                   padding: '6px 12px',
                   borderRadius: '16px',

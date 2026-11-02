@@ -530,6 +530,27 @@ export const OrderTrackingModal = () => {
                 Ödeme: {order.paymentMethod === 'cash_at_door' ? 'Kapıda Nakit' : 'Kapıda Kredi Kartı / POS'}
               </div>
 
+              {order.customerPreference && (
+                <div
+                  style={{
+                    marginTop: '8px',
+                    backgroundColor: '#EFF6FF',
+                    border: '1.5px solid #BFDBFE',
+                    borderRadius: '8px',
+                    padding: '8px 10px',
+                    fontSize: '12px',
+                    color: '#1E40AF',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span>📞 Müşteri Talebi:</span>
+                  <span>{order.customerPreference}</span>
+                </div>
+              )}
+
               {order.orderNote && (
                 <div
                   style={{

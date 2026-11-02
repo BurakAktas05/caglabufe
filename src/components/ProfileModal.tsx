@@ -121,9 +121,21 @@ export const ProfileModal = () => {
         const cleanTarget = normalizePhoneNumber(c.targetPhone);
         return cleanTarget === userCleanPhone;
       }
+      if (c.oneTimePerUser && userCleanPhone && c.usedPhones?.includes(userCleanPhone)) {
+        return false;
+      }
+      if (c.minOrdersRequired && orderCount < c.minOrdersRequired) {
+        return false;
+      }
+      if (c.targetTier) {
+        const TIER_RANKS: Record<string, number> = { new: 0, bronze: 1, silver: 2, gold: 3, platinum: 4 };
+        const userRank = TIER_RANKS[vipTierBase.level] || 0;
+        const couponRank = TIER_RANKS[c.targetTier] || 0;
+        if (userRank < couponRank) return false;
+      }
       return true;
     });
-  }, [coupons, userCleanPhone, mountTime]);
+  }, [coupons, userCleanPhone, orderCount, vipTierBase.level, mountTime]);
 
   if (!isProfileModalOpen) return null;
 

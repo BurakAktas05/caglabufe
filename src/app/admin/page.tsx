@@ -372,6 +372,14 @@ export default function AdminPage() {
     await handleSaveSettings(updated);
   };
 
+  const handleResetToAutomatic = async () => {
+    const updated: SystemSettings = {
+      ...settings,
+      isManualOverride: false,
+    };
+    await handleSaveSettings(updated);
+  };
+
   const handleTestSound = () => {
     audioAlert.playNewOrderSound(
       (settings.soundPreset as SoundPreset) || 'bell',
@@ -556,6 +564,8 @@ export default function AdminPage() {
           onTestSound={handleTestSound}
           isStoreOpen={currentStoreIsOpen}
           onToggleStoreOpen={handleToggleStoreOpen}
+          isManualOverride={settings.isManualOverride}
+          onResetToAutomatic={handleResetToAutomatic}
           onRequestNotificationPermission={handleRequestPushPermission}
           notificationPermission={notificationPerm}
         />

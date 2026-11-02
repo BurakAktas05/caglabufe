@@ -41,6 +41,7 @@ import {
   addDeliveryZone,
   updateDeliveryZone,
   deleteDeliveryZone,
+  isStoreOpen as checkStoreIsOpen,
 } from '@/lib/settingsManager';
 import { audioAlert, SoundPreset } from '@/lib/audioAlert';
 import {
@@ -314,13 +315,22 @@ export default function AdminPage() {
     setSettingsState(newSettings);
   };
 
+  const currentStoreIsOpen = checkStoreIsOpen(settings);
+
   const handleToggleStoreOpen = () => {
-    const nextManualOverride = true;
-    const nextIsOpen = !settings.isManuallyOpen;
+    const nextState = !currentStoreIsOpen;
     const updated = {
       ...settings,
-      isManualOverride: nextManualOverride,
-      isManuallyOpen: nextIsOpen,
+      isManualOverride: true,
+      isManuallyOpen: nextState,
+    };
+    handleSaveSettings(updated);
+  };
+
+  const handleResetToAutomatic = () => {
+    const updated = {
+      ...settings,
+      isManualOverride: false,
     };
     handleSaveSettings(updated);
   };
@@ -345,7 +355,7 @@ export default function AdminPage() {
   // Computed metrics
   const pendingOrders = useMemo(() => orders.filter((o) => o.status === 'pending'), [orders]);
   const preparingOrders = useMemo(() => orders.filter((o) => o.status === 'preparing'), [orders]);
-  const isStoreOpen = settings.isManualOverride ? settings.isManuallyOpen : true;
+  const isStoreOpen = currentStoreIsOpen;
 
   // Login Barrier
   if (!isAuthorized) {
@@ -514,6 +524,8 @@ export default function AdminPage() {
           onTestSound={handleTestSound}
           isStoreOpen={isStoreOpen}
           onToggleStoreOpen={handleToggleStoreOpen}
+          isManualOverride={settings.isManualOverride}
+          onResetToAutomatic={handleResetToAutomatic}
           onRequestNotificationPermission={handleRequestPushPermission}
           notificationPermission={notificationPerm}
         />

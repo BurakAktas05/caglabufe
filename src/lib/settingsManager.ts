@@ -1,13 +1,13 @@
-import { SystemSettings, DeliveryZone, DormitoryConfig, Campaign, StoreBranch, Coupon, VipNotification, VipTierInfo, CustomerLoyaltyProfile, Order } from '@/types';
+import { SystemSettings, DeliveryZone, DormitoryConfig, Campaign, StoreBranch, Coupon, VipNotification, VipTierInfo, VipTierLevel, CustomerLoyaltyProfile, Order } from '@/types';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { normalizePhoneNumber, formatPhoneNumber } from '@/lib/security';
 
 // --- STORAGE KEYS ---
-const SETTINGS_KEY = 'caglabufe_system_settings_v6';
-const ZONES_KEY = 'caglabufe_delivery_zones_v6';
-const DORMS_KEY = 'caglabufe_dormitories_v6';
-const CAMPAIGNS_KEY = 'caglabufe_campaigns_v7';
-const BRANCHES_KEY = 'caglabufe_store_branches_v6';
+const SETTINGS_KEY = 'caglabufe_system_settings_v8';
+const ZONES_KEY = 'caglabufe_delivery_zones_v8';
+const DORMS_KEY = 'caglabufe_dormitories_v8';
+const CAMPAIGNS_KEY = 'caglabufe_campaigns_v8';
+const BRANCHES_KEY = 'caglabufe_store_branches_v8';
 
 // Cleanup stale mock data keys from older development versions
 if (typeof window !== 'undefined') {
@@ -68,6 +68,8 @@ const DEFAULT_SETTINGS: SystemSettings = {
   templateOrderOnTheWay: 'Kuryemiz yola çıktı! #{orderNumber} nolu siparişiniz kapınıza doğru geliyor.',
   templateOrderDelivered: 'Siparişiniz teslim edildi! Afiyet olsun, Çağla Büfe keyifli anlar diler.',
   templateWhatsApp: 'Merhaba Çağla Büfe, {orderNumber} nolu {totalAmount} TL siparişim ({dormOrAddress}) hakkında bilgi almak istiyorum.',
+  netgsmHeader: 'CAGLABUFE',
+  isSmsEnabled: true,
 };
 
 /**
@@ -115,138 +117,236 @@ export function getGoogleMapsStoreUrl(settings?: SystemSettings): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
 }
 
-// --- DEFAULT DELIVERY ZONES (TEMİZ POLİGON VE MESAFE ALANLARI) ---
-const DEFAULT_ZONES: DeliveryZone[] = [
+// --- DEFAULT DELIVERY ZONES (DÜKKANDAN UZAKLIĞA GÖRE 5 KADEMELİ DETAYLI SİSTEM) ---
+export const DEFAULT_ZONES: DeliveryZone[] = [
   {
     id: 'zone-bostanbuku',
-    name: 'Bostanbükü & Çevresi (Çekirdek Bölge)',
+    name: 'Bostanbükü & Çevresi (Çekirdek Bölge - 0-1.8 km)',
     minOrderAmount: 50,
     deliveryFee: 10,
     freeDeliveryThreshold: 120,
     estimatedMinutes: 15,
     isActive: true,
-    radiusKm: 1.5,
+    radiusKm: 1.8,
     hexRing: 1,
     hexColor: '#10B981', // Zümrüt Yeşili
     polygonCoords: [
-      [41.2220, 32.6610],
-      [41.2220, 32.6950],
-      [41.2030, 32.6950],
-      [41.2030, 32.6610],
+      [41.2225, 32.6620],
+      [41.2225, 32.6880],
+      [41.2180, 32.6950],
+      [41.2060, 32.6950],
+      [41.2030, 32.6840],
+      [41.2030, 32.6620],
+      [41.2120, 32.6580],
+      [41.2200, 32.6580],
     ],
   },
   {
     id: 'zone-kyk-yurtlari',
-    name: 'KYK Yurtları & Kampüs (Hubbi Hatun, Şeyh Edebali)',
+    name: 'KBÜ Kampüs, Kılavuzlar & Yurtlar Bölgesi (1.8-3.5 km)',
     minOrderAmount: 70,
     deliveryFee: 15,
     freeDeliveryThreshold: 150,
     estimatedMinutes: 20,
     isActive: true,
-    radiusKm: 3.0,
+    radiusKm: 3.5,
     hexRing: 2,
     hexColor: '#8B5CF6', // Menekşe Moru
     polygonCoords: [
-      [41.2320, 32.6375],
-      [41.2320, 32.6610],
-      [41.2220, 32.6610],
-      [41.2030, 32.6610],
-      [41.2030, 32.6375],
+      [41.2330, 32.6360],
+      [41.2330, 32.6620],
+      [41.2200, 32.6620],
+      [41.2080, 32.6580],
+      [41.2030, 32.6480],
+      [41.2030, 32.6360],
+      [41.2150, 32.6360],
+      [41.2280, 32.6360],
     ],
   },
   {
     id: 'zone-100yil',
-    name: '100. Yıl Mah. & Öğrenci Bölgesi',
+    name: '100. Yıl Mah. (Öğrenci Yaşam & Özel Yurtlar - 3.5-5 km)',
     minOrderAmount: 80,
-    deliveryFee: 15,
-    freeDeliveryThreshold: 175,
+    deliveryFee: 20,
+    freeDeliveryThreshold: 180,
     estimatedMinutes: 25,
     isActive: true,
-    radiusKm: 4.5,
+    radiusKm: 5.0,
     hexRing: 3,
     hexColor: '#06B6D4', // Turkuaz
     polygonCoords: [
-      [41.2320, 32.6150],
-      [41.2320, 32.6375],
-      [41.2030, 32.6375],
-      [41.1980, 32.6375],
-      [41.1980, 32.6150],
+      [41.2330, 32.6100],
+      [41.2330, 32.6360],
+      [41.2030, 32.6360],
+      [41.1980, 32.6360],
+      [41.1980, 32.6100],
+      [41.2150, 32.6100],
+      [41.2250, 32.6100],
     ],
   },
   {
-    id: 'zone-sirinevler',
-    name: 'Şirinevler, 5000 Evler & Karabük Merkez',
+    id: 'zone-safranbolu',
+    name: 'Safranbolu (Emek, Barış, Kıranköy & Çarşı - 3-6.5 km)',
     minOrderAmount: 100,
     deliveryFee: 25,
     freeDeliveryThreshold: 220,
     estimatedMinutes: 30,
     isActive: true,
-    radiusKm: 7.0,
+    radiusKm: 6.5,
     hexRing: 4,
-    hexColor: '#F59E0B', // Kehribar / Turuncu
+    hexColor: '#F59E0B', // Kehribar Turuncusu
     polygonCoords: [
-      [41.1980, 32.5700],
-      [41.1980, 32.6150],
-      [41.1980, 32.6375],
-      [41.2030, 32.6375],
-      [41.2030, 32.6610],
-      [41.2030, 32.6950],
-      [41.1750, 32.6950],
-      [41.1750, 32.5700],
+      [41.2800, 32.6200],
+      [41.2800, 32.7250],
+      [41.2300, 32.7250],
+      [41.2225, 32.6880],
+      [41.2225, 32.6620],
+      [41.2330, 32.6620],
+      [41.2450, 32.6360],
+      [41.2650, 32.6200],
     ],
   },
   {
-    id: 'zone-safranbolu',
-    name: 'Safranbolu (Emek, Barış, Kıranköy & Çarşı)',
+    id: 'zone-sirinevler',
+    name: 'Karabük Merkez, Şirinevler, 5000 Evler & Soğuksu (5.5-9 km)',
     minOrderAmount: 120,
     deliveryFee: 30,
     freeDeliveryThreshold: 250,
     estimatedMinutes: 35,
     isActive: true,
-    radiusKm: 8.5,
+    radiusKm: 9.0,
     hexRing: 4,
     hexColor: '#EF4444', // Kırmızı
     polygonCoords: [
-      [41.2780, 32.6150],
-      [41.2780, 32.7200],
-      [41.2220, 32.7200],
-      [41.2220, 32.6950],
-      [41.2220, 32.6610],
-      [41.2320, 32.6610],
-      [41.2320, 32.6375],
-      [41.2320, 32.6150],
+      [41.1980, 32.5500],
+      [41.1980, 32.6100],
+      [41.2030, 32.6480],
+      [41.2030, 32.6950],
+      [41.1650, 32.6950],
+      [41.1650, 32.5500],
+      [41.1800, 32.5500],
     ],
   },
 ];
 
-// --- DEFAULT DORMITORIES ---
-const DEFAULT_DORMS: DormitoryConfig[] = [
+// --- DEFAULT DORMITORIES (KARABÜK TÜM DEVLET KYK VE ÖZEL ÖĞRENCİ YURTLARI) ---
+export const DEFAULT_DORMS: DormitoryConfig[] = [
+  // --- 1. BOSTANBÜKÜ VE ÇEVRESİ (EN YAKIN ÇEKİRDEK BÖLGE: 0.6 - 1.2 KM) ---
+  {
+    id: 'bahaddin-gazi',
+    name: 'KYK Bahaddin Gazi Erkek Öğrenci Yurdu',
+    district: 'Bostanbükü / Safranbolu',
+    gender: 'erkek',
+    blocks: ['A Blok', 'B Blok', 'C Blok', 'D Blok', 'E Blok', 'F Blok'],
+    zoneId: 'zone-bostanbuku',
+    isActive: true,
+    distanceKm: 0.6,
+    mapsQuery: 'KYK Bahaddin Gazi Erkek Öğrenci Yurdu, Bostanbükü, Karabük',
+    latitude: 41.2175,
+    longitude: 32.6715,
+    specialNote: 'Dükkanımıza 600 metre mesafede - Ekspres Hızlı Teslimat (10-15 dk)',
+  },
+  {
+    id: 'katip-celebi',
+    name: 'KYK Katip Çelebi Kız Öğrenci Yurdu',
+    district: 'Bostanbükü / Safranbolu',
+    gender: 'kiz',
+    blocks: ['A Blok', 'B Blok', 'C Blok'],
+    zoneId: 'zone-bostanbuku',
+    isActive: true,
+    distanceKm: 0.9,
+    mapsQuery: 'KYK Katip Çelebi Kız Öğrenci Yurdu, Bostanbükü, Karabük',
+    latitude: 41.2140,
+    longitude: 32.6650,
+    specialNote: 'Bostanbükü Bahçelievler Girişi - Ekspres Hızlı Teslimat (10-15 dk)',
+  },
+
+  // --- 2. KBÜ DEMİR ÇELİK KAMPÜSÜ & KILAVUZLAR BÖLGESİ (2.0 - 3.2 KM) ---
   {
     id: 'hubbi-hatun',
     name: 'KYK Hubbi Hatun Kız Öğrenci Yurdu',
-    district: 'Demir Çelik Kampüsü',
+    district: 'Demir Çelik Kampüsü / Üniversite Mah.',
+    gender: 'kiz',
+    blocks: ['A Blok', 'B Blok', 'C Blok', 'D Blok', 'E Blok'],
+    zoneId: 'zone-kyk-yurtlari',
+    isActive: true,
+    distanceKm: 2.3,
+    mapsQuery: 'KYK Hubbi Hatun Kız Öğrenci Yurdu, Üniversite Mah., Karabük',
+    latitude: 41.2128,
+    longitude: 32.6465,
+    specialNote: 'Demir Çelik Kampüsü Yurtlar Bölgesi Ana Giriş',
+  },
+  {
+    id: 'asiye-hatun',
+    name: 'KYK Asiye Hatun Kız Öğrenci Yurdu',
+    district: 'Demir Çelik Kampüsü / Kılavuzlar',
     gender: 'kiz',
     blocks: ['A Blok', 'B Blok', 'C Blok', 'D Blok'],
     zoneId: 'zone-kyk-yurtlari',
     isActive: true,
-    distanceKm: 2.4,
-    mapsQuery: 'KYK Hubbi Hatun Kız Öğrenci Yurdu, Karabük',
-    latitude: 41.2125,
-    longitude: 32.6450,
+    distanceKm: 2.6,
+    mapsQuery: 'KYK Asiye Hatun Kız Öğrenci Yurdu, Kılavuzlar Mah., Karabük',
+    latitude: 41.2165,
+    longitude: 32.6470,
+    specialNote: 'Kampüs İçi Kılavuzlar Girişi',
+  },
+  {
+    id: 'karabuk-kyk-kiz',
+    name: 'KYK Karabük Kız Öğrenci Yurdu',
+    district: 'Kılavuzlar / Demir Çelik Kampüsü',
+    gender: 'kiz',
+    blocks: ['A Blok', 'B Blok', 'C Blok'],
+    zoneId: 'zone-kyk-yurtlari',
+    isActive: true,
+    distanceKm: 2.8,
+    mapsQuery: 'KYK Karabük Kız Yurt Müdürlüğü, Kılavuzlar Köyü Ötekarşı, Karabük',
+    latitude: 41.2195,
+    longitude: 32.6510,
+    specialNote: 'Kılavuzlar Ötekarşı Giriş Kapısı',
+  },
+  {
+    id: 'ismail-necati',
+    name: 'KYK İsmail Necati Efendi Erkek Öğrenci Yurdu',
+    district: 'Karıt / Kılavuzlar Mevkii',
+    gender: 'erkek',
+    blocks: ['1. Blok', '2. Blok', '3. Blok', '4. Blok', '5. Blok'],
+    zoneId: 'zone-kyk-yurtlari',
+    isActive: true,
+    distanceKm: 2.7,
+    mapsQuery: 'KYK İsmail Necati Efendi Erkek Öğrenci Yurdu, Karıt Mücavir, Safranbolu',
+    latitude: 41.2250,
+    longitude: 32.6580,
+    specialNote: 'Karıt Mücavir 213. Sokak Girişi',
   },
   {
     id: 'seyh-edebali',
     name: 'KYK Şeyh Edebali Erkek Öğrenci Yurdu',
     district: 'Demir Çelik Kampüsü',
     gender: 'erkek',
-    blocks: ['1. Blok', '2. Blok', '3. Blok', '4. Blok', '5. Blok'],
+    blocks: ['1. Blok', '2. Blok', '3. Blok', '4. Blok'],
     zoneId: 'zone-kyk-yurtlari',
     isActive: true,
-    distanceKm: 2.6,
-    mapsQuery: 'KYK Şeyh Edebali Erkek Öğrenci Yurdu, Karabük',
-    latitude: 41.2150,
-    longitude: 32.6480,
+    distanceKm: 2.5,
+    mapsQuery: 'KYK Şeyh Edebali Erkek Öğrenci Yurdu, Karabük Kampüs',
+    latitude: 41.2145,
+    longitude: 32.6430,
+    specialNote: 'Demir Çelik Kampüs İçi Erkek Yurtları Bölgesi',
   },
+  {
+    id: 'ozel-prestij',
+    name: 'Özel Prestij Erkek Öğrenci Yurdu',
+    district: 'Demir Çelik Kampüsü / Kılavuzlar',
+    gender: 'erkek',
+    blocks: ['Ana Bina'],
+    zoneId: 'zone-kyk-yurtlari',
+    isActive: true,
+    distanceKm: 2.7,
+    mapsQuery: 'Özel Prestij Erkek Yurdu, Kampüs Yolu, Karabük',
+    latitude: 41.2160,
+    longitude: 32.6420,
+  },
+
+  // --- 3. 100. YIL MAHALLESİ (ÖĞRENCİ MERKEZİ & ÖZEL YURTLAR: 3.5 - 4.5 KM) ---
   {
     id: 'eflani',
     name: 'KYK Eflani Kız Öğrenci Yurdu',
@@ -255,49 +355,200 @@ const DEFAULT_DORMS: DormitoryConfig[] = [
     blocks: ['A Blok', 'B Blok'],
     zoneId: 'zone-100yil',
     isActive: true,
-    distanceKm: 1.1,
+    distanceKm: 3.8,
     mapsQuery: 'KYK Eflani Kız Öğrenci Yurdu, 100. Yıl, Karabük',
-    latitude: 41.2080,
-    longitude: 32.6240,
+    latitude: 41.2078,
+    longitude: 32.6235,
+    specialNote: '100. Yıl 1003. Cadde Girişi',
+  },
+  {
+    id: 'ozel-altinkalem',
+    name: 'Özel Altınkalem Kız ve Erkek Öğrenci Yurdu',
+    district: '100. Yıl Mahallesi',
+    gender: 'karma',
+    blocks: ['Kız Bloğu', 'Erkek Bloğu'],
+    zoneId: 'zone-100yil',
+    isActive: true,
+    distanceKm: 3.6,
+    mapsQuery: 'Altınkalem Öğrenci Yurdu, 100. Yıl Mah. 1002. Cad. Karabük',
+    latitude: 41.2090,
+    longitude: 32.6280,
+    specialNote: 'KBÜ Ana Kapı Karşısı 1002. Cadde',
+  },
+  {
+    id: 'ozel-ilke',
+    name: 'Özel İlke Kız Öğrenci Yurdu',
+    district: '100. Yıl Mahallesi',
+    gender: 'kiz',
+    blocks: ['A Blok', 'B Blok'],
+    zoneId: 'zone-100yil',
+    isActive: true,
+    distanceKm: 3.7,
+    mapsQuery: 'Özel İlke Kız Yurdu, 1003. Cad. 100. Yıl, Karabük',
+    latitude: 41.2065,
+    longitude: 32.6260,
+  },
+  {
+    id: 'ozel-dilek',
+    name: 'Özel Dilek Kız Öğrenci Yurdu',
+    district: '100. Yıl Mahallesi',
+    gender: 'kiz',
+    blocks: ['Ana Bina'],
+    zoneId: 'zone-100yil',
+    isActive: true,
+    distanceKm: 3.9,
+    mapsQuery: 'Dilek Kız Yurdu, 1009. Sokak, 100. Yıl Mah., Karabük',
+    latitude: 41.2055,
+    longitude: 32.6245,
+  },
+  {
+    id: 'ozel-aslantepe',
+    name: 'Özel Aslantepe Kız Öğrenci Yurdu',
+    district: '100. Yıl Mahallesi',
+    gender: 'kiz',
+    blocks: ['Ana Bina'],
+    zoneId: 'zone-100yil',
+    isActive: true,
+    distanceKm: 4.0,
+    mapsQuery: 'Aslantepe Kız Öğrenci Yurdu, 1010. Sokak, 100. Yıl, Karabük',
+    latitude: 41.2045,
+    longitude: 32.6230,
+  },
+  {
+    id: 'ozel-karakoc',
+    name: 'Özel Karakoç Erkek Öğrenci Yurdu',
+    district: '100. Yıl Mahallesi',
+    gender: 'erkek',
+    blocks: ['Ana Blok'],
+    zoneId: 'zone-100yil',
+    isActive: true,
+    distanceKm: 3.6,
+    mapsQuery: 'Karakoç Erkek Yurdu, 1002. Sokak, 100. Yıl, Karabük',
+    latitude: 41.2085,
+    longitude: 32.6275,
   },
   {
     id: 'ozel-akademi',
     name: 'Özel Akademi Kız Öğrenci Yurdu',
     district: '100. Yıl Mahallesi',
     gender: 'kiz',
-    blocks: [],
+    blocks: ['A Blok', 'B Blok'],
     zoneId: 'zone-100yil',
     isActive: true,
-    distanceKm: 0.8,
-    mapsQuery: '100. Yıl Mah. 1003. Cad. Karabük',
+    distanceKm: 3.8,
+    mapsQuery: 'Özel Akademi Kız Yurdu, 1003. Cadde, 100. Yıl, Karabük',
     latitude: 41.2050,
     longitude: 32.6310,
   },
   {
-    id: 'ozel-prestij',
-    name: 'Özel Prestij Erkek Öğrenci Yurdu',
-    district: 'Demir Çelik Kampüsü',
-    gender: 'erkek',
-    blocks: [],
-    zoneId: 'zone-kyk-yurtlari',
+    id: 'ozel-100yil-apart',
+    name: '100. Yıl Öğrenci Apartları ve Rezidanslar',
+    district: '100. Yıl Mahallesi',
+    gender: 'karma',
+    blocks: ['Apart A', 'Apart B', 'Apart C', 'Rezidans'],
+    zoneId: 'zone-100yil',
     isActive: true,
-    distanceKm: 2.1,
-    mapsQuery: 'Demir Çelik Kampüsü, Karabük',
-    latitude: 41.2160,
-    longitude: 32.6420,
+    distanceKm: 3.8,
+    mapsQuery: '100. Yıl Mahallesi Öğrenci Apartları, Karabük',
+    latitude: 41.2070,
+    longitude: 32.6250,
+    specialNote: '100. Yıl Mahallesindeki tüm apartlar, rezidanslar ve öğrenci evleri',
+  },
+
+  // --- 4. SAFRANBOLU BÖLGESİ (3.5 - 6.5 KM) ---
+  {
+    id: 'aise-ana',
+    name: 'KYK Aişe Ana Kız Öğrenci Yurdu',
+    district: 'Safranbolu / Tokatlı',
+    gender: 'kiz',
+    blocks: ['A Blok', 'B Blok', 'C Blok', 'D Blok'],
+    zoneId: 'zone-safranbolu',
+    isActive: true,
+    distanceKm: 4.6,
+    mapsQuery: 'KYK Aişe Ana Kız Öğrenci Yurdu, Tokatlı Köyü, Safranbolu',
+    latitude: 41.2580,
+    longitude: 32.6780,
+    specialNote: 'Tokatlı Köyü Mevkii Girişi',
   },
   {
     id: 'safranbolu-yurdu',
     name: 'KYK Safranbolu Öğrenci Yurdu',
     district: 'Safranbolu',
     gender: 'karma',
-    blocks: ['A Blok', 'B Blok', 'C Blok'],
+    blocks: ['A Blok (Kız)', 'B Blok (Erkek)', 'C Blok'],
     zoneId: 'zone-safranbolu',
     isActive: true,
-    distanceKm: 3.8,
-    mapsQuery: 'KYK Safranbolu Öğrenci Yurdu, Safranbolu',
-    latitude: 41.2450,
-    longitude: 32.6850,
+    distanceKm: 3.9,
+    mapsQuery: 'KYK Safranbolu Öğrenci Yurdu, Sadri Artunç Cad., Safranbolu',
+    latitude: 41.2460,
+    longitude: 32.6860,
+  },
+  {
+    id: 'ozel-gultekin',
+    name: 'Özel Gültekin Kız Öğrenci Yurdu',
+    district: 'Safranbolu (Emek Mah.)',
+    gender: 'kiz',
+    blocks: ['Ana Bina'],
+    zoneId: 'zone-safranbolu',
+    isActive: true,
+    distanceKm: 3.5,
+    mapsQuery: 'Özel Gültekin Kız Yurdu, Atatürk Bulvarı, Safranbolu',
+    latitude: 41.2420,
+    longitude: 32.6790,
+  },
+  {
+    id: 'ozel-celebi',
+    name: 'Özel Çelebi Kız Öğrenci Yurdu',
+    district: 'Safranbolu (Barış Mah.)',
+    gender: 'kiz',
+    blocks: ['Ana Bina'],
+    zoneId: 'zone-safranbolu',
+    isActive: true,
+    distanceKm: 3.7,
+    mapsQuery: 'Özel Çelebi Kız Yurdu, Sadri Artunç Cad., Safranbolu',
+    latitude: 41.2440,
+    longitude: 32.6820,
+  },
+  {
+    id: 'ozel-ova',
+    name: 'Özel Ova Kız Öğrenci Yurdu',
+    district: 'Safranbolu (Kıranköy)',
+    gender: 'kiz',
+    blocks: ['Ana Bina'],
+    zoneId: 'zone-safranbolu',
+    isActive: true,
+    distanceKm: 4.0,
+    mapsQuery: 'Ova Kız Öğrenci Yurdu, Emek Mah. Kıranköy, Safranbolu',
+    latitude: 41.2470,
+    longitude: 32.6840,
+  },
+
+  // --- 5. KARABÜK MERKEZ & SOĞUKSU / ŞİRİNEVLER (6.0 - 8.5 KM) ---
+  {
+    id: 'soguksu-kyk',
+    name: 'KYK Soğuksu Kız Öğrenci Yurdu',
+    district: 'Soğuksu / Karabük Merkez',
+    gender: 'kiz',
+    blocks: ['A Blok', 'B Blok', 'C Blok'],
+    zoneId: 'zone-sirinevler',
+    isActive: true,
+    distanceKm: 6.2,
+    mapsQuery: 'KYK Soğuksu Kız Yurdu, Melise Cad., Karabük',
+    latitude: 41.1960,
+    longitude: 32.6100,
+  },
+  {
+    id: 'taskent-kyk',
+    name: 'KYK Taşkent Kız Öğrenci Yurdu',
+    district: 'Yeşil Mahalle / Karabük Merkez',
+    gender: 'kiz',
+    blocks: ['A Blok', 'B Blok'],
+    zoneId: 'zone-sirinevler',
+    isActive: true,
+    distanceKm: 6.8,
+    mapsQuery: 'KYK Taşkent Kız Yurdu, Taşkent Cad. Yeşil Mah., Karabük',
+    latitude: 41.1920,
+    longitude: 32.6210,
   },
 ];
 
@@ -509,7 +760,11 @@ export function getDeliveryZones(): DeliveryZone[] {
       return DEFAULT_ZONES;
     }
     const parsed: DeliveryZone[] = JSON.parse(raw);
-    return parsed.map((z, idx) => {
+    const existingZoneIds = new Set(parsed.map((z) => z.id));
+    const missingDefaults = DEFAULT_ZONES.filter((dz) => !existingZoneIds.has(dz.id));
+    const combinedZones = [...parsed, ...missingDefaults];
+
+    return combinedZones.map((z, idx) => {
       const match = DEFAULT_ZONES.find((dz) => dz.id === z.id);
       const ring = (z.hexRing || match?.hexRing || ((idx % 4 + 1) as 1 | 2 | 3 | 4));
       return {
@@ -517,8 +772,8 @@ export function getDeliveryZones(): DeliveryZone[] {
         ...z,
         polygonCoords: z.polygonCoords || match?.polygonCoords,
         hexRing: ring,
-        radiusKm: z.radiusKm || match?.radiusKm || (ring === 1 ? 1.2 : ring === 2 ? 2.8 : ring === 3 ? 4.8 : 7.2),
-        hexColor: z.hexColor || match?.hexColor || (ring === 1 ? '#10B981' : ring === 2 ? '#8B5CF6' : ring === 3 ? '#F59E0B' : '#EF4444'),
+        radiusKm: z.radiusKm || match?.radiusKm || (ring === 1 ? 1.8 : ring === 2 ? 3.5 : ring === 3 ? 5.0 : ring === 4 ? 6.5 : 9.0),
+        hexColor: z.hexColor || match?.hexColor || (ring === 1 ? '#10B981' : ring === 2 ? '#8B5CF6' : ring === 3 ? '#06B6D4' : ring === 4 ? '#F59E0B' : '#EF4444'),
       };
     });
   } catch {
@@ -542,7 +797,11 @@ export function getDormitories(): DormitoryConfig[] {
       return DEFAULT_DORMS;
     }
     const parsed: DormitoryConfig[] = JSON.parse(raw);
-    return parsed.map((d) => {
+    const existingDormIds = new Set(parsed.map((d) => d.id));
+    const missingDefaults = DEFAULT_DORMS.filter((dd) => !existingDormIds.has(dd.id));
+    const combinedDorms = [...parsed, ...missingDefaults];
+
+    return combinedDorms.map((d) => {
       const match = DEFAULT_DORMS.find((dd) => dd.id === d.id);
       return {
         ...match,
@@ -551,6 +810,7 @@ export function getDormitories(): DormitoryConfig[] {
         longitude: d.longitude || match?.longitude,
         distanceKm: d.distanceKm || match?.distanceKm || 2.4,
         mapsQuery: d.mapsQuery || match?.mapsQuery || `${d.name}, Karabük`,
+        specialNote: d.specialNote || match?.specialNote,
       };
     });
   } catch {
@@ -1056,6 +1316,30 @@ export function getActiveBundleDeals(campaignsList?: Campaign[]): Campaign[] {
 
 // --- STORE OPEN/CLOSE LOGIC ---
 
+/**
+ * Get current minute of the day in Turkey timezone (Europe/Istanbul, UTC+3)
+ */
+export function getTurkeyMinutesNow(): number {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Istanbul',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(new Date());
+    const h = parts.find((p) => p.type === 'hour')?.value;
+    const m = parts.find((p) => p.type === 'minute')?.value;
+    if (h !== undefined && m !== undefined) {
+      return parseInt(h, 10) * 60 + parseInt(m, 10);
+    }
+  } catch {
+    // fallback
+  }
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
 export function isStoreOpen(customSettings?: SystemSettings): boolean {
   const settings = customSettings || getSystemSettings();
 
@@ -1064,11 +1348,13 @@ export function isStoreOpen(customSettings?: SystemSettings): boolean {
     return Boolean(settings.isManuallyOpen);
   }
 
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentMinutes = getTurkeyMinutesNow();
 
-  const [openH, openM] = settings.storeOpenTime.split(':').map(Number);
-  const [closeH, closeM] = settings.storeCloseTime.split(':').map(Number);
+  const openTime = settings.storeOpenTime || '16:00';
+  const closeTime = settings.storeCloseTime || '03:00';
+
+  const [openH, openM] = openTime.split(':').map((v) => parseInt(v, 10) || 0);
+  const [closeH, closeM] = closeTime.split(':').map((v) => parseInt(v, 10) || 0);
 
   const openMinutes = openH * 60 + openM;
   const closeMinutes = closeH * 60 + closeM;
@@ -1081,6 +1367,28 @@ export function isStoreOpen(customSettings?: SystemSettings): boolean {
     // Normal durum (08:00 - 22:00 gibi)
     return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
   }
+}
+
+/**
+ * Returns formatted remaining time until opening (e.g. '1 sa 20 dk', '35 dk') or empty string if open
+ */
+export function getTimeUntilOpen(customSettings?: SystemSettings): string {
+  const settings = customSettings || getSystemSettings();
+  if (isStoreOpen(settings)) return '';
+
+  const oTime = settings.storeOpenTime || '16:00';
+  const [oH, oM] = oTime.split(':').map((v) => parseInt(v, 10) || 0);
+  const targetMinutes = oH * 60 + oM;
+  const currentMinutes = getTurkeyMinutesNow();
+
+  let diffMinutes = targetMinutes - currentMinutes;
+  if (diffMinutes <= 0) {
+    diffMinutes += 24 * 60; // Next day
+  }
+
+  const diffHrs = Math.floor(diffMinutes / 60);
+  const diffMins = diffMinutes % 60;
+  return `${diffHrs > 0 ? `${diffHrs} sa ` : ''}${diffMins} dk`;
 }
 
 // --- ZONE-BASED DELIVERY CALCULATIONS ---
@@ -1353,32 +1661,38 @@ export function hasActiveFreeDeliveryCampaign(campaignsList?: Campaign[]): boole
 }
 
 // --- COUPON & VIP LOYALTY SYSTEM ---
-const COUPONS_KEY = 'caglabufe_coupons_v1';
+const COUPONS_KEY = 'caglabufe_coupons_v2';
 
 const DEFAULT_COUPONS: Coupon[] = [
   {
     id: 'coupon-vip20',
     code: 'VIP20',
-    title: '👑 VIP & Sadık Müdavim İndirimi',
-    description: 'En çok sipariş veren müşterilerimize özel sepet tutarında %20 indirim!',
+    title: '👑 Platin Müdavim İndirimi',
+    description: 'En çok sipariş veren Platin müdavimlerimize (10+ sipariş) özel %20 sepet indirimi!',
     discountType: 'percentage',
     discountValue: 20,
     minOrderAmount: 75,
     maxDiscount: 60,
-    expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    requiresAuth: true,
+    targetTier: 'platinum',
+    minOrdersRequired: 10,
+    expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
     isActive: true,
     createdAt: new Date().toISOString(),
   },
   {
     id: 'coupon-favori15',
     code: 'FAVORI15',
-    title: '🥇 Favori Müşteri İndirimi',
-    description: 'Çağla Büfe müdavimlerine özel %15 sepet indirimi!',
+    title: '🥇 Altın Müdavim İndirimi',
+    description: 'Çağla Büfe altın müdavimlerine (5+ sipariş) özel %15 sepet indirimi!',
     discountType: 'percentage',
     discountValue: 15,
     minOrderAmount: 60,
     maxDiscount: 45,
-    expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    requiresAuth: true,
+    targetTier: 'gold',
+    minOrdersRequired: 5,
+    expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
     isActive: true,
     createdAt: new Date().toISOString(),
   },
@@ -1386,11 +1700,13 @@ const DEFAULT_COUPONS: Coupon[] = [
     id: 'coupon-cagla10',
     code: 'CAGLA10',
     title: '⚡ Çağla Hoş Geldin İndirimi',
-    description: 'Tüm siparişlerde geçerli anında 15 TL indirim!',
+    description: 'Kayıtlı yeni müşterilerimize ilk siparişinde anında 15 TL indirim!',
     discountType: 'fixed',
     discountValue: 15,
     minOrderAmount: 80,
-    expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    requiresAuth: true,
+    oneTimePerUser: true,
+    expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
     isActive: true,
     createdAt: new Date().toISOString(),
   },
@@ -1404,7 +1720,28 @@ export function getCoupons(): Coupon[] {
       localStorage.setItem(COUPONS_KEY, JSON.stringify(DEFAULT_COUPONS));
       return DEFAULT_COUPONS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      localStorage.setItem(COUPONS_KEY, JSON.stringify(DEFAULT_COUPONS));
+      return DEFAULT_COUPONS;
+    }
+    // Güvenlik güncellemesi: Eski kuponları yeni yetkilendirme ve VIP şartlarıyla birleştir
+    const merged = parsed.map((c) => {
+      const def = DEFAULT_COUPONS.find((d) => d.code === c.code);
+      if (def) {
+        return {
+          ...def,
+          ...c,
+          requiresAuth: def.requiresAuth,
+          targetTier: def.targetTier ?? c.targetTier,
+          minOrdersRequired: def.minOrdersRequired ?? c.minOrdersRequired,
+          oneTimePerUser: def.oneTimePerUser ?? c.oneTimePerUser,
+          usedPhones: Array.isArray(c.usedPhones) ? c.usedPhones : [],
+        };
+      }
+      return c;
+    });
+    return merged;
   } catch {
     return DEFAULT_COUPONS;
   }
@@ -1436,10 +1773,34 @@ export function deleteCoupon(id: string): void {
   saveCoupons(coupons.filter((c) => c.id !== id));
 }
 
+export function recordCouponUsage(couponIdOrCode: string, phone: string): void {
+  if (!couponIdOrCode || !phone) return;
+  const cleanPhone = normalizePhoneNumber(phone);
+  if (!cleanPhone) return;
+
+  const coupons = getCoupons();
+  const cleanTarget = couponIdOrCode.trim().toUpperCase();
+  const updated = coupons.map((c) => {
+    if (c.id === couponIdOrCode || c.code.toUpperCase() === cleanTarget) {
+      const existing = Array.isArray(c.usedPhones) ? c.usedPhones : [];
+      const usedPhones = existing.includes(cleanPhone) ? existing : [...existing, cleanPhone];
+      return {
+        ...c,
+        usageCount: (c.usageCount || 0) + 1,
+        usedPhones,
+      };
+    }
+    return c;
+  });
+  saveCoupons(updated);
+}
+
 export function validateCoupon(
   code: string,
   cartTotal: number,
-  userPhone?: string
+  userPhone?: string,
+  userOrderCount: number = 0,
+  userTierLevel: VipTierLevel = 'new'
 ): {
   valid: boolean;
   message: string;
@@ -1458,21 +1819,42 @@ export function validateCoupon(
     return { valid: false, message: 'Geçersiz veya süresi dolmuş kupon kodu.', discountAmount: 0 };
   }
 
-  // Check expiration
+  // 1. Son kullanma tarihi kontrolü
   if (coupon.expiresAt && new Date(coupon.expiresAt).getTime() < Date.now()) {
     return { valid: false, message: 'Bu kupon kodunun kullanım süresi dolmuştur.', discountAmount: 0 };
   }
 
-  // Target phone check (Kişiye özel kupon kontrolü)
-  if (coupon.targetPhone) {
-    if (!userPhone) {
+  const cleanUser = userPhone ? normalizePhoneNumber(userPhone) : '';
+
+  // 2. Üyelik & Giriş Kontrolü
+  const requiresLogin =
+    coupon.requiresAuth ||
+    Boolean(coupon.targetPhone) ||
+    Boolean(coupon.targetTier) ||
+    Boolean(coupon.minOrdersRequired && coupon.minOrdersRequired > 0) ||
+    Boolean(coupon.oneTimePerUser);
+
+  if (requiresLogin && !cleanUser) {
+    return {
+      valid: false,
+      message: 'Bu indirim kuponundan yararlanabilmek için lütfen hesabınıza giriş yapınız.',
+      discountAmount: 0,
+    };
+  }
+
+  // 3. Tek Kullanımlık Kupon Kontrolü (Örn: Hoş Geldin Kuponu)
+  if (coupon.oneTimePerUser && cleanUser) {
+    if (coupon.usedPhones && coupon.usedPhones.includes(cleanUser)) {
       return {
         valid: false,
-        message: 'Bu kişiye özel kuponu kullanmak için lütfen hesabınıza giriş yapınız.',
+        message: 'Bu indirim kuponunu daha önce kullandınız. Her müşteri yalnızca 1 kez yararlanabilir.',
         discountAmount: 0,
       };
     }
-    const cleanUser = normalizePhoneNumber(userPhone);
+  }
+
+  // 4. Kişiye Özel Telefon Kontrolü
+  if (coupon.targetPhone) {
     const cleanTarget = normalizePhoneNumber(coupon.targetPhone);
     if (!cleanUser || !cleanTarget || cleanUser !== cleanTarget) {
       return {
@@ -1483,7 +1865,46 @@ export function validateCoupon(
     }
   }
 
-  // Min order amount check
+  // 5. Tamamlanmış Sipariş Sayısı Şartı (Örn: En az 5 sipariş)
+  if (coupon.minOrdersRequired && coupon.minOrdersRequired > 0) {
+    if (userOrderCount < coupon.minOrdersRequired) {
+      return {
+        valid: false,
+        message: `Bu kupon müdavim müşterilerimize özeldir (Minimum ${coupon.minOrdersRequired} tamamlanmış sipariş gereklidir. Mevcut siparişiniz: ${userOrderCount}).`,
+        discountAmount: 0,
+      };
+    }
+  }
+
+  // 6. VIP Seviye Şartı Kontrolü
+  if (coupon.targetTier) {
+    const TIER_RANKS: Record<string, number> = {
+      new: 0,
+      bronze: 1,
+      silver: 2,
+      gold: 3,
+      platinum: 4,
+    };
+    const tierLabels: Record<string, string> = {
+      bronze: 'Bronz',
+      silver: 'Gümüş',
+      gold: 'Altın',
+      platinum: 'Platin',
+    };
+    const userRank = TIER_RANKS[userTierLevel] || 0;
+    const requiredRank = TIER_RANKS[coupon.targetTier] || 0;
+
+    if (userRank < requiredRank) {
+      const requiredLabel = tierLabels[coupon.targetTier] || coupon.targetTier;
+      return {
+        valid: false,
+        message: `Bu kupon yalnızca ${requiredLabel} ve üzeri Müdavim müşterilerimize özeldir.`,
+        discountAmount: 0,
+      };
+    }
+  }
+
+  // 7. Minimum Sepet Tutarı Kontrolü
   if (coupon.minOrderAmount && cartTotal < coupon.minOrderAmount) {
     return {
       valid: false,
@@ -1492,6 +1913,7 @@ export function validateCoupon(
     };
   }
 
+  // 8. İndirim Hesabı
   let discount = 0;
   if (coupon.discountType === 'percentage') {
     discount = (cartTotal * coupon.discountValue) / 100;

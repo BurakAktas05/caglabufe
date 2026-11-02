@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SystemSettings } from '@/types';
 import {
   Settings,
@@ -14,6 +14,12 @@ import {
   ShieldCheck,
   Save,
   Megaphone,
+  Smartphone,
+  Key,
+  Send,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { audioAlert, SoundPreset } from '@/lib/audioAlert';
 
@@ -41,9 +47,29 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
     templateOrderOnTheWay: initialSettings.templateOrderOnTheWay || 'Kuryemiz yola çıktı! #{orderNumber} nolu siparişiniz ~10-15 dk içinde kapınızda.',
     templateOrderDelivered: initialSettings.templateOrderDelivered || 'Siparişiniz teslim edildi! Afiyet olsun, Çağla Büfe keyifli geceler diler.',
     templateWhatsApp: initialSettings.templateWhatsApp || 'Merhaba Çağla Büfe, {orderNumber} nolu {totalAmount} TL tutarındaki siparişim hakkında bilgi alabilir miyim?',
+    netgsmApiKey: initialSettings.netgsmApiKey || '',
+    netgsmUsercode: initialSettings.netgsmUsercode || '',
+    netgsmPassword: initialSettings.netgsmPassword || '',
+    netgsmHeader: initialSettings.netgsmHeader || 'CAGLABUFE',
+    isSmsEnabled: initialSettings.isSmsEnabled ?? true,
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; jobId?: string } | null>(null);
+
+  useEffect(() => {
+    setSettings((prev) => ({
+      ...prev,
+      ...initialSettings,
+      netgsmApiKey: initialSettings.netgsmApiKey ?? prev.netgsmApiKey ?? '',
+      netgsmUsercode: initialSettings.netgsmUsercode ?? prev.netgsmUsercode ?? '',
+      netgsmPassword: initialSettings.netgsmPassword ?? prev.netgsmPassword ?? '',
+      netgsmHeader: initialSettings.netgsmHeader ?? prev.netgsmHeader ?? 'CAGLABUFE',
+      isSmsEnabled: initialSettings.isSmsEnabled ?? prev.isSmsEnabled ?? true,
+    }));
+  }, [initialSettings]);
 
   const handleTestSelectedSound = () => {
     audioAlert.playNewOrderSound(
@@ -52,6 +78,52 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
       1,
       Boolean(settings.enableVibration)
     );
+  };
+
+  const handleSendTestSms = async () => {
+    if (!testPhone.trim()) {
+      setTestResult({ success: false, message: 'Lütfen test SMS gönderilecek telefon numarasını girin.' });
+      return;
+    }
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber: testPhone,
+          message: 'Çağla Büfe SMS Test Bildirimi: Netgsm entegrasyonu başarıyla çalışıyor! Tarih: ' + new Date().toLocaleTimeString('tr-TR'),
+          isTest: true,
+          customCredentials: {
+            apiKey: settings.netgsmApiKey,
+            usercode: settings.netgsmUsercode,
+            password: settings.netgsmPassword,
+            header: settings.netgsmHeader,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTestResult({
+          success: true,
+          message: data.message || 'SMS başarıyla iletildi!',
+          jobId: data.jobId,
+        });
+      } else {
+        setTestResult({
+          success: false,
+          message: data.error || data.message || 'SMS gönderilemedi. Lütfen Netgsm bilgilerinizi kontrol ediniz.',
+        });
+      }
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        message: 'Bağlantı hatası: ' + (err?.message || 'Bilinmeyen hata'),
+      });
+    } finally {
+      setTestSending(false);
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -126,6 +198,275 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
               style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}
             />
           </div>
+        </div>
+      </div>
+
+      {/* Netgsm SMS Entegrasyonu */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '16px',
+          padding: '20px',
+          border: '1.5px solid #C7D2FE',
+          boxShadow: '0 2px 10px rgba(99, 102, 241, 0.08)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '16px',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
+                backgroundColor: '#EEF2FF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Smartphone size={20} color="#4F46E5" />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#1F2937', margin: 0 }}>
+                Netgsm SMS Entegrasyonu
+              </h3>
+              <p style={{ fontSize: '12px', color: '#6B7280', margin: '2px 0 0 0' }}>
+                Müşteri OTP telefon doğrulama ve sipariş durumu SMS bildirimleri
+              </p>
+            </div>
+          </div>
+
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+              backgroundColor: settings.isSmsEnabled ? '#ECFDF5' : '#F3F4F6',
+              padding: '6px 14px',
+              borderRadius: '20px',
+              border: settings.isSmsEnabled ? '1.5px solid #86EFAC' : '1px solid #E5E7EB',
+              transition: 'all 0.2s',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={settings.isSmsEnabled ?? true}
+              onChange={(e) => setSettings({ ...settings, isSmsEnabled: e.target.checked })}
+              style={{ cursor: 'pointer', accentColor: '#059669' }}
+            />
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 800,
+                color: settings.isSmsEnabled ? '#15803D' : '#6B7280',
+              }}
+            >
+              {settings.isSmsEnabled ? '✓ Canlı SMS Aktif' : 'SMS Kapalı (Simülasyon Modu)'}
+            </span>
+          </label>
+        </div>
+
+        {/* Quick API Key / Single Key Input */}
+        <div
+          style={{
+            backgroundColor: '#F8FAFC',
+            borderRadius: '12px',
+            padding: '16px',
+            border: '1.5px solid #E2E8F0',
+            marginBottom: '16px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <Key size={16} color="#4F46E5" />
+            <label style={{ fontSize: '13px', fontWeight: 800, color: '#1E293B' }}>
+              Netgsm API Key / Tek Anahtar
+            </label>
+            <span
+              style={{
+                fontSize: '11px',
+                backgroundColor: '#EEF2FF',
+                color: '#4F46E5',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontWeight: 700,
+              }}
+            >
+              Hızlı Kurulum — Sadece Key Girin
+            </span>
+          </div>
+
+          <input
+            type="password"
+            placeholder="Netgsm API Key veya KullanıcıKodu:Şifre"
+            value={settings.netgsmApiKey || ''}
+            onChange={(e) => setSettings({ ...settings, netgsmApiKey: e.target.value })}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              border: '1.5px solid #CBD5E1',
+              fontSize: '13px',
+              fontFamily: 'monospace',
+              backgroundColor: '#FFFFFF',
+            }}
+          />
+
+          <p style={{ fontSize: '11px', color: '#64748B', marginTop: '8px', marginBottom: 0, lineHeight: 1.5 }}>
+            🔑 <b>Kolay Giriş:</b> Netgsm panelinizden aldığınız <b>API Key</b> değerini buraya yapıştırıp kaydedin. Eğer Netgsm kullanıcı kodu ve şifreniz varsa tek alanda <code>850xxxxxxx:sifreniz</code> şeklinde de yazabilirsiniz. Aşağıdaki alanlar opsiyoneldir.
+          </p>
+        </div>
+
+        {/* Detailed inputs (Optional) */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+            gap: '12px',
+            marginBottom: '16px',
+          }}
+        >
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+              Abone No / Kullanıcı Kodu (Opsiyonel)
+            </label>
+            <input
+              type="text"
+              placeholder="Örn: 850xxxxxxx"
+              value={settings.netgsmUsercode || ''}
+              onChange={(e) => setSettings({ ...settings, netgsmUsercode: e.target.value })}
+              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '12px' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+              Netgsm Şifresi (Opsiyonel)
+            </label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={settings.netgsmPassword || ''}
+              onChange={(e) => setSettings({ ...settings, netgsmPassword: e.target.value })}
+              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '12px' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 700, color: '#374151', display: 'block', marginBottom: '4px' }}>
+              SMS Başlığı (Gönderici Adı)
+            </label>
+            <input
+              type="text"
+              placeholder="CAGLABUFE"
+              value={settings.netgsmHeader || ''}
+              onChange={(e) => setSettings({ ...settings, netgsmHeader: e.target.value })}
+              style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px' }}
+            />
+            <span style={{ fontSize: '10px', color: '#64748B', marginTop: '3px', display: 'block' }}>
+              Netgsm hesabınızda onaylı başlık (örn: CAGLABUFE)
+            </span>
+          </div>
+        </div>
+
+        {/* Live Test SMS Tool */}
+        <div
+          style={{
+            backgroundColor: '#F0FDF4',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            border: '1.5px solid #86EFAC',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+            <Send size={15} color="#15803D" />
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#166534' }}>
+              Canlı SMS Test Aracı
+            </span>
+            <span style={{ fontSize: '11px', color: '#15803D' }}>
+              — Girdiğiniz anahtarla hemen telefonunuza test SMS gönderin
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <input
+              type="tel"
+              placeholder="05xxxxxxxxx veya 5xxxxxxxxx"
+              value={testPhone}
+              onChange={(e) => setTestPhone(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: '200px',
+                padding: '9px 12px',
+                borderRadius: '8px',
+                border: '1px solid #86EFAC',
+                fontSize: '13px',
+                backgroundColor: '#FFFFFF',
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleSendTestSms}
+              disabled={testSending}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: testSending ? '#9CA3AF' : '#16A34A',
+                color: '#FFFFFF',
+                padding: '9px 18px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: testSending ? 'not-allowed' : 'pointer',
+                boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+              }}
+            >
+              {testSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              <span>{testSending ? 'Gönderiliyor...' : 'Test SMS Gönder'}</span>
+            </button>
+          </div>
+
+          {testResult && (
+            <div
+              style={{
+                marginTop: '10px',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                backgroundColor: testResult.success ? '#DCFCE7' : '#FEE2E2',
+                border: testResult.success ? '1px solid #86EFAC' : '1px solid #FCA5A5',
+                color: testResult.success ? '#166534' : '#991B1B',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+              }}
+            >
+              {testResult.success ? (
+                <CheckCircle2 size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+              ) : (
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+              )}
+              <div>
+                <div style={{ fontWeight: 700 }}>{testResult.message}</div>
+                {testResult.jobId && (
+                  <div style={{ fontSize: '11px', marginTop: '2px', opacity: 0.85 }}>
+                    Görev / İletim Kodu: <b>{testResult.jobId}</b>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

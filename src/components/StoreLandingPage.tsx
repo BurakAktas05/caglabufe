@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Sparkles, Phone, MessageCircle, ArrowRight, ShieldCheck, Bike, Zap, ShoppingBag, X } from 'lucide-react';
-import { getSystemSettings, isStoreOpen, subscribeToSettings } from '@/lib/settingsManager';
+import { Sparkles, Phone, MessageCircle, ArrowRight, ShieldCheck, Bike, Zap, ShoppingBag, X, Clock } from 'lucide-react';
+import { useApp } from '@/context/AppContext';
+import { getTimeUntilOpen } from '@/lib/settingsManager';
 
 interface StoreLandingPageProps {
   onEnterStore?: () => void;
@@ -20,49 +21,23 @@ export const StoreLandingPage: React.FC<StoreLandingPageProps> = ({
   autoCloseDuration = 2400,
 }) => {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(true);
-  const [openTime, setOpenTime] = useState('16:00');
-  const [closeTime, setCloseTime] = useState('03:00');
-  const [storePhone, setStorePhone] = useState('0542 000 7878');
-  const [whatsAppPhone, setWhatsAppPhone] = useState('905420007878');
-  const [timeUntilOpen, setTimeUntilOpen] = useState<string>('');
+  const { storeOpen, systemSettings } = useApp();
+
+  const isOpen = storeOpen;
+  const openTime = systemSettings?.storeOpenTime || '16:00';
+  const closeTime = systemSettings?.storeCloseTime || '03:00';
+  const storePhone = systemSettings?.storePhone || '0542 000 7878';
+  const whatsAppPhone = (systemSettings?.storeWhatsApp || '905420007878').replace(/\D/g, '');
+  const closedMessage = systemSettings?.closedMessage || 'Sipariş saatleri dışındayız. Hizmet saatlerimiz: 16:00 - 03:00.';
+
+  const timeUntilOpen = useMemo(() => {
+    return getTimeUntilOpen(systemSettings);
+  }, [systemSettings]);
 
   // Auto-close Splash screen state
   const [progress, setProgress] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const isClosingRef = useRef(false);
-
-  useEffect(() => {
-    const update = () => {
-      const openStatus = isStoreOpen();
-      setIsOpen(openStatus);
-      const settings = getSystemSettings();
-      const oTime = settings.storeOpenTime || '16:00';
-      const cTime = settings.storeCloseTime || '03:00';
-      setOpenTime(oTime);
-      setCloseTime(cTime);
-      setStorePhone(settings.storePhone || '0542 000 7878');
-      setWhatsAppPhone((settings.storeWhatsApp || '905420007878').replace(/\D/g, ''));
-
-      if (!openStatus) {
-        const now = new Date();
-        const [oH, oM] = oTime.split(':').map(Number);
-        const target = new Date(now);
-        target.setHours(oH, oM, 0, 0);
-        if (target.getTime() <= now.getTime()) {
-          target.setDate(target.getDate() + 1);
-        }
-        const diffMs = target.getTime() - now.getTime();
-        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        setTimeUntilOpen(`${diffHrs > 0 ? `${diffHrs} sa ` : ''}${diffMins} dk`);
-      }
-    };
-
-    update();
-    const unsub = subscribeToSettings(update);
-    return () => unsub();
-  }, []);
 
   const triggerExit = useCallback(() => {
     if (isClosingRef.current) return;
@@ -277,10 +252,10 @@ export const StoreLandingPage: React.FC<StoreLandingPageProps> = ({
         <div
           style={{
             width: '100%',
-            backgroundColor: isOpen ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-            border: isOpen ? '1.5px solid rgba(16, 185, 129, 0.4)' : '1.5px solid rgba(245, 158, 11, 0.4)',
+            backgroundColor: isOpen ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.15)',
+            border: isOpen ? '1.5px solid rgba(16, 185, 129, 0.4)' : '1.5px solid rgba(239, 68, 68, 0.45)',
             borderRadius: '16px',
-            padding: '12px 16px',
+            padding: '14px 16px',
             marginBottom: '16px',
             backdropFilter: 'blur(10px)',
             boxSizing: 'border-box',
@@ -289,27 +264,45 @@ export const StoreLandingPage: React.FC<StoreLandingPageProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             <span
               style={{
-                width: '9px',
-                height: '9px',
+                width: '10px',
+                height: '10px',
                 borderRadius: '50%',
-                backgroundColor: isOpen ? '#10B981' : '#F59E0B',
-                boxShadow: isOpen ? '0 0 10px #10B981' : '0 0 10px #F59E0B',
+                backgroundColor: isOpen ? '#10B981' : '#EF4444',
+                boxShadow: isOpen ? '0 0 10px #10B981' : '0 0 12px #EF4444',
                 flexShrink: 0,
               }}
             />
             <span
               style={{
-                fontSize: '13px',
-                fontWeight: 800,
-                color: isOpen ? '#34D399' : '#FBBF24',
+                fontSize: '14px',
+                fontWeight: 900,
+                color: isOpen ? '#34D399' : '#F87171',
+                letterSpacing: '0.2px',
               }}
             >
-              {isOpen ? `Şu Anda Açığız (${openTime} - ${closeTime})` : `🌙 Açılış: ${openTime} (Gece ${closeTime}'e kadar)`}
+              {isOpen ? `Şu Anda Açığız (${openTime} - ${closeTime})` : 'Şu Anda Kapalıyız'}
             </span>
           </div>
-          {!isOpen && timeUntilOpen && (
+
+          {!isOpen ? (
+            <>
+              <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#FEE2E2', fontWeight: 700, lineHeight: 1.4 }}>
+                {systemSettings?.isManualOverride && !systemSettings?.isManuallyOpen
+                  ? (systemSettings.closedMessage || 'Şu an sipariş alımına geçici olarak kapalıyız.')
+                  : `🌙 Hizmet Saatlerimiz: ${openTime} - ${closeTime}`}
+              </p>
+              {timeUntilOpen && (
+                <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#FCD34D', fontWeight: 700 }}>
+                  ⏰ Açılışa yaklaşık <strong>{timeUntilOpen}</strong> kaldı
+                </p>
+              )}
+              <p style={{ margin: '6px 0 0 0', fontSize: '11px', color: '#CBD5E1', fontWeight: 600, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '6px' }}>
+                Menümüzü inceleyebilirsiniz • Sipariş alımı açılışta başlayacaktır
+              </p>
+            </>
+          ) : (
             <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#CBD5E1', fontWeight: 600 }}>
-              Açılışa yaklaşık <strong>{timeUntilOpen}</strong> kaldı • Menüyü inceleyebilirsiniz
+              Siparişleriniz ortalama 20-30 dakikada kapınızda
             </p>
           )}
         </div>
@@ -427,7 +420,7 @@ export const StoreLandingPage: React.FC<StoreLandingPageProps> = ({
                 fontWeight: 600,
               }}
             >
-              <span>{progress < 100 ? 'Çağla Büfe hazırlanıyor...' : 'Giriş yapılıyor...'}</span>
+              <span>{progress < 100 ? (isOpen ? 'Çağla Büfe hazırlanıyor...' : 'Katalog ve menü yükleniyor...') : 'Giriş yapılıyor...'}</span>
               <span>%{progress}</span>
             </div>
           </div>
@@ -441,23 +434,23 @@ export const StoreLandingPage: React.FC<StoreLandingPageProps> = ({
             width: '100%',
             padding: '14px 20px',
             borderRadius: '14px',
-            backgroundColor: '#FFD10D',
-            color: '#1F2937',
+            backgroundColor: isOpen ? '#FFD10D' : '#5D3EBC',
+            color: isOpen ? '#1F2937' : '#FFFFFF',
             fontSize: '15px',
             fontWeight: 900,
-            border: 'none',
+            border: isOpen ? 'none' : '1.5px solid rgba(255, 209, 13, 0.45)',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            boxShadow: '0 8px 20px rgba(255, 209, 13, 0.35)',
-            transition: 'transform 0.15s ease',
+            boxShadow: isOpen ? '0 8px 20px rgba(255, 209, 13, 0.35)' : '0 8px 22px rgba(93, 62, 188, 0.55)',
+            transition: 'transform 0.15s ease, background-color 0.15s ease',
           }}
         >
-          <ShoppingBag size={18} color="#1F2937" />
-          <span>{isOpen ? 'HEMEN SİPARİŞE BAŞLA' : 'MENÜYÜ & ÜRÜNLERİ İNCELE'}</span>
-          <ArrowRight size={17} color="#1F2937" />
+          <ShoppingBag size={18} color={isOpen ? '#1F2937' : '#FFD10D'} />
+          <span>{isOpen ? 'HEMEN SİPARİŞE BAŞLA' : 'MENÜYÜ & ÜRÜNLERİ İNCELE (SİTEYE GİR)'}</span>
+          <ArrowRight size={17} color={isOpen ? '#1F2937' : '#FFD10D'} />
         </button>
 
         {/* Quick Contact for manual inspection */}

@@ -129,9 +129,11 @@ export interface Order {
   finalAmount: number;
   discountAmount?: number;
   appliedCampaignId?: string;
+  appliedCouponCode?: string;
   address: Address;
   paymentMethod: PaymentMethod;
   orderNote?: string;
+  customerPreference?: string; // Örn: 'Alternatif veya iptal ürün için müşteriyi ara'
   status: OrderStatus;
   estimatedDeliveryMinutes: number;
   createdAt: string;
@@ -187,6 +189,10 @@ export interface Coupon {
   maxDiscount?: number;    // Maksimum indirim tutarı
   targetPhone?: string;    // Belirli bir numaraya mı özel? (Boşsa herkese)
   targetTier?: 'bronze' | 'silver' | 'gold' | 'platinum'; // VIP seviyesine mi özel?
+  requiresAuth?: boolean;  // Giriş yapma zorunluluğu (Kayıtsız/misafir kullanamaz)
+  minOrdersRequired?: number; // Minimum tamamlanmış sipariş sayısı (Örn: Favori için 3, VIP için 5)
+  oneTimePerUser?: boolean; // Her müşteri/numara yalnızca 1 kez mi kullanabilir?
+  usedPhones?: string[];   // Bu kuponu kullanan numaraların listesi
   expiresAt?: string;      // Son kullanma tarihi (Opsiyonel)
   isActive: boolean;
   createdAt: string;
@@ -299,6 +305,12 @@ export interface SystemSettings {
   vipNotifications?: VipNotification[];
   dormitories?: DormitoryConfig[];
   deliveryZones?: DeliveryZone[];
+  // Netgsm SMS Entegrasyonu
+  netgsmUsercode?: string;
+  netgsmPassword?: string;
+  netgsmHeader?: string;
+  netgsmApiKey?: string;
+  isSmsEnabled?: boolean;
 }
 
 export interface PushSubscriptionData {

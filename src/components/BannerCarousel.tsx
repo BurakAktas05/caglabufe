@@ -5,17 +5,27 @@ import { useApp } from '@/context/AppContext';
 import { Clock, CreditCard, ShieldCheck, ShoppingBag } from 'lucide-react';
 
 export const BannerCarousel = () => {
-  const { systemSettings, locale } = useApp();
+  const { systemSettings, locale, storeOpen } = useApp();
   const storeName = systemSettings?.storeName || 'Çağla Büfe & Market';
   const hours = systemSettings ? `${systemSettings.storeOpenTime} - ${systemSettings.storeCloseTime}` : '16:00 - 03:00';
 
-  const getOpenLabel = () => {
-    switch (locale) {
-      case 'en': return 'OPEN';
-      case 'ru': return 'ОТКРЫТО';
-      case 'ar': return 'مفتوح';
-      case 'fr': return 'OUVERT';
-      case 'tr': default: return 'AÇIK';
+  const getStatusLabel = () => {
+    if (storeOpen) {
+      switch (locale) {
+        case 'en': return 'OPEN';
+        case 'ru': return 'ОТКРЫТО';
+        case 'ar': return 'مفتوح';
+        case 'fr': return 'OUVERT';
+        case 'tr': default: return 'AÇIK';
+      }
+    } else {
+      switch (locale) {
+        case 'en': return 'CLOSED NOW';
+        case 'ru': return 'СЕЙЧАС ЗАКРЫТО';
+        case 'ar': return 'مغلق الآن';
+        case 'fr': return 'FERMÉ';
+        case 'tr': default: return 'ŞU AN KAPALI';
+      }
     }
   };
 
@@ -86,8 +96,15 @@ export const BannerCarousel = () => {
     <div className="promo-banner-container">
       <div className="promo-banner">
         <div className="promo-content">
-          <div className="promo-badge">
-            <span style={{ fontWeight: 800 }}>BOSTANBÜKÜ • SAFRANBOLU • KARABÜK • {hours} {getOpenLabel()}</span>
+          <div
+            className="promo-badge"
+            style={{
+              backgroundColor: storeOpen ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.2)',
+              border: storeOpen ? '1px solid rgba(16, 185, 129, 0.35)' : '1px solid rgba(239, 68, 68, 0.45)',
+              color: storeOpen ? '#34D399' : '#FCA5A5',
+            }}
+          >
+            <span style={{ fontWeight: 800 }}>BOSTANBÜKÜ • SAFRANBOLU • KARABÜK • {hours} • {getStatusLabel()}</span>
           </div>
           <h1 className="promo-title">
             {getTitle()}

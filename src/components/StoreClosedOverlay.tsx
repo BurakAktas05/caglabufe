@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useApp } from '@/context/AppContext';
 import { StoreLandingPage } from './StoreLandingPage';
 
 export const StoreClosedOverlay = () => {
   const pathname = usePathname();
+  const { storeOpen } = useApp();
   const [shouldShowSplash, setShouldShowSplash] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
 
@@ -24,9 +26,14 @@ export const StoreClosedOverlay = () => {
     // 2. PWA Startup: Standalone PWA opened in a fresh session
     const hasSeenPwaSession = sessionStorage.getItem('cagla_pwa_splash_seen') === 'true';
 
+    // 3. Store Closed session notice: show closed splash once per session when store is closed
+    const hasSeenClosedSession = sessionStorage.getItem('cagla_closed_seen_session') === 'true';
+
     if (!hasSeenDevice) {
       setShouldShowSplash(true);
     } else if (isPWA && !hasSeenPwaSession) {
+      setShouldShowSplash(true);
+    } else if (!storeOpen && !hasSeenClosedSession) {
       setShouldShowSplash(true);
     }
 
@@ -40,7 +47,7 @@ export const StoreClosedOverlay = () => {
     return () => {
       window.removeEventListener('open-cagla-landing', handleOpenLanding);
     };
-  }, []);
+  }, [storeOpen]);
 
   // Do NOT show splash/landing overlay on admin portal!
   const isAdmin =
@@ -64,6 +71,7 @@ export const StoreClosedOverlay = () => {
         if (typeof window !== 'undefined') {
           localStorage.setItem('cagla_device_splash_seen', 'true');
           sessionStorage.setItem('cagla_pwa_splash_seen', 'true');
+          sessionStorage.setItem('cagla_closed_seen_session', 'true');
           sessionStorage.setItem('cagla_seen_landing', 'true');
         }
       }}
@@ -73,6 +81,7 @@ export const StoreClosedOverlay = () => {
         if (typeof window !== 'undefined') {
           localStorage.setItem('cagla_device_splash_seen', 'true');
           sessionStorage.setItem('cagla_pwa_splash_seen', 'true');
+          sessionStorage.setItem('cagla_closed_seen_session', 'true');
           sessionStorage.setItem('cagla_seen_landing', 'true');
         }
       }}

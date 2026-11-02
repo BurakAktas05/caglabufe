@@ -15,6 +15,7 @@ import {
   Search,
   Navigation,
   Compass,
+  PhoneCall,
 } from 'lucide-react';
 import { getGoogleMapsNavigationUrl, getDormitories, getDeliveryZones } from '@/lib/settingsManager';
 import { decodeHtmlEntities, normalizePhoneNumber, formatPhoneNumber } from '@/lib/security';
@@ -439,6 +440,28 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* Customer Preference Badge */}
+                  {order.customerPreference && (
+                    <div
+                      style={{
+                        marginTop: '6px',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        backgroundColor: '#EFF6FF',
+                        border: '1.5px solid #93C5FD',
+                        fontSize: '11px',
+                        color: '#1E40AF',
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <PhoneCall size={13} color="#2563EB" />
+                      <span>Müşteri Talebi: {order.customerPreference}</span>
+                    </div>
+                  )}
 
                   {/* Order Note */}
                   {order.orderNote && (

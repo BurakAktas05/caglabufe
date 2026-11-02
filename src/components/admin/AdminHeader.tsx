@@ -6,6 +6,7 @@ import {
   Volume2,
   Bell,
   Power,
+  RotateCcw,
 } from 'lucide-react';
 import { AdminTab } from './AdminSidebar';
 
@@ -17,6 +18,8 @@ interface AdminHeaderProps {
   onTestSound: () => void;
   isStoreOpen: boolean;
   onToggleStoreOpen: () => void;
+  isManualOverride?: boolean;
+  onResetToAutomatic?: () => void;
   onRequestNotificationPermission?: () => void;
   notificationPermission?: string;
 }
@@ -29,6 +32,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   onTestSound,
   isStoreOpen,
   onToggleStoreOpen,
+  isManualOverride = false,
+  onResetToAutomatic,
   onRequestNotificationPermission,
   notificationPermission,
 }) => {
@@ -191,9 +196,35 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             title={isStoreOpen ? 'Mağaza şu an AÇIK. Sipariş alımını durdurmak için tıkla.' : 'Mağaza şu an KAPALI. Siparişe açmak için tıkla.'}
           >
             <Power size={14} />
-            <span className="hide-on-mobile">{isStoreOpen ? 'Mağaza Açık' : 'Mağaza Kapalı'}</span>
+            <span className="hide-on-mobile">
+              {isStoreOpen ? (isManualOverride ? 'Açık (Manuel)' : 'Açık (Saatli)') : (isManualOverride ? 'Kapalı (Manuel)' : 'Kapalı (Saat Dışı)')}
+            </span>
             <span className="show-on-mobile">{isStoreOpen ? 'Açık' : 'Kapalı'}</span>
           </button>
+
+          {isManualOverride && onResetToAutomatic && (
+            <button
+              onClick={onResetToAutomatic}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                color: '#FFD10D',
+                border: '1px solid rgba(255, 209, 13, 0.3)',
+                padding: '7px 9px',
+                borderRadius: '8px',
+                fontSize: '11px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              title="Manuel kontrolü kaldırıp çalışma saatlerine göre otomatik çalışmaya dön"
+            >
+              <RotateCcw size={12} />
+              <span className="hide-on-mobile">Saatlere Dön</span>
+            </button>
+          )}
         </div>
       </div>
 

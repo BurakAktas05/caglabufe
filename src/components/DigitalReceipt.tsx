@@ -253,6 +253,18 @@ export const DigitalReceiptModal = ({ order, onClose }: DigitalReceiptProps) => 
               )}
             </div>
 
+            {/* Customer Preference */}
+            {order.customerPreference && (
+              <div style={{ borderTop: '1px dashed #000', paddingTop: '6px', marginTop: '6px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }}>
+                  MÜŞTERİ TALEBİ:
+                </div>
+                <div style={{ fontSize: '11px', fontWeight: 900, marginTop: '2px', backgroundColor: '#F3F4F6', padding: '3px 6px', borderRadius: '4px' }}>
+                  📞 {order.customerPreference}
+                </div>
+              </div>
+            )}
+
             {/* Customer Special Note */}
             {order.orderNote && (
               <div style={{ borderTop: '1px dashed #000', paddingTop: '6px', marginTop: '6px' }}>

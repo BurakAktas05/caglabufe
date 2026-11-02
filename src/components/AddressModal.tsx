@@ -6,6 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { KARABUK_DISTRICTS, DELIVERY_PRESET_NOTES } from '@/data/karabukLocations';
 import {
   getDormitories,
+  getDeliveryZones,
   getZoneForAddress,
   getClosestBranchAndZone,
   getStoreBranches,
@@ -81,10 +82,22 @@ export const AddressModal = () => {
     }
   }, [isAddressModalOpen]);
 
-  // Dynamic dormitories & branches from admin settings
+  // Dynamic dormitories, zones & branches from admin settings
   const dorms = useMemo(() => {
     return getDormitories().filter((d) => d.isActive);
   }, []);
+
+  const zones = useMemo(() => {
+    return getDeliveryZones().filter((z) => z.isActive);
+  }, []);
+
+  const kykDorms = useMemo(() => {
+    return dorms.filter((d) => d.name.toLowerCase().includes('kyk'));
+  }, [dorms]);
+
+  const privateDorms = useMemo(() => {
+    return dorms.filter((d) => !d.name.toLowerCase().includes('kyk'));
+  }, [dorms]);
 
   const branches = useMemo(() => {
     return getStoreBranches().filter((b) => b.isActive);
@@ -839,14 +852,80 @@ export const AddressModal = () => {
                       value={selectedDormId}
                       onChange={(e) => setSelectedDormId(e.target.value)}
                       required
+                      style={{ fontSize: '13px', padding: '10px 12px' }}
                     >
-                      {dorms.map((dorm) => (
-                        <option key={dorm.id} value={dorm.id}>
-                          {dorm.name} ({dorm.district})
-                        </option>
-                      ))}
+                      <optgroup label="🏛️ Devlet KYK Yurtları (Karabük & Safranbolu)">
+                        {kykDorms.map((dorm) => (
+                          <option key={dorm.id} value={dorm.id}>
+                            {dorm.name} — {dorm.distanceKm !== undefined ? `${dorm.distanceKm} km • ` : ''}{dorm.district}
+                          </option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="🏢 Özel Öğrenci Yurtları & Apart Kompleksleri">
+                        {privateDorms.map((dorm) => (
+                          <option key={dorm.id} value={dorm.id}>
+                            {dorm.name} — {dorm.distanceKm !== undefined ? `${dorm.distanceKm} km • ` : ''}{dorm.district}
+                          </option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
+
+                  {/* Yurt & Dükkandan Uzaklık Detay Kartı */}
+                  {currentDorm && (() => {
+                    const matchedZone = zones.find((z) => z.id === currentDorm.zoneId) || zones[0];
+                    return (
+                      <div
+                        style={{
+                          backgroundColor: '#F5F3FF',
+                          border: '1.5px solid #DDD6FE',
+                          borderRadius: '12px',
+                          padding: '12px 14px',
+                          marginBottom: '14px',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '6px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 800, color: '#5D3EBC' }}>
+                            📍 {currentDorm.name}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              backgroundColor: '#FFFFFF',
+                              color: '#5D3EBC',
+                              border: '1px solid #C4B5FD',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                            }}
+                          >
+                            {currentDorm.distanceKm ? `Dükkana: ${currentDorm.distanceKm} km` : 'Karabük'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', fontSize: '11px' }}>
+                          <div style={{ backgroundColor: '#FFFFFF', padding: '6px 8px', borderRadius: '6px', border: '1px solid #EDE9FE' }}>
+                            <span style={{ color: '#6B7280', display: 'block' }}>Kurye Teslimatı</span>
+                            <strong style={{ color: '#1F2937' }}>⚡ ~{matchedZone?.estimatedMinutes || 20} dakika</strong>
+                          </div>
+                          <div style={{ backgroundColor: '#FFFFFF', padding: '6px 8px', borderRadius: '6px', border: '1px solid #EDE9FE' }}>
+                            <span style={{ color: '#6B7280', display: 'block' }}>Teslimat Ücreti</span>
+                            <strong style={{ color: '#10B981' }}>{matchedZone?.deliveryFee || 15} TL</strong>
+                          </div>
+                          <div style={{ backgroundColor: '#FFFFFF', padding: '6px 8px', borderRadius: '6px', border: '1px solid #EDE9FE' }}>
+                            <span style={{ color: '#6B7280', display: 'block' }}>Ücretsiz Teslimat</span>
+                            <strong style={{ color: '#5D3EBC' }}>{matchedZone?.freeDeliveryThreshold || 150} TL üzeri</strong>
+                          </div>
+                        </div>
+
+                        {currentDorm.specialNote && (
+                          <div style={{ marginTop: '8px', fontSize: '11px', color: '#6D28D9', fontWeight: 600 }}>
+                            💡 {currentDorm.specialNote}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* Yurt Bilgilendirme Kutusu (Blok / Oda Gerekmez) */}
                   <div

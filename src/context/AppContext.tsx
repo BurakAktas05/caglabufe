@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef } from 'react';
-import { Product, CartItem, UserProfile, Address, Order, OrderStatus, PaymentMethod, SystemSettings, Campaign, BannedUser, Coupon } from '@/types';
+import { Product, CartItem, UserProfile, Address, Order, OrderStatus, PaymentMethod, SystemSettings, Campaign, BannedUser, Coupon, VipTierInfo } from '@/types';
 import { Locale, DEFAULT_LOCALE, getTranslation } from '@/lib/i18n';
 import { audioAlert } from '@/lib/audioAlert';
 import { showLocalNotification, requestNotificationPermission } from '@/lib/pushNotifications';
@@ -38,6 +38,8 @@ import {
   formatTemplate,
   getCoupons,
   validateCoupon,
+  recordCouponUsage,
+  getVipTierInfo,
   getDormitories,
 } from '@/lib/settingsManager';
 import {
@@ -79,6 +81,7 @@ interface AppContextType {
   applyCouponCode: (code: string) => { success: boolean; message: string; discount: number };
   removeCoupon: () => void;
   coupons: Coupon[];
+  userVipTier: VipTierInfo;
 
   // Products & Dynamic Settings
   products: Product[];
@@ -105,7 +108,7 @@ interface AppContextType {
 
   // Orders & Realtime
   orders: Order[];
-  placeOrder: (paymentMethod: PaymentMethod, note?: string) => Promise<Order | null>;
+  placeOrder: (paymentMethod: PaymentMethod, note?: string, customerPreference?: string) => Promise<Order | null>;
   activeTrackingOrder: Order | null;
   setActiveTrackingOrder: (order: Order | null) => void;
 
@@ -238,7 +241,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3500);
   };
-  const [storeOpen, setStoreOpen] = useState(true);
+  const [storeOpen, setStoreOpen] = useState(() => isStoreOpen());
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(getSystemSettings);
   const [products, setProducts] = useState<Product[]>(getStoredProducts);
   const [campaigns, setCampaigns] = useState<Campaign[]>(getCampaigns);
@@ -956,8 +959,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const isFreeDeliveryCampaign = singleCampaignResult.isFreeDeliveryCampaign;
   const isBundleCampaignApplied = singleCampaignResult.isBundleApplied;
 
+  // User orders and VIP Tier calculation
+  const userOrderCount = orders.length;
+  const userTotalSpent = useMemo(() => {
+    return orders.reduce((sum, o) => sum + (o.finalAmount || 0), 0);
+  }, [orders]);
+  const userVipTier = useMemo(() => {
+    return getVipTierInfo(userOrderCount, userTotalSpent);
+  }, [userOrderCount, userTotalSpent]);
+
   const applyCouponCode = (code: string) => {
-    const res = validateCoupon(code, cartTotal, user?.phone);
+    const res = validateCoupon(
+      code,
+      cartTotal,
+      user?.phone,
+      userOrderCount,
+      userVipTier.level
+    );
     if (res.valid && res.coupon) {
       setAppliedCoupon(res.coupon);
       showToast(res.message, 'success');
@@ -1082,7 +1100,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // --- ORDERS ---
-  const placeOrder = async (paymentMethod: PaymentMethod, orderNote?: string): Promise<Order | null> => {
+  const placeOrder = async (
+    paymentMethod: PaymentMethod,
+    orderNote?: string,
+    customerPreference?: string
+  ): Promise<Order | null> => {
     if (!storeOpen) {
       showToast(systemSettings.closedMessage || 'Mağaza şu an kapalı. Hizmet saatlerinde tekrar deneyiniz.', 'warning');
       return null;
@@ -1176,6 +1198,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // 3. XSS Sanitization for all customer text inputs
     const safeCustomerName = sanitizeInput(user.fullName);
     const safeOrderNote = sanitizeInput(orderNote || '');
+    const prefText = customerPreference ? sanitizeInput(customerPreference.trim()) : '';
+    let finalOrderNote = safeOrderNote;
+    if (prefText) {
+      finalOrderNote = finalOrderNote
+        ? `[Müşteri Talebi: ${prefText}] ${finalOrderNote}`
+        : `[Müşteri Talebi: ${prefText}]`;
+    }
     const safeAddress: Address = {
       ...selectedAddress,
       title: sanitizeInput(selectedAddress.title),
@@ -1214,10 +1243,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       deliveryFee,
       discountAmount: discountAmount > 0 ? discountAmount : undefined,
       appliedCampaignId: singleCampaignResult.appliedCampaignId || undefined,
+      appliedCouponCode: appliedCoupon?.code || undefined,
       finalAmount: finalTotal,
       address: safeAddress,
       paymentMethod,
-      orderNote: safeOrderNote,
+      customerPreference: prefText || undefined,
+      orderNote: finalOrderNote || undefined,
       status: 'pending',
       estimatedDeliveryMinutes: estimatedMinutes,
       createdAt: new Date().toISOString(),
@@ -1226,6 +1257,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const saved = await saveOrder(newOrder);
+
+      // Record coupon usage for one-time/usage counting
+      if (appliedCoupon && cleanUserPhone) {
+        recordCouponUsage(appliedCoupon.id, cleanUserPhone);
+      }
+      setAppliedCoupon(null);
 
       // Sync customer profile to Supabase profiles table
       if (isSupabaseConfigured() && supabase) {
@@ -1287,7 +1324,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         deliveryFee, discountAmount, appliedCampaignTitle,
         appliedCampaignDescription, isFreeDeliveryCampaign, isBundleCampaignApplied,
         finalTotal,
-        appliedCoupon, applyCouponCode, removeCoupon, coupons,
+        appliedCoupon, applyCouponCode, removeCoupon, coupons, userVipTier,
         products, refreshProducts, systemSettings,
         campaigns, activeCampaigns, bundleDeals, refreshCampaigns,
         user, loginUser, logoutUser,

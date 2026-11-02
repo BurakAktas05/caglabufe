@@ -109,9 +109,11 @@ export interface Order {
   finalAmount: number;
   discountAmount?: number;
   appliedCampaignId?: string;
+  appliedCouponCode?: string;
   address: Address;
   paymentMethod: PaymentMethod;
   orderNote?: string;
+  customerPreference?: string; // Örn: 'Alternatif veya iptal ürün için müşteriyi ara'
   status: OrderStatus;
   estimatedDeliveryMinutes: number;
   createdAt: string;
@@ -165,6 +167,10 @@ export interface Coupon {
   maxDiscount?: number;    // Maksimum indirim tutarı
   targetPhone?: string;    // Belirli bir numaraya mı özel? (Boşsa herkese)
   targetTier?: 'bronze' | 'silver' | 'gold' | 'platinum'; // VIP seviyesine mi özel?
+  requiresAuth?: boolean;  // Giriş yapma zorunluluğu (Kayıtsız/misafir kullanamaz)
+  minOrdersRequired?: number; // Minimum tamamlanmış sipariş sayısı (Örn: Favori için 3, VIP için 5)
+  oneTimePerUser?: boolean; // Her müşteri/numara yalnızca 1 kez mi kullanabilir?
+  usedPhones?: string[];   // Bu kuponu kullanan numaraların listesi
   expiresAt?: string;      // Son kullanma tarihi (Opsiyonel)
   isActive: boolean;
   createdAt: string;
@@ -222,6 +228,7 @@ export interface DeliveryZone {
   radiusKm?: number;          // Dükkandan mesafe halkası (km)
   hexRing?: 1 | 2 | 3 | 4;    // Altıgen halka seviyesi (1: 0-1.5km, 2: 1.5-3.5km, 3: 3.5-5.5km, 4: 5.5+km)
   hexColor?: string;          // Renk kodu
+  polygonCoords?: [number, number][]; // Poligon koordinatları [[lat, lng], ...]
 }
 
 export interface DormitoryConfig {
@@ -234,6 +241,11 @@ export interface DormitoryConfig {
   isActive: boolean;
   distanceKm?: number;        // Dükkana olan yaklaşık mesafe (km)
   mapsQuery?: string;         // Google Maps arama sorgusu
+  latitude?: number;
+  longitude?: number;
+  minOrderAmount?: number;     // Yurda özel minimum sepet tutarı (override)
+  discountPercentage?: number; // Yurda özel indirim oranı (%)
+  specialNote?: string;        // Örn: "Hubbi Hatun Öğrencilerine Özel %10 İndirim"
 }
 
 export interface SystemSettings {
@@ -266,6 +278,12 @@ export interface SystemSettings {
   templateOrderOnTheWay?: string;
   templateOrderDelivered?: string;
   templateWhatsApp?: string;
+  // Netgsm SMS Entegrasyonu
+  netgsmUsercode?: string;
+  netgsmPassword?: string;
+  netgsmHeader?: string;
+  netgsmApiKey?: string;
+  isSmsEnabled?: boolean;
 }
 
 export interface PushSubscriptionData {
