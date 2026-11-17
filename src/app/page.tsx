@@ -57,8 +57,8 @@ export default function Home() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  const storePhone = systemSettings.storePhone || '0542 000 7878';
-  const rawWhatsApp = (systemSettings.storeWhatsApp || '905420007878').replace(/\D/g, '');
+  const storePhone = systemSettings.storePhone || '0545 563 3972';
+  const rawWhatsApp = (systemSettings.storeWhatsApp || '905455633972').replace(/\D/g, '');
   const cleanPhone = storePhone.replace(/\s+/g, '');
 
   // Bundles matching search query or default

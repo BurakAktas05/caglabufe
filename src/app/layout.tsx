@@ -1,10 +1,14 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
 import { CustomerShell } from '@/components/CustomerShell';
 import { ServiceWorkerRegister } from '@/components/ServiceWorkerRegister';
 import { NetworkStatus } from '@/components/NetworkStatus';
+import { AnalyticsProvider } from '@/components/AnalyticsProvider';
+
+const gaMeasurementId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-VB3EM1H0BV';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -12,7 +16,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: 'swap',
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://caglabufe.com';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://caglabufe.shop';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -100,9 +104,26 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         {/* iOS Splash Startup Screens fallback */}
         <link rel="apple-touch-startup-image" href="/icon-512.png" />
+
+        {/* Google Analytics 4 (GA4) */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${gaMeasurementId}', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
       </head>
       <body className={plusJakartaSans.className}>
         <AppProvider>
+          <AnalyticsProvider />
           <ServiceWorkerRegister />
           <NetworkStatus />
           {children}

@@ -49,6 +49,7 @@ export const CartDrawer = () => {
     selectedAddress,
     setIsAddressModalOpen,
     user,
+    loginUser,
     setIsAuthModalOpen,
     placeOrder,
     storeOpen,
@@ -72,6 +73,22 @@ export const CartDrawer = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
+  const [showPhonePrompt, setShowPhonePrompt] = useState(false);
+  const [checkoutPhone, setCheckoutPhone] = useState('');
+
+  const handleSaveCheckoutPhone = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanDigits = checkoutPhone.replace(/\D/g, '');
+    if (cleanDigits.length < 7) {
+      showToast('Lütfen geçerli bir telefon numarası gir knk!', 'warning');
+      return;
+    }
+    if (user) {
+      loginUser(user.fullName, checkoutPhone.trim(), user.addresses);
+      setShowPhonePrompt(false);
+      showToast('Numaran kaydedildi knk! Artık siparişini tamamlayabilirsin. 🛵', 'success');
+    }
+  };
 
   const [mountTime] = useState(() => Date.now());
   const cleanUserPhone = user?.phone ? normalizePhoneNumber(user.phone) : '';
@@ -148,6 +165,12 @@ export const CartDrawer = () => {
     }
     if (!user) {
       setIsAuthModalOpen(true);
+      return;
+    }
+    const userPhoneClean = user.phone ? user.phone.replace(/\D/g, '') : '';
+    if (!userPhoneClean || userPhoneClean.length < 7) {
+      setShowPhonePrompt(true);
+      showToast('Kuryemiz kapıda sana ulaşabilsin diye telefon numaran lazım knk! 📞', 'warning');
       return;
     }
     if (!selectedAddress) {
@@ -1137,6 +1160,55 @@ export const CartDrawer = () => {
                 )}
               </div>
 
+              {/* Eksik Telefon Numarası İsteme Kartı (Google / E-posta girişi yapanlar için sipariş öncesi) */}
+              {user && (!user.phone || user.phone.replace(/\D/g, '').length < 7) && (
+                <div
+                  style={{
+                    backgroundColor: '#FEF3C7',
+                    border: '1.5px solid #F59E0B',
+                    borderRadius: '12px',
+                    padding: '14px',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      color: '#92400E',
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <PhoneCall size={16} />
+                    <span>Kuryemiz İçin Telefon Numaran Lazım Knk! 📞</span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#B45309', margin: '4px 0 10px', lineHeight: 1.4 }}>
+                    Siparişini getirdiğimizde kapıda sana ulaşabilmemiz için numaranı girer misin? (Türk veya yabancı/WhatsApp numaran olabilir!)
+                  </p>
+                  <form onSubmit={handleSaveCheckoutPhone} style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="tel"
+                      className="form-input"
+                      placeholder="05XX XXX XX XX veya WhatsApp"
+                      value={checkoutPhone}
+                      onChange={(e) => setCheckoutPhone(e.target.value)}
+                      style={{ flex: 1, padding: '10px 12px', borderRadius: '10px', fontSize: '14px', fontWeight: 700 }}
+                      autoFocus
+                      required
+                    />
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      style={{ padding: '10px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 800, flexShrink: 0 }}
+                    >
+                      Kaydet
+                    </button>
+                  </form>
+                </div>
+              )}
+
               {/* Price Breakdown */}
               <div style={{ backgroundColor: '#FFFFFF', borderRadius: '10px', padding: '12px', border: '1px solid #E5E7EB', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280', marginBottom: '6px' }}>
@@ -1192,6 +1264,8 @@ export const CartDrawer = () => {
                         ? t('minOrderWarning', 'Minimum sipariş tutarı {amount} TL olmalıdır.', { amount: minOrderAmount.toFixed(0) })
                         : !user
                         ? t('loginAndConfirm', 'Giriş Yap ve Onayla')
+                        : !user.phone || user.phone.replace(/\D/g, '').length < 7
+                        ? '📞 Telefon Ekle ve Onayla'
                         : !selectedAddress
                         ? t('addAddressAndConfirm', '📍 Adres Ekleyiniz ve Onayla')
                         : t('confirmOrder', 'Siparişi Onayla')}

@@ -47,13 +47,13 @@ export default function BrosurPage() {
     }
   }, []);
 
-  const websiteUrl = 'https://caglabufe.com';
+  const websiteUrl = 'https://caglabufe.shop';
   const [settings, setSettings] = useState(() => getSystemSettings());
   useEffect(() => {
     setSettings(getSystemSettings());
   }, []);
-  const phone = settings.storePhone || '0542 000 7878';
-  const whatsapp = settings.storeWhatsApp || '905420007878';
+  const phone = settings.storePhone || '0545 563 3972';
+  const whatsapp = settings.storeWhatsApp || '905455633972';
   const formattedWhatsApp = whatsapp.startsWith('90')
     ? '0' + whatsapp.slice(2).replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')
     : whatsapp;
@@ -219,7 +219,7 @@ export default function BrosurPage() {
                 <span>QR İndir</span>
               </button>
 
-              <button type="button" onClick={handleCopyLink} className="secondary-action-btn" title="caglabufe.com Linkini Kopyala">
+              <button type="button" onClick={handleCopyLink} className="secondary-action-btn" title="caglabufe.shop Linkini Kopyala">
                 {copied ? <Check size={16} color="#10B981" /> : <Copy size={16} />}
                 <span>{copied ? 'Kopyalandı' : 'Linki Al'}</span>
               </button>
@@ -276,14 +276,14 @@ export default function BrosurPage() {
               <div className="qr-image-wrapper">
                 {qrDataUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={qrDataUrl} alt="caglabufe.com QR Kodu" className="qr-image" />
+                  <img src={qrDataUrl} alt="caglabufe.shop QR Kodu" className="qr-image" />
                 ) : (
                   <div className="qr-loading">QR Kod Yükleniyor...</div>
                 )}
               </div>
               <div className="qr-footer-url">
                 <Globe size={14} />
-                <span>caglabufe.com</span>
+                <span>caglabufe.shop</span>
               </div>
             </div>
 
@@ -293,7 +293,7 @@ export default function BrosurPage() {
                   <Globe size={20} />
                 </div>
                 <div className="feature-info">
-                  <h4>caglabufe.com</h4>
+                  <h4>caglabufe.shop</h4>
                   <p>Uygulama indirmeye gerek yok! Web sitemizden 30 saniyede sipariş oluştur.</p>
                 </div>
               </div>
@@ -392,7 +392,7 @@ export default function BrosurPage() {
             <div className="footer-domain-row">
               <div className="domain-pill">
                 <Globe size={18} />
-                <span>www.caglabufe.com</span>
+                <span>www.caglabufe.shop</span>
               </div>
               <span className="domain-slogan">📱 Telefonuna Kaydet, Gece Acıkınca Anında Söyle!</span>
             </div>

@@ -149,7 +149,7 @@ export default async function Image() {
             display: 'flex',
           }}
         >
-          <span>caglabufe.com • Karabük Üniversitesi &amp; 100. Yıl Mahallesi</span>
+          <span>caglabufe.shop • Karabük Üniversitesi &amp; 100. Yıl Mahallesi</span>
         </div>
       </div>
     ),

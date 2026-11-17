@@ -327,6 +327,22 @@ export const fetchOrders = async (): Promise<Order[]> => {
   return getStoredOrders();
 };
 
+export const clearAllStoredOrders = async (): Promise<boolean> => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(STORAGE_ORDERS_KEY);
+    localStorage.removeItem('caglabufe_customer_order_ids_v1');
+  }
+  if (isSupabaseConfigured() && supabase) {
+    try {
+      await supabase.from('orders').delete().neq('id', 'keep_none');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+};
+
 export const fetchCustomerOrders = async (orderIds: string[]): Promise<Order[]> => {
   if (!orderIds || orderIds.length === 0) return [];
   if (isSupabaseConfigured() && supabase) {

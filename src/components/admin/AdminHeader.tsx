@@ -40,6 +40,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   const tabTitles: Record<AdminTab, string> = {
     orders: 'Canlı Sipariş Masası',
     daily: 'Günlük Kasa & Z-Raporu',
+    analytics: 'Ziyaretçi & Canlı Trafik Analizi',
     inventory: 'Ürün Stok & Menü Yönetimi',
     campaigns: 'Kampanyalar & Fırsat Paketleri',
     zones: 'Teslimat Bölgeleri & KYK Yurtları',

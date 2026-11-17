@@ -284,9 +284,11 @@ export interface SystemSettings {
   defaultDeliveryFee: number;
   defaultFreeDeliveryThreshold: number;
   adminPassword: string;      // Admin giriş şifresi
-  storePhone?: string;        // Büfe telefon numarası
-  storeWhatsApp?: string;     // Büfe WhatsApp numarası
+  storePhone?: string;        // Büfe telefon numarası / Kurye
+  storeWhatsApp?: string;     // Büfe WhatsApp numarası / Kurye
+  courierPhone?: string;      // Kurye telefon numarası
   techSupportWhatsApp?: string; // Yazılım / Teknik Destek WhatsApp numarası
+  techSupportPhone?: string;  // Yazılım / Teknik Destek telefon numarası
   storeAddress?: string;      // Büfe açık adresi
   storeLatitude?: number;     // Büfe enlem (41.2065)
   storeLongitude?: number;    // Büfe boylam (32.6285)

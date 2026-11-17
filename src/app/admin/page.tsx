@@ -59,6 +59,7 @@ import { AdminSidebar, AdminTab } from '@/components/admin/AdminSidebar';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { AdminOrders } from '@/components/admin/tabs/AdminOrders';
 import { AdminDailyReport } from '@/components/admin/tabs/AdminDailyReport';
+import { AdminAnalytics } from '@/components/admin/tabs/AdminAnalytics';
 import { AdminInventory } from '@/components/admin/tabs/AdminInventory';
 import { AdminCampaigns } from '@/components/admin/tabs/AdminCampaigns';
 import { AdminZones } from '@/components/admin/tabs/AdminZones';
@@ -74,6 +75,7 @@ import {
   MapPin,
   Settings as SettingsIcon,
   ShieldAlert,
+  BarChart3,
 } from 'lucide-react';
 import {
   normalizePhoneNumber,
@@ -585,6 +587,8 @@ export default function AdminPage() {
 
           {activeTab === 'daily' && <AdminDailyReport orders={orders} />}
 
+          {activeTab === 'analytics' && <AdminAnalytics orders={orders} />}
+
           {activeTab === 'inventory' && (
             <AdminInventory
               products={products}
@@ -696,6 +700,18 @@ export default function AdminPage() {
             <ReceiptText size={20} />
           </div>
           <span>Kasa / Z</span>
+        </button>
+
+        <button
+          type="button"
+          className={`admin-dock-item ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analytics')}
+          aria-label="Site Tıklanma & Ziyaret Analitiği"
+        >
+          <div className="admin-dock-icon">
+            <BarChart3 size={20} />
+          </div>
+          <span>Tıklanma</span>
         </button>
 
         <button

@@ -115,7 +115,7 @@ export const DigitalReceiptModal = ({ order, onClose }: DigitalReceiptProps) => 
                 {settings.storeName?.toUpperCase() || 'ÇAĞLA BÜFE & MARKET'}
               </h2>
               <p style={{ margin: 0, fontSize: '11px', color: '#444' }}>{settings.storeAddress || 'Karabük / KYK Hızlı Sipariş'}</p>
-              <p style={{ margin: '1px 0 0', fontSize: '11px', fontWeight: 700 }}>Tel: {settings.storePhone || '0542 000 7878'}</p>
+              <p style={{ margin: '1px 0 0', fontSize: '11px', fontWeight: 700 }}>Tel: {settings.storePhone || '0545 563 3972'}</p>
             </div>
 
             {/* Order & Customer Summary */}

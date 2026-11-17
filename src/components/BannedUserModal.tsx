@@ -35,8 +35,8 @@ export const BannedUserModal: React.FC<BannedUserModalProps> = ({
   bannedInfo,
   isOpen,
   onLogout,
-  storePhone = '0542 000 7878',
-  storeWhatsApp = '905420007878',
+  storePhone = '0545 563 3972',
+  storeWhatsApp = '905455633972',
 }) => {
   const { t, locale, dir } = useApp();
 

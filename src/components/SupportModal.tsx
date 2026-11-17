@@ -24,10 +24,10 @@ export const SupportModal: React.FC<SupportModalProps> = ({ isOpen, onClose }) =
 
   if (!isOpen) return null;
 
-  const storePhone = systemSettings.storePhone || '0542 000 7878';
+  const storePhone = systemSettings.storePhone || '0545 563 3972';
   const cleanStorePhone = storePhone.replace(/\s+/g, '');
-  const rawStoreWhatsApp = (systemSettings.storeWhatsApp || '905420007878').replace(/\D/g, '');
-  const rawTechWhatsApp = (systemSettings.techSupportWhatsApp || '905550000000').replace(/\D/g, '');
+  const rawStoreWhatsApp = (systemSettings.storeWhatsApp || '905455633972').replace(/\D/g, '');
+  const rawTechWhatsApp = (systemSettings.techSupportWhatsApp || '905461876138').replace(/\D/g, '');
 
   const storeOrderMessage = encodeURIComponent(
     `Merhaba Çağla Büfe, siparişim / teslimat hakkında bilgi almak istiyorum.`

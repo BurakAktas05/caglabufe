@@ -26,8 +26,8 @@ export const StoreLandingPage: React.FC<StoreLandingPageProps> = ({
   const isOpen = storeOpen;
   const openTime = systemSettings?.storeOpenTime || '16:00';
   const closeTime = systemSettings?.storeCloseTime || '03:00';
-  const storePhone = systemSettings?.storePhone || '0542 000 7878';
-  const whatsAppPhone = (systemSettings?.storeWhatsApp || '905420007878').replace(/\D/g, '');
+  const storePhone = systemSettings?.storePhone || '0545 563 3972';
+  const whatsAppPhone = (systemSettings?.storeWhatsApp || '905455633972').replace(/\D/g, '');
   const closedMessage = systemSettings?.closedMessage || 'Sipariş saatleri dışındayız. Hizmet saatlerimiz: 16:00 - 03:00.';
 
   const timeUntilOpen = useMemo(() => {

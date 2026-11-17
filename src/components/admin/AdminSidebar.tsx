@@ -16,9 +16,10 @@ import {
   Volume2,
   VolumeX,
   Printer,
+  BarChart3,
 } from 'lucide-react';
 
-export type AdminTab = 'orders' | 'daily' | 'inventory' | 'campaigns' | 'zones' | 'settings' | 'banned';
+export type AdminTab = 'orders' | 'daily' | 'analytics' | 'inventory' | 'campaigns' | 'zones' | 'settings' | 'banned';
 
 interface AdminSidebarProps {
   activeTab: AdminTab;
@@ -81,6 +82,11 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       key: 'daily',
       label: 'Kasa & Z-Raporu',
       icon: <ReceiptText size={18} />,
+    },
+    {
+      key: 'analytics',
+      label: 'Site Tıklanma & Ziyaret',
+      icon: <BarChart3 size={18} />,
     },
     {
       key: 'inventory',

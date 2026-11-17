@@ -64,8 +64,8 @@ export const OrderTrackingModal = () => {
     (o) => o.status === 'pending' || o.status === 'preparing' || o.status === 'on_the_way'
   );
   const settings = systemSettings || getSystemSettings();
-  const storePhone = settings.storePhone || '0542 000 7878';
-  const rawWhatsApp = (settings.storeWhatsApp || '905420007878').replace(/\D/g, '');
+  const storePhone = settings.storePhone || '0545 563 3972';
+  const rawWhatsApp = (settings.storeWhatsApp || '905455633972').replace(/\D/g, '');
   const cleanPhone = storePhone.replace(/\s+/g, '');
 
   const stages = [
