@@ -58,7 +58,7 @@ export const initRecaptchaVerifier = (containerId: string = 'recaptcha-container
     throw new Error('reCAPTCHA sadece tarayıcı ortamında çalışır.');
   }
 
-  // Önceki doğrulayıcıyı güvenle temizle
+  // Önceki doğrulayıcıyı ve container'ı güvenle temizle
   if (window.recaptchaVerifier) {
     try {
       window.recaptchaVerifier.clear();
@@ -66,6 +66,11 @@ export const initRecaptchaVerifier = (containerId: string = 'recaptcha-container
       // sessizce geç
     }
     window.recaptchaVerifier = null;
+  }
+
+  const containerEl = document.getElementById(containerId);
+  if (containerEl) {
+    containerEl.innerHTML = '';
   }
 
   const verifier = new RecaptchaVerifier(auth, containerId, {
