@@ -14,19 +14,19 @@ import {
   MessageCircle,
   Globe,
   Bike,
-  Clock,
   ShieldCheck,
-  Flame,
   Coffee,
   ShoppingBag,
   ArrowLeft,
   Copy,
+  Tag,
+  Truck,
 } from 'lucide-react';
 import { getSystemSettings } from '@/lib/settingsManager';
 
 export default function BrosurPage() {
-  const [format, setFormat] = useState<'a4' | 'a5'>('a4');
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const format = 'a4';
+  const theme = 'dark';
   const [isClean, setIsClean] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
@@ -37,12 +37,6 @@ export default function BrosurPage() {
       const params = new URLSearchParams(window.location.search);
       if (params.get('clean') === '1') {
         setIsClean(true);
-      }
-      if (params.get('theme') === 'light') {
-        setTheme('light');
-      }
-      if (params.get('format') === 'a5') {
-        setFormat('a5');
       }
     }
   }, []);
@@ -64,14 +58,14 @@ export default function BrosurPage() {
       width: 1200,
       margin: 1,
       color: {
-        dark: theme === 'dark' ? '#1E1B4B' : '#1E1B4B',
+        dark: '#1E1B4B',
         light: '#FFFFFF',
       },
       errorCorrectionLevel: 'H',
     })
       .then((url) => setQrDataUrl(url))
       .catch((err) => console.error('QR code generation error:', err));
-  }, [theme]);
+  }, []);
 
   const handlePrint = () => {
     window.print();
@@ -96,7 +90,7 @@ export default function BrosurPage() {
       {/* ─── PRINT MEDIA CSS STYLES ─── */}
       <style jsx global>{`
         @page {
-          size: ${format === 'a4' ? 'A4 portrait' : 'A5 portrait'};
+          size: A4 portrait;
           margin: 0;
         }
 
@@ -140,8 +134,8 @@ export default function BrosurPage() {
           }
 
           .flyer-paper {
-            width: ${format === 'a4' ? '210mm' : '148mm'} !important;
-            height: ${format === 'a4' ? '297mm' : '210mm'} !important;
+            width: 210mm !important;
+            height: 297mm !important;
             max-width: none !important;
             max-height: none !important;
             box-shadow: none !important;
@@ -165,53 +159,11 @@ export default function BrosurPage() {
             </Link>
             <div className="toolbar-title-wrap">
               <h1 className="toolbar-title">Çağla Büfe Broşür &amp; Afiş Merkezi</h1>
-              <p className="toolbar-desc">Matbaa ve yazıcı için baskıya hazır (A4 &amp; A5) el ilanı</p>
+              <p className="toolbar-desc">Matbaa ve yazıcı için baskıya hazır (A4) el ilanı</p>
             </div>
           </div>
 
           <div className="toolbar-controls">
-            {/* Format Selector */}
-            <div className="control-group">
-              <span className="control-label">Boyut:</span>
-              <div className="btn-group">
-                <button
-                  type="button"
-                  className={`toggle-btn ${format === 'a4' ? 'active' : ''}`}
-                  onClick={() => setFormat('a4')}
-                >
-                  A4 Afiş (21×29.7cm)
-                </button>
-                <button
-                  type="button"
-                  className={`toggle-btn ${format === 'a5' ? 'active' : ''}`}
-                  onClick={() => setFormat('a5')}
-                >
-                  A5 El İlanı (14.8×21cm)
-                </button>
-              </div>
-            </div>
-
-            {/* Theme Selector */}
-            <div className="control-group">
-              <span className="control-label">Tema:</span>
-              <div className="btn-group">
-                <button
-                  type="button"
-                  className={`toggle-btn ${theme === 'dark' ? 'active' : ''}`}
-                  onClick={() => setTheme('dark')}
-                >
-                  🌙 Gece Moru (Lüks)
-                </button>
-                <button
-                  type="button"
-                  className={`toggle-btn ${theme === 'light' ? 'active' : ''}`}
-                  onClick={() => setTheme('light')}
-                >
-                  ☀️ Beyaz Zemin (Tasarruflu)
-                </button>
-              </div>
-            </div>
-
             {/* Action Buttons */}
             <div className="toolbar-actions">
               <button type="button" onClick={handleDownloadQr} className="secondary-action-btn" title="Yüksek Çözünürlüklü QR Kodu İndir">
@@ -252,8 +204,8 @@ export default function BrosurPage() {
                 <Image
                   src="/caglabufe_logo.jpg"
                   alt="Çağla Büfe"
-                  width={format === 'a4' ? 84 : 64}
-                  height={format === 'a4' ? 84 : 64}
+                  width={84}
+                  height={84}
                   priority
                   className="brand-emblem-img"
                 />
@@ -265,7 +217,7 @@ export default function BrosurPage() {
             </div>
 
             <p className="flyer-lead-banner">
-              🌙 Gece Acıkanlara Sıcak Tost, Soğuk İçecek, Atıştırmalık &amp; Market Ürünleri Kapında!
+              🌙 Karabük&apos;ün En Uygun Gece Marketi! Sürekli Kampanyalar &amp; Öğrenci Dostu Fiyatlarla Kapında!
             </p>
           </div>
 
@@ -320,11 +272,11 @@ export default function BrosurPage() {
 
               <div className="feature-block">
                 <div className="feature-icon-wrap" style={{ backgroundColor: '#F59E0B', color: '#FFFFFF' }}>
-                  <Clock size={20} />
+                  <Sparkles size={20} />
                 </div>
                 <div className="feature-info">
-                  <h4>Her Gece 22:00 - 06:00 Arası Açık</h4>
-                  <p>Akşam 10:00&apos;dan Sabah 06:00&apos;ya kadar aralıksız sıcak servis.</p>
+                  <h4>Gece Marketi &amp; Hızlı Servis</h4>
+                  <p>Gece boyunca acıktığında tüm atıştırmalık, içecek ve market ihtiyaçların kapında.</p>
                 </div>
               </div>
             </div>
@@ -333,17 +285,17 @@ export default function BrosurPage() {
           {/* MENU & CATEGORIES GRID */}
           <div className="flyer-menu-section">
             <div className="section-title-line">
-              <span className="section-title-text">NELER VAR? ZENGİN MENÜ &amp; MARKET</span>
+              <span className="section-title-text">NELER VAR? UCUZ FİYAT &amp; SÜREKLİ KAMPANYA</span>
             </div>
 
             <div className="menu-grid">
               <div className="menu-item-card">
                 <div className="menu-item-icon">
-                  <Flame size={20} color="#EF4444" />
+                  <Tag size={20} color="#EF4444" />
                 </div>
                 <div className="menu-item-details">
-                  <h5>Sıcak Tost Çeşitleri</h5>
-                  <p>Kaşarlı, Sucuklu, Karışık, Özel Çağla Atom Tost, Sandviçler</p>
+                  <h5>Sürekli Kampanya &amp; İndirimler</h5>
+                  <p>Öğrenci dostu ucuz fiyatlar, sepette anında indirimler &amp; haftalık sürprizler</p>
                 </div>
               </div>
 
@@ -353,7 +305,7 @@ export default function BrosurPage() {
                 </div>
                 <div className="menu-item-details">
                   <h5>Gece Marketi &amp; Atıştırmalık</h5>
-                  <p>Cips çeşitleri, Çikolatalar, Bisküviler, Kuruyemiş, Krakerler</p>
+                  <p>Cips çeşitleri, çikolatalar, bisküviler, kuruyemiş, tost &amp; sandviçler market fiyatına</p>
                 </div>
               </div>
 
@@ -363,17 +315,17 @@ export default function BrosurPage() {
                 </div>
                 <div className="menu-item-details">
                   <h5>Buz Gibi &amp; Sıcak İçecekler</h5>
-                  <p>Kola, Soğuk Çay, Enerji İçeceği, Meyve Suları, Su, Sıcak Kahve</p>
+                  <p>Kola, soğuk çay, enerji içeceği, meyve suları, su, sıcak kahve çeşitleri</p>
                 </div>
               </div>
 
               <div className="menu-item-card">
                 <div className="menu-item-icon">
-                  <Sparkles size={20} color="#10B981" />
+                  <Truck size={20} color="#10B981" />
                 </div>
                 <div className="menu-item-details">
-                  <h5>Gece İhtiyaçları &amp; Bakım</h5>
-                  <p>Islak mendil, Şampuan, Temel hijyen &amp; kişisel bakım malzemeleri</p>
+                  <h5>Ücretsiz Teslimat Fırsatları</h5>
+                  <p>Belirli sepet tutarı üzeri siparişlerde teslimat bedava, 20-30 dakikada kapında</p>
                 </div>
               </div>
             </div>
@@ -410,7 +362,7 @@ export default function BrosurPage() {
             </div>
 
             <div className="footer-copyright">
-              Çağla Büfe &amp; Market © Tüm Karabük • Gece 22:00 - Sabah 06:00 Hızlı Teslimat
+              Çağla Büfe &amp; Gece Marketi © Tüm Karabük &amp; KYK Yurtları • Kapıya Hızlı Teslimat
             </div>
           </div>
         </div>

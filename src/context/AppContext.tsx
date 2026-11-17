@@ -1077,6 +1077,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // --- ADDRESSES ---
   const saveNewAddress = (addr: Omit<Address, 'id'>): Address => {
+    if (!user) {
+      showToast('Adres kaydetmek için önce giriş yapmalısın knk! 🔐', 'warning');
+      setIsAuthModalOpen(true);
+      return null as any;
+    }
+
     const newAddress: Address = {
       ...addr,
       id: 'addr_' + Math.random().toString(36).substring(2, 9),
@@ -1085,6 +1091,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setAddresses(updated);
     setSelectedAddressId(newAddress.id);
     localStorage.setItem(ADDRESSES_STORAGE_KEY, JSON.stringify(updated));
+
+    const updatedUser = {
+      ...user,
+      addresses: updated,
+      selectedAddressId: newAddress.id,
+    };
+    setUser(updatedUser);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+
     showToast('Adresiniz başarıyla kaydedildi', 'success');
     return newAddress;
   };

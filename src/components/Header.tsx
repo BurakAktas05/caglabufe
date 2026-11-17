@@ -20,6 +20,7 @@ export const Header = () => {
     setIsAuthModalOpen,
     setIsProfileModalOpen,
     minOrderAmount,
+    showToast,
     t,
   } = useApp();
 
@@ -44,7 +45,14 @@ export const Header = () => {
           <button
             type="button"
             className="address-selector-btn"
-            onClick={() => setIsAddressModalOpen(true)}
+            onClick={() => {
+              if (!user) {
+                showToast('Adres eklemek veya seçmek için önce giriş yapmalısın knk! 🔐', 'warning');
+                setIsAuthModalOpen(true);
+                return;
+              }
+              setIsAddressModalOpen(true);
+            }}
             title="Teslimat Adresini Değiştir / Kayıtlı Adreslerim"
           >
             <div className="address-icon-wrap">

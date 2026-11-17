@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { sendSmsOtp, verifySmsOtp } from '@/lib/smsService';
 import { findProfileByPhone, isPhoneBanned, getBannedUserInfo } from '@/lib/supabase';
@@ -55,6 +55,13 @@ export const AuthModal = () => {
     const formatted = formatPhoneNumber(rawVal);
     setPhone(formatted);
   };
+
+  // Vodafone operatör kontrolü (anlık algılama)
+  const isVodafone = React.useMemo(() => {
+    const digits = phone.replace(/\D/g, '');
+    const clean = digits.startsWith('0') ? digits.slice(1) : digits;
+    return clean.startsWith('54');
+  }, [phone]);
 
   // Resend cooldown timer
   useEffect(() => {
@@ -414,6 +421,28 @@ export const AuthModal = () => {
           {/* ===== STEP: MAIN - Ana Giriş Ekranı ===== */}
           {step === 'main' && (
             <div>
+              {/* 💡 Vodafone / Yabancı Hat UX Ön Sorusu (Üstte Dikkat Çeken Kart) */}
+              <div
+                style={{
+                  backgroundColor: '#FFFBEB',
+                  border: '1.5px solid #FCD34D',
+                  borderRadius: '14px',
+                  padding: '12px 14px',
+                  marginBottom: '16px',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.08)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ fontSize: '16px' }}>📱</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#92400E' }}>
+                    Vodafone veya Yabancı Hat mı Kullanıyorsun?
+                  </span>
+                </div>
+                <p style={{ fontSize: '12px', color: '#78350F', margin: 0, lineHeight: 1.45 }}>
+                  SMS beklemeden <strong>Google</strong> veya <strong>E-posta</strong> ile şifresiz tek tıkla bağlanabilirsin knk!
+                </p>
+              </div>
+
               {/* Bilgilendirme */}
               <div
                 style={{
@@ -557,28 +586,6 @@ export const AuthModal = () => {
                 <span>SMS ile Giriş Yap</span>
                 <ChevronDown size={16} color="#94a3b8" />
               </button>
-
-              {/* Vodafone & Yabancı Öğrenci Dostane Notu */}
-              <div
-                style={{
-                  marginTop: '16px',
-                  padding: '12px 14px',
-                  backgroundColor: '#fef3c7',
-                  border: '1.5px dashed #f59e0b',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '10px',
-                }}
-              >
-                <Info size={18} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <div style={{ fontSize: '11.5px', color: '#78350f', lineHeight: 1.5 }}>
-                  <strong style={{ display: 'block', marginBottom: '3px', fontSize: '12px', color: '#92400e' }}>
-                    📱 Vodafone veya Yabancı Hat Kullanan Arkadaşlarımız İçin:
-                  </strong>
-                  Vodafone SMS kısıtlamaları veya Karabük&apos;te Türk hattı olmayan uluslararası öğrenci dostlarımız için en kolayı yukarıdaki <strong>Google</strong> veya <strong>E-posta</strong> ile girmektir knk! Şifre beklemeden bağlanabilirsin. Telefon numaranı siparişten hemen önce eklersin. ❤️🥪
-                </div>
-              </div>
             </div>
           )}
 
@@ -711,6 +718,74 @@ export const AuthModal = () => {
                 <span style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', display: 'block' }}>
                   {t('phoneHint', 'Cebinize tek kullanımlık bir doğrulama kodu göndereceğiz.')}
                 </span>
+
+                {/* ⚠️ Vodafone Canlı Algılama & Hızlı Alternatif Kutusu */}
+                {isVodafone && (
+                  <div
+                    style={{
+                      marginTop: '10px',
+                      padding: '12px',
+                      backgroundColor: '#FEF2F2',
+                      border: '1.5px solid #FCA5A5',
+                      borderRadius: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#991B1B', fontWeight: 800, fontSize: '12px', marginBottom: '4px' }}>
+                      <span>⚠️</span>
+                      <span>Vodafone Hattı Algılandı!</span>
+                    </div>
+                    <p style={{ fontSize: '11.5px', color: '#7F1D1D', margin: '0 0 10px', lineHeight: 1.4 }}>
+                      Vodafone operatör kısıtlamaları nedeniyle SMS kodu bazen iletilemeyebiliyor knk. SMS beklemeden tek tıkla şunları kullanabilirsin:
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        disabled={isGoogleLoading}
+                        style={{
+                          flex: 1,
+                          padding: '7px 10px',
+                          backgroundColor: '#4285F4',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '11.5px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <GoogleIcon />
+                        <span>Google ile Gir</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStep('email_form')}
+                        style={{
+                          flex: 1,
+                          padding: '7px 10px',
+                          backgroundColor: '#FFFFFF',
+                          color: '#0284C7',
+                          border: '1.5px solid #BAE6FD',
+                          borderRadius: '8px',
+                          fontSize: '11.5px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <Mail size={13} />
+                        <span>E-posta ile Gir</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Tanınan Müşteri Kartı */}

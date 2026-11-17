@@ -768,7 +768,14 @@ export const CartDrawer = () => {
                   </p>
                   <button
                     type="button"
-                    onClick={() => setIsAddressModalOpen(true)}
+                    onClick={() => {
+                      if (!user) {
+                        showToast('Adres eklemek için önce giriş yapmalısın knk! 🔐', 'warning');
+                        setIsAuthModalOpen(true);
+                        return;
+                      }
+                      setIsAddressModalOpen(true);
+                    }}
                     style={{
                       marginTop: '4px',
                       backgroundColor: '#E11D48',
@@ -804,7 +811,18 @@ export const CartDrawer = () => {
                       <MapPin size={14} />
                       <span>{t('deliveryAddress', 'Teslimat Adresi')}</span>
                     </div>
-                    <button type="button" onClick={() => setIsAddressModalOpen(true)} style={{ fontSize: '12px', color: '#5D3EBC', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!user) {
+                          showToast('Adres değiştirmek için önce giriş yapmalısın knk! 🔐', 'warning');
+                          setIsAuthModalOpen(true);
+                          return;
+                        }
+                        setIsAddressModalOpen(true);
+                      }}
+                      style={{ fontSize: '12px', color: '#5D3EBC', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
                       {t('change', 'Değiştir')}
                     </button>
                   </div>

@@ -66,6 +66,9 @@ export const AddressModal = () => {
     saveNewAddress,
     deleteAddress,
     setSelectedAddressId,
+    user,
+    setIsAuthModalOpen,
+    showToast,
     t,
     dir,
   } = useApp();
@@ -81,6 +84,15 @@ export const AddressModal = () => {
       setActiveTab('dormitory');
     }
   }, [isAddressModalOpen]);
+
+  // Giriş yapmamış kullanıcıları auth modalına yönlendir
+  useEffect(() => {
+    if (isAddressModalOpen && !user) {
+      setIsAddressModalOpen(false);
+      setIsAuthModalOpen(true);
+      showToast('Adres eklemek için önce giriş yapmalısın knk! 🔐', 'warning');
+    }
+  }, [isAddressModalOpen, user, setIsAddressModalOpen, setIsAuthModalOpen, showToast]);
 
   // Dynamic dormitories, zones & branches from admin settings
   const dorms = useMemo(() => {
@@ -129,7 +141,7 @@ export const AddressModal = () => {
   const [homeAddressDetail, setHomeAddressDetail] = useState('');
   const [courierNote, setCourierNote] = useState('');
 
-  if (!isAddressModalOpen) return null;
+  if (!isAddressModalOpen || !user) return null;
 
   const currentDorm = dorms.find((d) => d.id === selectedDormId) || dorms[0];
   const isRtl = dir === 'rtl';
