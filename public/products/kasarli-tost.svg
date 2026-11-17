@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#3D2106" />
+      <stop offset="60%" stop-color="#231203" />
+      <stop offset="100%" stop-color="#0F0701" />
+    </radialGradient>
+    <linearGradient id="breadTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="35%" stop-color="#D97706" />
+      <stop offset="80%" stop-color="#B45309" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+    <linearGradient id="cheeseMelt" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A" />
+      <stop offset="50%" stop-color="#FDE047" />
+      <stop offset="100%" stop-color="#EAB308" />
+    </linearGradient>
+    <linearGradient id="crustGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#B45309" stop-opacity="0.2" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="15" stdDeviation="25" flood-color="#000000" flood-opacity="0.7" />
+    </filter>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bgGrad)" />
+
+  <!-- Ambient Golden Glow -->
+  <circle cx="400" cy="300" r="260" fill="#F59E0B" opacity="0.12" filter="url(#glow)" />
+
+  <!-- Steam effects -->
+  <path d="M340 180 Q330 140 350 110 Q370 80 355 50" stroke="#FDE68A" stroke-width="4" fill="none" opacity="0.4" stroke-linecap="round" />
+  <path d="M400 170 Q415 130 395 100 Q375 70 390 40" stroke="#FDE68A" stroke-width="5" fill="none" opacity="0.5" stroke-linecap="round" />
+  <path d="M460 185 Q470 145 450 115 Q430 85 445 55" stroke="#FDE68A" stroke-width="4" fill="none" opacity="0.4" stroke-linecap="round" />
+
+  <!-- Wooden Board Plate -->
+  <ellipse cx="400" cy="420" rx="330" ry="110" fill="#29180A" filter="url(#shadow)" />
+  <ellipse cx="400" cy="415" rx="310" ry="98" fill="#452711" stroke="#5E3516" stroke-width="4" />
+  <ellipse cx="400" cy="412" rx="290" ry="88" fill="#381E0C" />
+
+  <!-- BOTTOM BREAD SLICE -->
+  <g filter="url(#shadow)">
+    <path d="M190 320 C230 290 570 290 610 320 C625 330 635 350 625 365 C580 410 220 410 175 365 C165 350 175 330 190 320 Z" fill="#92400E" />
+    <path d="M195 325 C235 295 565 295 605 325 C615 335 620 350 610 360 C570 400 230 400 190 360 C180 350 185 335 195 325 Z" fill="#B45309" />
+  </g>
+
+  <!-- MELTING CHEESE LAYER (Oozing out lavishly) -->
+  <g filter="url(#shadow)">
+    <!-- Main thick cheese pool -->
+    <path d="M180 325 C220 310 580 310 620 325 C640 345 610 375 580 370 C540 365 520 395 490 395 C460 395 450 375 420 375 C390 375 370 415 330 415 C290 415 280 380 250 380 C210 380 180 395 165 370 C155 350 165 335 180 325 Z" fill="url(#cheeseMelt)" />
+    
+    <!-- Cheese stretch drops / drips -->
+    <path d="M330 415 C338 440 345 448 350 445 C355 442 348 425 342 410 Z" fill="#EAB308" />
+    <path d="M490 395 C495 420 500 430 505 428 C510 425 504 410 498 395 Z" fill="#EAB308" />
+    <path d="M250 380 C254 402 258 412 262 410 C266 408 260 392 256 380 Z" fill="#FACC15" />
+
+    <!-- Cheese gloss reflections -->
+    <path d="M200 330 Q400 320 600 330 Q400 345 200 330" fill="#FEF9C3" opacity="0.6" />
+    <circle cx="340" cy="385" r="8" fill="#FFFFFF" opacity="0.4" />
+    <circle cx="430" cy="365" r="6" fill="#FFFFFF" opacity="0.4" />
+  </g>
+
+  <!-- TOP CRISPY BREAD SLICE -->
+  <g filter="url(#shadow)">
+    <!-- Bread base shape -->
+    <path d="M200 240 C270 215 530 215 600 240 C630 255 640 280 620 310 C570 350 230 350 180 310 C160 280 170 255 200 240 Z" fill="url(#breadTop)" />
+    
+    <!-- Golden crust rim highlight -->
+    <path d="M205 245 C275 220 525 220 595 245 C615 255 625 275 610 300 C565 335 235 335 190 300 C175 275 185 255 205 245 Z" fill="#D97706" stroke="url(#crustGlow)" stroke-width="3" />
+
+    <!-- CHARRED GRILL TOAST MARKS (Diagonal ridges) -->
+    <g stroke="#451A03" stroke-linecap="round" opacity="0.85">
+      <line x1="260" y1="240" x2="380" y2="335" stroke-width="12" />
+      <line x1="330" y1="230" x2="460" y2="335" stroke-width="13" />
+      <line x1="410" y1="230" x2="540" y2="330" stroke-width="12" />
+      <line x1="490" y1="235" x2="590" y2="315" stroke-width="10" />
+
+      <!-- Cross grill marks -->
+      <line x1="370" y1="235" x2="250" y2="325" stroke-width="9" opacity="0.6" />
+      <line x1="450" y1="230" x2="320" y2="335" stroke-width="10" opacity="0.6" />
+      <line x1="530" y1="235" x2="410" y2="335" stroke-width="10" opacity="0.6" />
+    </g>
+
+    <!-- Butter gloss on hot crust -->
+    <ellipse cx="370" cy="270" rx="45" ry="18" fill="#FDE68A" opacity="0.35" transform="rotate(-15 370 270)" />
+    <ellipse cx="480" cy="280" rx="35" ry="14" fill="#FDE68A" opacity="0.3" transform="rotate(-15 480 280)" />
+  </g>
+
+  <!-- BADGE: SICAK MUTFAK & FIYAT -->
+  <g transform="translate(40, 40)">
+    <rect width="210" height="42" rx="12" fill="#EA580C" filter="url(#shadow)" />
+    <text x="18" y="27" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="900" font-size="15" fill="#FFFFFF" letter-spacing="0.5">🔥 SICAK MUTFAK</text>
+  </g>
+
+  <g transform="translate(560, 40)">
+    <rect width="200" height="52" rx="14" fill="#FFD10D" filter="url(#shadow)" stroke="#B45309" stroke-width="2" />
+    <text x="100" y="36" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="950" font-size="28" fill="#1F2937" text-anchor="middle">150 ₺</text>
+  </g>
+
+  <!-- TITLE BANNER AT BOTTOM -->
+  <g transform="translate(400, 530)">
+    <rect x="-240" y="-22" width="480" height="48" rx="14" fill="#1E1B4B" stroke="#F59E0B" stroke-width="2" filter="url(#shadow)" />
+    <text x="0" y="9" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="900" font-size="20" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5">
+      🧀 BOL ERİMİŞ KAŞARLI TOST
+    </text>
+  </g>
+</svg>

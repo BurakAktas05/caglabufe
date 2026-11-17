@@ -95,6 +95,91 @@ export const initRecaptchaVerifier = (containerId: string = 'recaptcha-container
   return verifier;
 };
 
+// Client-side Anti-Spam & Cost-Protection Rate Limiter
+const OTP_RATE_STORAGE_KEY = 'caglabufe_otp_rate_limits';
+
+interface ClientOtpRateState {
+  globalTimestamps: number[];
+  phoneTimestamps: Record<string, number[]>;
+  lastAttemptAt: number;
+}
+
+const getOtpRateState = (): ClientOtpRateState => {
+  if (typeof window === 'undefined') {
+    return { globalTimestamps: [], phoneTimestamps: {}, lastAttemptAt: 0 };
+  }
+  try {
+    const raw = localStorage.getItem(OTP_RATE_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : { globalTimestamps: [], phoneTimestamps: {}, lastAttemptAt: 0 };
+  } catch {
+    return { globalTimestamps: [], phoneTimestamps: {}, lastAttemptAt: 0 };
+  }
+};
+
+const saveOtpRateState = (state: ClientOtpRateState) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(OTP_RATE_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // quota error yoksay
+  }
+};
+
+const checkOtpRateLimit = (cleanDigits: string): { allowed: boolean; message?: string } => {
+  const now = Date.now();
+  const state = getOtpRateState();
+
+  // 1. Minimum 45 saniye bekleme zorunluluğu (Cooldown)
+  if (state.lastAttemptAt && now - state.lastAttemptAt < 45 * 1000) {
+    const remaining = Math.ceil((45 * 1000 - (now - state.lastAttemptAt)) / 1000);
+    return {
+      allowed: false,
+      message: `Yeni kod istemeden önce lütfen ${remaining} saniye bekleyiniz knk!`,
+    };
+  }
+
+  // 2. Numaraya göre 10 dakikada maksimum 3 SMS
+  const tenMins = 10 * 60 * 1000;
+  const phoneList = (state.phoneTimestamps[cleanDigits] || []).filter((ts) => now - ts < tenMins);
+  if (phoneList.length >= 3) {
+    return {
+      allowed: false,
+      message: 'Bu numaraya kısa sürede çok fazla SMS gönderildi. Lütfen 10 dakika sonra deneyin veya Google / E-posta ile giriş yapın knk!',
+    };
+  }
+
+  // 3. Cihaz geneli 15 dakikada maksimum 5 SMS
+  const fifteenMins = 15 * 60 * 1000;
+  const globalList = (state.globalTimestamps || []).filter((ts) => now - ts < fifteenMins);
+  if (globalList.length >= 5) {
+    return {
+      allowed: false,
+      message: 'Çok fazla doğrulama isteğinde bulunuldu. Güvenliğiniz için lütfen biraz bekleyip tekrar deneyiniz.',
+    };
+  }
+
+  return { allowed: true };
+};
+
+const recordOtpSent = (cleanDigits: string) => {
+  const now = Date.now();
+  const state = getOtpRateState();
+  const tenMins = 10 * 60 * 1000;
+  const fifteenMins = 15 * 60 * 1000;
+
+  const phoneList = (state.phoneTimestamps[cleanDigits] || []).filter((ts) => now - ts < tenMins);
+  phoneList.push(now);
+
+  const globalList = (state.globalTimestamps || []).filter((ts) => now - ts < fifteenMins);
+  globalList.push(now);
+
+  state.phoneTimestamps[cleanDigits] = phoneList;
+  state.globalTimestamps = globalList;
+  state.lastAttemptAt = now;
+
+  saveOtpRateState(state);
+};
+
 /**
  * Firebase üzerinden gerçek SMS doğrulama kodu (OTP) gönderir.
  */
@@ -107,12 +192,24 @@ export const sendSmsOtp = async (phone: string, containerId: string = 'recaptcha
     };
   }
 
+  // Fatura şişmesini ve SMS bot saldırılarını önleyen güvenlik & rate limit kontrolü
+  const rateCheck = checkOtpRateLimit(cleanDigits);
+  if (!rateCheck.allowed) {
+    return {
+      success: false,
+      message: rateCheck.message || 'Çok fazla SMS isteği yapıldı.',
+    };
+  }
+
   const e164Phone = formatToE164(phone);
 
   try {
     const verifier = initRecaptchaVerifier(containerId);
     const confirmation = await signInWithPhoneNumber(auth, e164Phone, verifier);
     window.confirmationResult = confirmation;
+
+    // Başarılı gönderimde sayacı kaydet
+    recordOtpSent(cleanDigits);
 
     return {
       success: true,

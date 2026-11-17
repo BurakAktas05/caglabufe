@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#450A0A" />
+      <stop offset="60%" stop-color="#240707" />
+      <stop offset="100%" stop-color="#0F0303" />
+    </radialGradient>
+    <linearGradient id="breadTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="35%" stop-color="#D97706" />
+      <stop offset="80%" stop-color="#B45309" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+    <linearGradient id="cheeseMelt" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FEF08A" />
+      <stop offset="50%" stop-color="#FDE047" />
+      <stop offset="100%" stop-color="#EAB308" />
+    </linearGradient>
+    <radialGradient id="sucukGrad" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#DC2626" />
+      <stop offset="50%" stop-color="#B91C1C" />
+      <stop offset="85%" stop-color="#991B1B" />
+      <stop offset="100%" stop-color="#450A0A" />
+    </radialGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="15" stdDeviation="25" flood-color="#000000" flood-opacity="0.75" />
+    </filter>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bgGrad)" />
+
+  <!-- Ambient Red/Orange Warm Glow -->
+  <circle cx="400" cy="300" r="260" fill="#EF4444" opacity="0.14" filter="url(#glow)" />
+
+  <!-- Steam effects -->
+  <path d="M330 180 Q315 140 340 110 Q365 80 345 50" stroke="#FCA5A5" stroke-width="4" fill="none" opacity="0.45" stroke-linecap="round" />
+  <path d="M400 170 Q420 130 395 100 Q370 70 395 40" stroke="#FDE68A" stroke-width="5" fill="none" opacity="0.5" stroke-linecap="round" />
+  <path d="M470 185 Q485 145 460 115 Q435 85 455 55" stroke="#FCA5A5" stroke-width="4" fill="none" opacity="0.45" stroke-linecap="round" />
+
+  <!-- Wooden Board Plate -->
+  <ellipse cx="400" cy="420" rx="330" ry="110" fill="#29180A" filter="url(#shadow)" />
+  <ellipse cx="400" cy="415" rx="310" ry="98" fill="#452711" stroke="#5E3516" stroke-width="4" />
+  <ellipse cx="400" cy="412" rx="290" ry="88" fill="#381E0C" />
+
+  <!-- BOTTOM BREAD SLICE -->
+  <g filter="url(#shadow)">
+    <path d="M190 320 C230 290 570 290 610 320 C625 330 635 350 625 365 C580 410 220 410 175 365 C165 350 175 330 190 320 Z" fill="#92400E" />
+    <path d="M195 325 C235 295 565 295 605 325 C615 335 620 350 610 360 C570 400 230 400 190 360 C180 350 185 335 195 325 Z" fill="#B45309" />
+  </g>
+
+  <!-- SUCUK SLICES (Peeking out deliciously under cheese) -->
+  <g filter="url(#shadow)">
+    <!-- Sucuk slice 1 (Left) -->
+    <ellipse cx="270" cy="365" rx="42" ry="24" fill="url(#sucukGrad)" stroke="#7F1D1D" stroke-width="3" transform="rotate(-15 270 365)" />
+    <!-- White fat specks on sucuk -->
+    <circle cx="258" cy="360" r="3.5" fill="#FEF2F2" opacity="0.8" />
+    <circle cx="275" cy="370" r="4" fill="#FEF2F2" opacity="0.75" />
+    <circle cx="282" cy="358" r="3" fill="#FEF2F2" opacity="0.8" />
+    <circle cx="264" cy="372" r="2.5" fill="#FEF2F2" opacity="0.7" />
+
+    <!-- Sucuk slice 2 (Center) -->
+    <ellipse cx="395" cy="385" rx="48" ry="26" fill="url(#sucukGrad)" stroke="#7F1D1D" stroke-width="3" transform="rotate(8 395 385)" />
+    <circle cx="385" cy="380" r="4.5" fill="#FEF2F2" opacity="0.85" />
+    <circle cx="410" cy="388" r="4" fill="#FEF2F2" opacity="0.8" />
+    <circle cx="395" cy="395" r="3" fill="#FEF2F2" opacity="0.7" />
+    <circle cx="375" cy="390" r="3" fill="#FEF2F2" opacity="0.7" />
+
+    <!-- Sucuk slice 3 (Right) -->
+    <ellipse cx="515" cy="365" rx="44" ry="24" fill="url(#sucukGrad)" stroke="#7F1D1D" stroke-width="3" transform="rotate(20 515 365)" />
+    <circle cx="505" cy="362" r="3.5" fill="#FEF2F2" opacity="0.8" />
+    <circle cx="522" cy="368" r="4" fill="#FEF2F2" opacity="0.8" />
+    <circle cx="530" cy="358" r="3" fill="#FEF2F2" opacity="0.7" />
+
+    <!-- Extra sucuk center-left peeking -->
+    <ellipse cx="330" cy="375" rx="38" ry="20" fill="url(#sucukGrad)" stroke="#7F1D1D" stroke-width="2.5" transform="rotate(-5 330 375)" />
+    <circle cx="325" cy="372" r="3" fill="#FEF2F2" opacity="0.8" />
+    <circle cx="338" cy="378" r="3" fill="#FEF2F2" opacity="0.7" />
+  </g>
+
+  <!-- MELTING CHEESE LAYER (Flowing over sucuk) -->
+  <g filter="url(#shadow)">
+    <!-- Oozing cheese mantle -->
+    <path d="M180 325 C220 310 580 310 620 325 C640 345 615 375 585 370 C560 365 540 405 500 405 C470 405 450 375 425 375 C400 375 380 420 340 420 C300 420 285 375 255 375 C220 375 185 395 165 370 C155 350 165 335 180 325 Z" fill="url(#cheeseMelt)" />
+    
+    <!-- Cheese stretch drips wrapping over sucuk -->
+    <path d="M340 420 C348 445 356 455 362 450 C368 445 358 428 352 415 Z" fill="#EAB308" />
+    <path d="M500 405 C506 430 512 440 518 436 C524 432 516 418 510 400 Z" fill="#EAB308" />
+    <path d="M255 375 C260 398 265 408 270 405 C275 402 268 388 263 375 Z" fill="#FACC15" />
+
+    <!-- Cheese gloss reflections -->
+    <path d="M200 330 Q400 320 600 330 Q400 345 200 330" fill="#FEF9C3" opacity="0.6" />
+    <circle cx="355" cy="390" r="8" fill="#FFFFFF" opacity="0.4" />
+    <circle cx="440" cy="370" r="6" fill="#FFFFFF" opacity="0.4" />
+  </g>
+
+  <!-- TOP CRISPY BREAD SLICE -->
+  <g filter="url(#shadow)">
+    <!-- Bread base shape -->
+    <path d="M200 240 C270 215 530 215 600 240 C630 255 640 280 620 310 C570 350 230 350 180 310 C160 280 170 255 200 240 Z" fill="url(#breadTop)" />
+    
+    <!-- Golden crust rim highlight -->
+    <path d="M205 245 C275 220 525 220 595 245 C615 255 625 275 610 300 C565 335 235 335 190 300 C175 275 185 255 205 245 Z" fill="#D97706" stroke="#FDE68A" stroke-width="2.5" />
+
+    <!-- CHARRED GRILL TOAST MARKS (Diagonal ridges) -->
+    <g stroke="#3D1300" stroke-linecap="round" opacity="0.9">
+      <line x1="260" y1="240" x2="380" y2="335" stroke-width="12" />
+      <line x1="330" y1="230" x2="460" y2="335" stroke-width="13" />
+      <line x1="410" y1="230" x2="540" y2="330" stroke-width="12" />
+      <line x1="490" y1="235" x2="590" y2="315" stroke-width="10" />
+
+      <!-- Cross grill marks -->
+      <line x1="370" y1="235" x2="250" y2="325" stroke-width="9" opacity="0.65" />
+      <line x1="450" y1="230" x2="320" y2="335" stroke-width="10" opacity="0.65" />
+      <line x1="530" y1="235" x2="410" y2="335" stroke-width="10" opacity="0.65" />
+    </g>
+
+    <!-- Butter gloss on hot crust -->
+    <ellipse cx="370" cy="270" rx="45" ry="18" fill="#FDE68A" opacity="0.38" transform="rotate(-15 370 270)" />
+    <ellipse cx="480" cy="280" rx="35" ry="14" fill="#FDE68A" opacity="0.32" transform="rotate(-15 480 280)" />
+  </g>
+
+  <!-- BADGE: SICAK MUTFAK & FIYAT -->
+  <g transform="translate(40, 40)">
+    <rect width="210" height="42" rx="12" fill="#DC2626" filter="url(#shadow)" />
+    <text x="18" y="27" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="900" font-size="15" fill="#FFFFFF" letter-spacing="0.5">🔥 SICAK MUTFAK</text>
+  </g>
+
+  <g transform="translate(560, 40)">
+    <rect width="200" height="52" rx="14" fill="#FFD10D" filter="url(#shadow)" stroke="#B91C1C" stroke-width="2" />
+    <text x="100" y="36" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="950" font-size="28" fill="#1F2937" text-anchor="middle">170 ₺</text>
+  </g>
+
+  <!-- TITLE BANNER AT BOTTOM -->
+  <g transform="translate(400, 530)">
+    <rect x="-260" y="-22" width="520" height="48" rx="14" fill="#1E1B4B" stroke="#EF4444" stroke-width="2" filter="url(#shadow)" />
+    <text x="0" y="9" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="900" font-size="19" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.5">
+      🥩 BOL KAŞARLI &amp; SUCUKLU KARIŞIK TOST
+    </text>
+  </g>
+</svg>

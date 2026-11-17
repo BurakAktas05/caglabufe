@@ -77,6 +77,11 @@ export default function Home() {
     return products.filter((p) => p.isAvailable && p.discountPrice && p.discountPrice < p.price);
   }, [products]);
 
+  // Sıcak Mutfak & Tostlar
+  const kitchenProducts = useMemo(() => {
+    return products.filter((p) => p.isAvailable && p.isKitchenItem);
+  }, [products]);
+
   // Top Popular & Bestseller items for quick picks on home
   const popularProducts = useMemo(() => {
     const popularBrands = [
@@ -544,6 +549,48 @@ export default function Home() {
             {matchingBundles.length > 0 && (
               <div id="bundle-deals-section" style={{ marginBottom: '32px' }}>
                 <BundleDealsSection bundles={matchingBundles} products={products} />
+              </div>
+            )}
+
+            {/* 🔥 Sıcak Mutfak & Çıtır Tostlar Vitrini */}
+            {kitchenProducts.length > 0 && (
+              <div style={{ marginBottom: '32px' }}>
+                <div className="section-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: '#FFEDD5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Flame size={18} color="#EA580C" />
+                    </div>
+                    <div>
+                      <h2 className="section-title" style={{ margin: 0 }}>
+                        🔥 Sıcak Mutfak &amp; Çıtır Tostlar
+                      </h2>
+                      <span style={{ fontSize: '11px', color: '#9A3412', fontWeight: 700 }}>
+                        Sipariş üzerine taze ve sıcak hazırlanır (15 dk)
+                      </span>
+                    </div>
+                  </div>
+                  <Link
+                    href="/urunler?kategori=Tost+%26+S%C4%B1cak+Lezzetler"
+                    style={{
+                      fontSize: '12px',
+                      color: '#EA580C',
+                      fontWeight: 800,
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <span>Tümünü Gör ({kitchenProducts.length})</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+
+                <div className="product-grid">
+                  {kitchenProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
               </div>
             )}
 
