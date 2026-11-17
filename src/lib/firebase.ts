@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyC50O8ff4x7ENb_5fv5XRo-DAftwBVLRXM",
@@ -14,4 +15,18 @@ const firebaseConfig = {
 // Initialize Firebase once
 export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
+
+// Initialize reCAPTCHA Enterprise App Check in browser environment
+if (typeof window !== 'undefined') {
+  try {
+    initializeAppCheck(app, {
+      provider: new ReCaptchaEnterpriseProvider(
+        process.env.NEXT_PUBLIC_RECAPTCHA_ENTERPRISE_KEY || '6LckESQuAAAAAGJ0iqEloBfH67zUTIf0-LorqN2p'
+      ),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch (err) {
+    console.warn('AppCheck initialization warning:', err);
+  }
+}
 
