@@ -24,7 +24,7 @@ export const AuthModal = () => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  const [debugOtp, setDebugOtp] = useState<string | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [recognizedName, setRecognizedName] = useState<string | null>(null);
   const [recognizedAddress, setRecognizedAddress] = useState<Address | null>(null);
@@ -62,7 +62,6 @@ export const AuthModal = () => {
     if (!isAuthModalOpen) {
       setStep('phone');
       setOtpCode('');
-      setDebugOtp(null);
       setIsLoading(false);
     }
   }, [isAuthModalOpen]);
@@ -102,12 +101,11 @@ export const AuthModal = () => {
 
     setIsLoading(true);
     try {
-      const res = await sendSmsOtp(phone);
+      const res = await sendSmsOtp(phone, 'recaptcha-container');
       if (res.success) {
-        setDebugOtp(res.debugCode || '1234');
         setStep('otp');
         setResendCooldown(30);
-        showToast(t('otpSentSuccess', 'Yeni tek kullanımlık SMS şifreniz iletildi!'), 'success');
+        showToast(t('otpSentSuccess', 'SMS doğrulama kodu cep telefonunuza iletildi!'), 'success');
       } else {
         showToast(res.message, 'error');
       }
@@ -119,15 +117,15 @@ export const AuthModal = () => {
   // SMS ile gelen tek kullanımlık şifreyi doğrula
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otpCode.length < 4) {
-      showToast(t('enter4DigitsWarning', 'Lütfen 4 haneli SMS şifresini giriniz.'), 'warning');
+    if (otpCode.length < 6) {
+      showToast(t('enter6DigitsWarning', 'Lütfen 6 haneli SMS kodunu eksiksiz giriniz.'), 'warning');
       return;
     }
 
-    const isValid = verifySmsOtp(phone, otpCode);
-    if (isValid) {
-      setIsLoading(true);
-      try {
+    setIsLoading(true);
+    try {
+      const verifyRes = await verifySmsOtp(otpCode);
+      if (verifyRes.success) {
         const clean = phone.replace(/\D/g, '');
         const profile = await findProfileByPhone(clean);
         const effectiveName = (fullName.trim() || profile?.fullName || 'Müşteri');
@@ -137,11 +135,12 @@ export const AuthModal = () => {
           profile?.lastAddress ? [profile.lastAddress as Address] : undefined
         );
         setIsAuthModalOpen(false);
-      } finally {
-        setIsLoading(false);
+        showToast(t('loginSuccess', 'Giriş başarılı! Hoş geldiniz.'), 'success');
+      } else {
+        showToast(verifyRes.message || t('invalidOtpError', 'Hatalı veya süresi dolmuş SMS kodu! Tekrar deneyiniz.'), 'error');
       }
-    } else {
-      showToast(t('invalidOtpError', 'Hatalı veya süresi dolmuş SMS şifresi! Tekrar deneyiniz.'), 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -198,6 +197,9 @@ export const AuthModal = () => {
 
         {/* Body */}
         <div className="sheet-body" style={{ padding: '20px' }}>
+          {/* Firebase reCAPTCHA container */}
+          <div id="recaptcha-container"></div>
+
           {step === 'phone' ? (
             <form onSubmit={handleSendOtp}>
               {/* Bilgilendirme Kutusu */}
@@ -350,50 +352,23 @@ export const AuthModal = () => {
                   <ShieldCheck size={32} />
                 </div>
                 <h4 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '6px', color: '#111827' }}>
-                  {t('enterOtpTitle', 'SMS Şifrenizi Giriniz')}
+                  {t('enterOtpTitle', 'SMS Kodunuzu Giriniz')}
                 </h4>
                 <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.4 }}>
-                  {t('enterOtpDesc', '{phone} numarasına gönderilen 4 haneli tek kullanımlık giriş şifrenizi giriniz.', { phone })}
+                  {t('enterOtpDesc', '{phone} numarasına gönderilen 6 haneli tek kullanımlık giriş kodunuzu giriniz.', { phone })}
                 </p>
               </div>
 
-              {/* Demo / Test Modu Şifre Bilgisi */}
-              {debugOtp && (
-                <div
-                  onClick={() => setOtpCode(debugOtp)}
-                  style={{
-                    backgroundColor: '#F3F0FE',
-                    border: '1.5px dashed #8B5CF6',
-                    borderRadius: '12px',
-                    padding: '10px 14px',
-                    marginBottom: '16px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                  }}
-                  title="Tek tıkla doldurmak için tıklayınız"
-                >
-                  <div style={{ fontSize: '11px', color: '#6D28D9', fontWeight: 700 }}>
-                    {t('testOtpBannerTitle', '🧪 Test & Doğrulama Şifreniz (Tıkla Doldur):')}
-                  </div>
-                  <div style={{ fontSize: '22px', fontWeight: 900, color: '#5D3EBC', letterSpacing: '6px', marginTop: '3px' }}>
-                    {debugOtp}
-                  </div>
-                  <div style={{ fontSize: '10px', color: '#7C3AED', marginTop: '2px' }}>
-                    {t('testOtpBannerSub', '(SMS gelmediyse bu kodu veya 1234 yazıp giriş yapabilirsiniz)')}
-                  </div>
-                </div>
-              )}
-
-              {/* 4 Haneli Şifre Girişi */}
+              {/* 6 Haneli Şifre Girişi */}
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <input
                   type="text"
-                  maxLength={4}
+                  maxLength={6}
                   className="form-input"
                   style={{
-                    fontSize: '32px',
+                    fontSize: '26px',
                     fontWeight: 900,
-                    letterSpacing: '14px',
+                    letterSpacing: '8px',
                     textAlign: 'center',
                     padding: '14px',
                     borderRadius: '14px',
@@ -401,7 +376,7 @@ export const AuthModal = () => {
                     backgroundColor: '#faf5ff',
                     direction: 'ltr',
                   }}
-                  placeholder="----"
+                  placeholder="------"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                   autoFocus
@@ -413,6 +388,7 @@ export const AuthModal = () => {
               <button
                 type="submit"
                 className="btn-primary"
+                disabled={isLoading}
                 style={{
                   width: '100%',
                   padding: '14px',
@@ -425,8 +401,14 @@ export const AuthModal = () => {
                   borderRadius: '12px',
                 }}
               >
-                <CheckCircle2 size={18} />
-                <span>{t('verifyOtpBtn', 'Onayla ve Giriş Yap')}</span>
+                {isLoading ? (
+                  <span>{t('verifyingOtp', 'Doğrulanıyor...')}</span>
+                ) : (
+                  <>
+                    <CheckCircle2 size={18} />
+                    <span>{t('verifyOtpBtn', 'Onayla ve Giriş Yap')}</span>
+                  </>
+                )}
               </button>
 
               {/* Yeniden Gönder & Numara Değiştir */}

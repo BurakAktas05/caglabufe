@@ -42,11 +42,11 @@ export const DEFAULT_BRANCHES: StoreBranch[] = [
 // --- DEFAULT SYSTEM SETTINGS ---
 const DEFAULT_SETTINGS: SystemSettings = {
   storeName: 'Çağla Büfe & Market',
-  storeOpenTime: '16:00',
-  storeCloseTime: '03:00',
+  storeOpenTime: '22:00',
+  storeCloseTime: '06:00',
   isManuallyOpen: false,
   isManualOverride: false,
-  closedMessage: 'Sipariş saatleri dışındayız. Hizmet saatlerimiz her gün 16:00 - 03:00 arasıdır.',
+  closedMessage: 'Sipariş saatleri dışındayız. Hizmet saatlerimiz her gün 22:00 - 06:00 arasıdır.',
   announcementText: '🛵 Bostanbükü, 100. Yıl, KYK Yurtları ve Karabük geneline hızlı teslimat! Soğuk içecek, atıştırmalık ve market kapınızda.',
   isAnnouncementActive: true,
   defaultMinOrder: 50,
@@ -921,18 +921,7 @@ export function getClosestBranchAndZone(lat: number, lng: number): {
   const zones = getDeliveryZones().filter((z) => z.isActive);
 
   const fallbackBranch = branches[0] || DEFAULT_BRANCHES[0];
-  const fallbackZone = zones[0] || {
-    id: 'zone-100yil',
-    name: '100. Yıl Mah. (Çekirdek Bölge)',
-    minOrderAmount: 50,
-    deliveryFee: 10,
-    freeDeliveryThreshold: 120,
-    estimatedMinutes: 12,
-    isActive: true,
-    radiusKm: 1.5,
-    hexRing: 1,
-    hexColor: '#10B981',
-  };
+  const fallbackZone = zones[0] || DEFAULT_ZONES[0];
 
   if (branches.length === 0) {
     return { branch: fallbackBranch, zone: fallbackZone, distanceKm: 1.0 };

@@ -166,7 +166,6 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         simulated: true,
-        debugCode: code,
         message: 'SMS servisi yönetici tarafından kapatılmıştır (Simülasyon Modu).',
       });
     }
@@ -319,7 +318,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       simulated: true,
-      debugCode: code,
       message: 'Test modu: Netgsm bilgileri girildiğinde canlı SMS gidecektir.',
     });
   } catch (error: unknown) {

@@ -728,7 +728,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
               </label>
               <input
                 type="text"
-                placeholder="100. Yıl Mah. 1003. Cad. No:12 Karabük"
+                placeholder="Bostanbükü, Safranbolu / Karabük"
                 value={settings.storeAddress || ''}
                 onChange={(e) => setSettings({ ...settings, storeAddress: e.target.value })}
                 style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px' }}

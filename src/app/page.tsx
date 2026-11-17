@@ -717,7 +717,7 @@ export default function Home() {
                 {systemSettings.storeName || 'Çağla Büfe & Market'}
               </h4>
               <p style={{ fontSize: '12px', color: '#6B7280', margin: '3px 0 0 0' }}>
-                {systemSettings.storeAddress || '100. Yıl Mah. 1003. Cad. No:12 Karabük'} • Hizmet Saatleri: {systemSettings.storeOpenTime} - {systemSettings.storeCloseTime}
+                {systemSettings.storeAddress || 'Bostanbükü, Safranbolu / Karabük'} • Hizmet Saatleri: {systemSettings.storeOpenTime} - {systemSettings.storeCloseTime}
               </p>
             </div>
           </div>

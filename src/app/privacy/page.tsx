@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
                 1. Veri Sorumlusu
               </h2>
               <p>
-                6698 sayılı Kişisel Verilerin Korunması Kanunu (&ldquo;KVKK&rdquo;) uyarınca, Karabük 100. Yıl Mahallesi&rsquo;nde faaliyet gösteren Çağla Büfe &amp; Market olarak, sipariş süreçlerinin yürütülmesi amacıyla müşterilerimizin kişisel verilerini işlemekteyiz.
+                6698 sayılı Kişisel Verilerin Korunması Kanunu (&ldquo;KVKK&rdquo;) uyarınca, Karabük&rsquo;te faaliyet gösteren Çağla Büfe &amp; Market olarak, sipariş süreçlerinin yürütülmesi amacıyla müşterilerimizin kişisel verilerini işlemekteyiz.
               </p>
             </section>
 
@@ -98,7 +98,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <div style={{ marginTop: '16px', padding: '16px', borderRadius: '14px', backgroundColor: '#f1f5f9', fontSize: '13px', color: '#475569' }}>
-              <strong>İletişim &amp; Destek:</strong> Çağla Büfe &amp; Market, 100. Yıl Mah. 1003. Cad. No:12 Karabük. Tel: 0542 000 7878.
+              <strong>İletişim &amp; Destek:</strong> Çağla Büfe &amp; Market, Bostanbükü, Safranbolu / Karabük. Tel: 0542 000 7878.
             </div>
           </div>
         </div>

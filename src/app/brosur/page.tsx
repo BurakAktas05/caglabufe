@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Copy,
 } from 'lucide-react';
+import { getSystemSettings } from '@/lib/settingsManager';
 
 export default function BrosurPage() {
   const [format, setFormat] = useState<'a4' | 'a5'>('a4');
@@ -47,8 +48,15 @@ export default function BrosurPage() {
   }, []);
 
   const websiteUrl = 'https://caglabufe.com';
-  const phone = '0542 000 7878';
-  const whatsapp = '905420007878';
+  const [settings, setSettings] = useState(() => getSystemSettings());
+  useEffect(() => {
+    setSettings(getSystemSettings());
+  }, []);
+  const phone = settings.storePhone || '0542 000 7878';
+  const whatsapp = settings.storeWhatsApp || '905420007878';
+  const formattedWhatsApp = whatsapp.startsWith('90')
+    ? '0' + whatsapp.slice(2).replace(/(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 $3 $4')
+    : whatsapp;
 
   useEffect(() => {
     // Generate ultra high resolution QR code (1200x1200px for 300+ DPI razor sharp print)
@@ -236,7 +244,7 @@ export default function BrosurPage() {
           <div className="flyer-header">
             <div className="brand-badge-pill">
               <Sparkles size={14} color="#FFD10D" />
-              <span>KARABÜK &amp; 100. YIL &amp; KYK YURTLARI</span>
+              <span>TÜM KARABÜK &amp; KYK YURTLARI GENELİ</span>
             </div>
 
             <div className="brand-logo-title-row">
@@ -296,7 +304,7 @@ export default function BrosurPage() {
                 </div>
                 <div className="feature-info">
                   <h4>20 - 30 Dakikada Kapında!</h4>
-                  <p>100. Yıl Mahallesi, Üniversite Kampüsü ve tüm KYK Kız / Erkek Yurtları kapısına hızlı servis.</p>
+                  <p>Tüm Karabük, Safranbolu, 100. Yıl ve tüm KYK Kız / Erkek Yurtları kapısına ekspres teslimat.</p>
                 </div>
               </div>
 
@@ -315,8 +323,8 @@ export default function BrosurPage() {
                   <Clock size={20} />
                 </div>
                 <div className="feature-info">
-                  <h4>Her Gece 03:00&apos;e Kadar Açık</h4>
-                  <p>Akşam 16:00&apos;dan Gece 03:00&apos;e kadar aralıksız sıcak servis.</p>
+                  <h4>Her Gece 22:00 - 06:00 Arası Açık</h4>
+                  <p>Akşam 10:00&apos;dan Sabah 06:00&apos;ya kadar aralıksız sıcak servis.</p>
                 </div>
               </div>
             </div>
@@ -373,9 +381,9 @@ export default function BrosurPage() {
 
           {/* DORMITORIES / SERVICE REGIONS */}
           <div className="flyer-dormitories-strip">
-            <span className="strip-label">📍 TESLİMAT BÖLGELERİMİZ:</span>
+            <span className="strip-label">📍 HİZMET BÖLGELERİMİZ:</span>
             <span className="strip-tags">
-              Bahaddin Gazi KYK • Asiye Hatun KYK • Hubbi Hatun KYK • Taşkent KYK • İsmail Necati KYK • 100. Yıl Mah. • Üniversite Kampüsü
+              Tüm Karabük Geneli • Bostanbükü • Safranbolu • 100. Yıl Mah. • KYK Yurtları • KBÜ Kampüs • Şirinevler • 5000 Evler
             </span>
           </div>
 
@@ -397,12 +405,12 @@ export default function BrosurPage() {
 
               <div className="contact-pill whatsapp-pill">
                 <MessageCircle size={15} />
-                <span>WhatsApp: <strong>0542 000 78 78</strong></span>
+                <span>WhatsApp: <strong>{formattedWhatsApp}</strong></span>
               </div>
             </div>
 
             <div className="footer-copyright">
-              Çağla Büfe &amp; Market © Karabük 100. Yıl • Hızlı &amp; Sıcak Teslimat
+              Çağla Büfe &amp; Market © Tüm Karabük • Gece 22:00 - Sabah 06:00 Hızlı Teslimat
             </div>
           </div>
         </div>
